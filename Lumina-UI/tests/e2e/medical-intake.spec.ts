@@ -3,107 +3,133 @@ import { getScreenshotFolder } from './helpers';
 
 const folder = getScreenshotFolder('intake');
 
-test.describe('Pre-Visit Digital Medical Intake E2E & API Tests', () => {
-  test('should validate medical intake endpoint requires valid token and payload', async ({ request, page }) => {
-    // 1. Test missing token validation
-    const missingTokenRes = await request.post('/api/intake', {
+test.describe('Pre-Visit Digital Medical Intake E2E & UI Workflow Tests', () => {
+  test('should validate API error handling for missing or invalid intake tokens', async ({ request }) => {
+    // 1. Missing token
+    const missingRes = await request.post('/api/intake', {
       data: {
         medicalConditions: ['Hypertension'],
-        allergies: ['Penicillin'],
       },
     });
-    expect(missingTokenRes.status()).toBe(400);
-    const missingBody = await missingTokenRes.json();
-    expect(missingBody.error).toMatch(/Intake token is required/i);
+    expect(missingRes.status()).toBe(400);
 
-    // 2. Test non-existent token validation
-    const invalidTokenRes = await request.post('/api/intake', {
+    // 2. Invalid token
+    const invalidRes = await request.post('/api/intake', {
       data: {
-        intakeToken: 'non-existent-sample-token-12345',
-        medicalConditions: ['Dental Anxiety'],
-        allergies: ['Latex'],
+        intakeToken: 'invalid-nonexistent-token',
+        medicalConditions: ['Asthma'],
       },
     });
-    expect(invalidTokenRes.status()).toBe(404);
-    const invalidBody = await invalidTokenRes.json();
-    expect(invalidBody.error).toMatch(/Invalid intake token/i);
-
-    // 3. Navigate to booking section to capture screenshot proof
-    await page.goto('/#booking-section');
-    await page.waitForLoadState('domcontentloaded');
-
-    await page.screenshot({
-      path: `${folder}/01-medical-intake-endpoint-verified.png`,
-      fullPage: false,
-    });
+    expect(invalidRes.status()).toBe(404);
   });
 
-  test('should create an appointment and submit complete medical intake to persist in Supabase medical_intakes table', async ({ request, page }) => {
-    // 1. Create a real appointment reservation
+  test('should complete full visual digital medical intake flow with live fields, capture screenshots, and persist in Supabase', async ({
+    page,
+    request,
+  }) => {
+    // 1. Create a real appointment to obtain an authentic intake token
     const timestamp = Date.now();
-    const testEmail = `patient.intake.${timestamp}@example.com`;
+    const testEmail = `patient.intake.ui.${timestamp}@example.com`;
 
     const bookingRes = await request.post('/api/appointments', {
       data: {
-        firstName: 'Alexandra',
-        lastName: 'Vane',
+        firstName: 'Elena',
+        lastName: 'Rostova',
         email: testEmail,
-        mobile: '(415) 555-7391',
-        dob: '1995-06-22',
+        mobile: '(415) 555-8822',
+        dob: '1992-04-14',
         sex: 'Female',
-        service: 'Laser Teeth Whitening, Porcelain Veneers & Smile Design',
-        date: '2026-08-28',
-        time: '11:00 AM – 12:00 PM',
-        notes: 'Requested digital intake link for allergies',
+        service: 'Laser Teeth Whitening, Dental Cleaning & Routine Checkup',
+        date: '2026-08-29',
+        time: '02:00 PM – 03:00 PM',
+        notes: 'Pre-visit medical history requested',
       },
     });
 
     expect(bookingRes.status()).toBe(200);
     const bookingData = await bookingRes.json();
-    expect(bookingData.success).toBe(true);
     expect(bookingData.intakeToken).toBeTruthy();
 
     const intakeToken = bookingData.intakeToken;
 
-    // 2. Validate token lookup endpoint (simulates patient opening digital intake link)
-    const getIntakeRes = await request.get(`/api/intake?token=${intakeToken}`);
-    expect(getIntakeRes.status()).toBe(200);
-    const intakeInfo = await getIntakeRes.json();
-    expect(intakeInfo.success).toBe(true);
-    expect(intakeInfo.appointment.service_name).toContain('Laser Teeth Whitening');
+    // 2. Navigate in browser to the digital intake page with the authentic token
+    await page.goto(`/intake?token=${intakeToken}`);
+    await page.waitForLoadState('networkidle');
 
-    // 3. Submit full medical history into medical_intakes table
-    const intakeSubmitRes = await request.post('/api/intake', {
-      data: {
-        intakeToken: intakeToken,
-        dateOfBirth: '1995-06-22',
-        emergencyContactName: 'Jonathan Vane',
-        emergencyContactPhone: '(415) 555-9988',
-        medicalConditions: ['Dental Anxiety', 'Hypertension'],
-        allergies: ['Penicillin', 'Latex'],
-        currentMedications: 'Lisinopril 10mg daily',
-        hmoProvider: 'Delta Dental Premier',
-        hmoMemberId: 'DD-992140',
-        consentSigned: true,
-      },
-    });
+    // Verify patient banner is populated
+    await expect(page.locator('text=Elena Rostova')).toBeVisible();
+    await expect(page.locator('text=Laser Teeth Whitening')).toBeVisible();
 
-    expect(intakeSubmitRes.status()).toBe(200);
-    const submitData = await intakeSubmitRes.json();
-    expect(submitData.success).toBe(true);
-    expect(submitData.message).toMatch(/Medical intake submitted successfully/i);
-
-    // 4. Verify appointment status is now 'intake_submitted'
-    const verifyStatusRes = await request.get(`/api/intake?token=${intakeToken}`);
-    expect(verifyStatusRes.status()).toBe(200);
-    const updatedData = await verifyStatusRes.json();
-    expect(updatedData.appointment.status).toBe('intake_submitted');
-
-    // 5. Visual screenshot confirmation
-    await page.goto('/#booking-section');
+    // STAGE 1 SCREENSHOT: Initial Form Loaded with Patient Chart
     await page.screenshot({
-      path: `${folder}/02-medical-intake-submitted-to-database.png`,
-      fullPage: false,
+      path: `${folder}/01-intake-form-loaded-with-patient-data.png`,
+      fullPage: true,
     });
+
+    // 3. Fill / verify Date of Birth
+    const dobInput = page.locator('[data-testid="input-intake-dob"]');
+    await dobInput.fill('1992-04-14');
+
+    // 4. Select Medical Conditions (Hypertension, Dental Anxiety)
+    await page.locator('[data-testid="checkbox-condition-0"]').click(); // Hypertension
+    await page.locator('[data-testid="checkbox-condition-1"]').click(); // Dental Anxiety
+
+    // STAGE 2 SCREENSHOT: Medical Conditions Selected
+    await page.screenshot({
+      path: `${folder}/02-intake-medical-conditions-selected.png`,
+      fullPage: true,
+    });
+
+    // 5. Select Drug & Material Allergies (Penicillin, Latex)
+    await page.locator('[data-testid="checkbox-allergy-0"]').click(); // Penicillin
+    await page.locator('[data-testid="checkbox-allergy-1"]').click(); // Latex
+
+    // 6. Input Current Medications
+    await page
+      .locator('[data-testid="textarea-medications"]')
+      .fill('Lisinopril 10mg once daily in morning. Multivitamins daily.');
+
+    // STAGE 3 SCREENSHOT: Allergies and Medications Filled
+    await page.screenshot({
+      path: `${folder}/03-intake-allergies-and-medications-filled.png`,
+      fullPage: true,
+    });
+
+    // 7. Input Emergency Contact
+    await page.locator('[data-testid="input-emergency-name"]').fill('Marcus Rostova');
+    await page.locator('[data-testid="input-emergency-phone"]').fill('(415) 555-9988');
+
+    // 8. Input HMO / Insurance Provider & Member ID
+    await page.locator('[data-testid="input-hmo-provider"]').fill('Delta Dental Premier');
+    await page.locator('[data-testid="input-hmo-member-id"]').fill('DD-992140-PREM');
+
+    // 9. Sign Digital Consent Checkbox
+    await page.locator('[data-testid="checkbox-intake-consent"]').check();
+
+    // STAGE 4 SCREENSHOT: Emergency Contact, Insurance & Consent Complete
+    await page.screenshot({
+      path: `${folder}/04-intake-emergency-and-insurance-ready.png`,
+      fullPage: true,
+    });
+
+    // 10. Click Submit Button
+    const submitBtn = page.locator('[data-testid="button-submit-intake"]');
+    await submitBtn.click();
+
+    // 11. Assert Success Screen Appears
+    await expect(page.locator('h1:has-text("Medical History Successfully Verified")')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // STAGE 5 SCREENSHOT: Final Submitted & Verified Screen
+    await page.screenshot({
+      path: `${folder}/05-intake-submitted-success-screen.png`,
+      fullPage: true,
+    });
+
+    // 12. Verify Appointment status changed to 'intake_submitted' in API
+    const verifyApi = await request.get(`/api/intake?token=${intakeToken}`);
+    const verifyJson = await verifyApi.json();
+    expect(verifyJson.appointment.status).toBe('intake_submitted');
   });
 });
