@@ -31,6 +31,7 @@ import {
   Microscope,
   ShieldCheck,
   HeartHandshake,
+  ClipboardCheck,
 } from 'lucide-react';
 
 type Service = {
@@ -262,11 +263,10 @@ function Nav({ onEmergency }: { onEmergency: () => void }) {
             </button>
             <a
               href="/intake"
-              className="text-[13px] font-semibold text-slate-600 hover:text-[#0d9488] transition-colors flex items-center gap-1.5"
+              className="text-[13px] font-semibold text-slate-600 hover:text-[#0d9488] transition-colors"
               data-testid="nav-link-intake"
             >
-              <span>Digital Intake</span>
-              <span className="rounded bg-teal-50 px-1.5 py-0.5 text-[10px] font-bold text-[#0d9488] border border-teal-200/60">Portal</span>
+              Digital Intake
             </a>
           </nav>
 
@@ -333,11 +333,10 @@ function Nav({ onEmergency }: { onEmergency: () => void }) {
               </button>
               <a
                 href="/intake"
-                className="flex items-center justify-between py-1.5 text-sm font-semibold text-[#0d9488]"
+                className="text-left py-1.5 text-sm font-semibold text-slate-700 hover:text-[#0d9488]"
                 data-testid="mobile-link-intake"
               >
-                <span>Digital Medical Intake</span>
-                <span className="rounded bg-teal-50 px-2 py-0.5 text-[10.5px] font-bold text-[#0d9488]">Portal</span>
+                Digital Intake
               </a>
               <div className="mt-2 flex flex-col gap-2 pt-2 border-t border-slate-100">
                 <button
@@ -2333,57 +2332,6 @@ function Booking() {
   );
 }
 
-function DigitalIntakeSection() {
-  return (
-    <section id="digital-intake" className="relative z-20 py-20 bg-gradient-to-b from-[#f8fafc] to-white border-t border-slate-200/80">
-      <div className="section-shell">
-        <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#0b242c] via-[#0f3e4a] to-[#164f5e] p-8 sm:p-12 lg:p-14 text-white shadow-[0_25px_70px_rgba(15,62,74,0.18)] border border-[#1a4e5c]">
-          {/* Subtle Ambient Glow */}
-          <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-[#0d9488]/20 rounded-full blur-[110px] pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-            <div className="space-y-4 max-w-[640px]">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#2b707e] bg-white/10 backdrop-blur-md px-3.5 py-1 text-[12px] font-bold text-[#8ce0db]">
-                <ShieldCheck size={14} /> Express Digital Intake Portal
-              </div>
-              <h2 className="text-[28px] sm:text-[34px] font-black tracking-tight leading-tight">
-                Already have a scheduled visit? Complete your medical intake.
-              </h2>
-              <p className="text-[14.5px] sm:text-[15.5px] leading-relaxed text-[#c2dcde]">
-                Skip clipboard paperwork in our lounge. Securely submit your drug allergies, systemic health history, and dental insurance verification in under 2 minutes.
-              </p>
-              <div className="flex flex-wrap gap-5 pt-2 text-[13px] text-[#a2dfd9]">
-                <span className="flex items-center gap-1.5 font-semibold">
-                  <Check size={15} strokeWidth={2.5} /> HIPAA Encrypted
-                </span>
-                <span className="flex items-center gap-1.5 font-semibold">
-                  <Check size={15} strokeWidth={2.5} /> Drug Allergy & Anesthesia Safety
-                </span>
-                <span className="flex items-center gap-1.5 font-semibold">
-                  <Check size={15} strokeWidth={2.5} /> Instant Chart Sync
-                </span>
-              </div>
-            </div>
-
-            <div className="shrink-0 flex flex-col gap-3">
-              <a
-                href="/intake"
-                className="inline-flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-[#0d9488] to-[#14b8a6] px-8 py-4 text-[15px] font-bold text-white shadow-lg hover:brightness-110 transition-all cursor-pointer text-center"
-                data-testid="link-open-intake-portal"
-              >
-                Open Patient Intake Portal <ArrowRight size={17} />
-              </a>
-              <p className="text-[12px] text-center text-[#8eb0b6]">
-                Direct access for all new & returning patients
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function FAQ() {
   const questions = [
     {
@@ -2486,24 +2434,62 @@ function FAQ() {
             );
           })}
         </div>
+      </div>
+    </section>
+  );
+}
 
-        <div className="reveal mt-12 max-w-[840px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl bg-[#eaf6f5] border border-[#bcdedb] p-5.5 text-center sm:text-left">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#0d9488] shadow-2xs">
-              <MessageCircleQuestion size={20} />
+function DigitalIntakeSection() {
+  return (
+    <section id="digital-intake" className="relative z-20 py-16 sm:py-20 bg-gradient-to-b from-white via-[#f0f9f8] to-[#e4f4f2] border-t border-slate-200/90 overflow-hidden">
+      <div className="section-shell">
+        <div className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] bg-gradient-to-br from-[#0b242c] via-[#0f3e4a] to-[#134956] p-7 sm:p-11 lg:p-14 text-white shadow-[0_25px_70px_rgba(15,62,74,0.16)] border border-[#1d4f5c]">
+          {/* Subtle Ambient Radial Lighting */}
+          <div className="absolute top-0 right-0 w-[420px] h-[420px] bg-[#0d9488]/20 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#2dd4bf]/10 rounded-full blur-[80px] pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 lg:gap-12">
+            {/* Left Content Column */}
+            <div className="space-y-4 max-w-[660px]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#235865] bg-[#143e49]/80 backdrop-blur-md px-3.5 py-1 text-[12px] font-bold text-[#8ce0db]">
+                <ClipboardCheck size={14} className="text-[#8ce0db]" /> Express Digital Intake Portal
+              </div>
+              <h2 className="text-[26px] sm:text-[32px] lg:text-[35px] font-extrabold tracking-tight leading-[1.2] text-white">
+                Already have a scheduled visit? Complete your medical intake.
+              </h2>
+              <p className="text-[14.5px] sm:text-[15.5px] leading-relaxed text-[#c2dcde]">
+                Skip clipboard paperwork in our lounge. Securely submit your drug allergies, systemic health history, and dental insurance verification in under 2 minutes.
+              </p>
+
+              {/* Feature Pill Highlights */}
+              <div className="flex flex-wrap gap-3 pt-1">
+                <span className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 px-3 py-1.5 text-[12.5px] font-semibold text-[#b7ece8]">
+                  <ShieldCheck size={14} className="text-[#8ce0db]" /> HIPAA Encrypted
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 px-3 py-1.5 text-[12.5px] font-semibold text-[#b7ece8]">
+                  <HeartHandshake size={14} className="text-[#8ce0db]" /> Drug Allergy & Anesthesia Safety
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 px-3 py-1.5 text-[12.5px] font-semibold text-[#b7ece8]">
+                  <Sparkles size={14} className="text-[#8ce0db]" /> Instant Chart Sync
+                </span>
+              </div>
             </div>
-            <div>
-              <p className="text-[14px] font-bold text-[#0f172a]">Have a question not listed here?</p>
-              <p className="text-[12px] text-[#527078]">Our clinical concierge is available daily to help you via phone or email inquiry.</p>
+
+            {/* Right Action Column */}
+            <div className="shrink-0 flex flex-col items-center sm:items-start lg:items-center justify-center gap-2.5">
+              <a
+                href="/intake"
+                className="button-primary inline-flex items-center justify-center gap-2.5 rounded-xl py-4 px-8 text-[15px] font-bold shadow-lg hover:shadow-xl transition-all cursor-pointer w-full sm:w-auto"
+                data-testid="link-open-intake-portal"
+              >
+                <span>Open Patient Intake Portal</span>
+                <ArrowRight size={17} />
+              </a>
+              <span className="text-[12px] text-[#8eb0b6] font-medium text-center">
+                Direct access for all new & returning patients
+              </span>
             </div>
           </div>
-          <button
-            onClick={() => scrollToId('booking-section')}
-            className="button-primary inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-bold shadow-xs cursor-pointer"
-            data-testid="button-faq-book"
-          >
-            Start an Inquiry <ArrowRight size={14} />
-          </button>
         </div>
       </div>
     </section>
@@ -2836,8 +2822,8 @@ export default function Home() {
         <Standards />
         <Stories />
         <Booking />
-        <DigitalIntakeSection />
         <FAQ />
+        <DigitalIntakeSection />
       </main>
       <Footer onOpenLegal={(tab) => setLegalModal({ open: true, tab })} />
       {emergencyOpen && <EmergencyDialog onClose={() => setEmergencyOpen(false)} />}

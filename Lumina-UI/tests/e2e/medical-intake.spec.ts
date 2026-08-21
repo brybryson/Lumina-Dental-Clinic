@@ -4,6 +4,35 @@ import { getScreenshotFolder } from './helpers';
 const folder = getScreenshotFolder('intake');
 
 test.describe('Pre-Visit Digital Medical Intake E2E & UI Workflow Tests', () => {
+  test('should verify access to digital intake portal from landing page navigation and dedicated section', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('domcontentloaded');
+
+    // 1. Verify clean navbar link exists
+    const navIntake = page.locator('[data-testid="nav-link-intake"]');
+    await expect(navIntake).toBeVisible();
+    await expect(navIntake).toHaveText('Digital Intake');
+
+    // 2. Scroll to dedicated Digital Intake section at bottom of landing page
+    const intakeSection = page.locator('#digital-intake');
+    await intakeSection.scrollIntoViewIfNeeded();
+    await expect(intakeSection).toBeVisible();
+
+    const portalBtn = page.locator('[data-testid="link-open-intake-portal"]');
+    await expect(portalBtn).toBeVisible();
+
+    // Capture screenshot of the dedicated section
+    await page.screenshot({
+      path: `${folder}/00-landing-digital-intake-section.png`,
+      fullPage: false,
+    });
+
+    // 3. Click Open Patient Intake Portal
+    await portalBtn.click();
+    await page.waitForURL('**/intake**');
+    await expect(page.locator('h1:has-text("Pre-Visit Clinical Health History")')).toBeVisible();
+  });
+
   test('should validate API error handling for missing or invalid intake tokens', async ({ request }) => {
     // 1. Missing token
     const missingRes = await request.post('/api/intake', {
