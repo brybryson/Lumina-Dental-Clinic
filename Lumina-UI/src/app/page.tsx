@@ -192,14 +192,14 @@ function useReveal() {
 
 function Logo() {
   return (
-    <a href="#top" className="flex items-center gap-2.5 group" data-testid="link-logo" aria-label="Lumina Dental Studio home">
+    <a href="#top" className="flex items-center gap-2.5 group" data-testid="link-logo" aria-label="Lumina Dental Clinic home">
       <img
         src="/images/lumina-logo.png"
         alt="Lumina Dental Clinic Logo"
         className="h-8.5 w-auto object-contain group-hover:scale-105 transition-transform"
       />
       <span className="display text-[16px] font-extrabold tracking-[-.03em] text-[#0f172a]">
-        Lumina <span className="font-semibold text-[#0d9488]">Dental Studio</span>
+        Lumina <span className="font-semibold text-[#0d9488]">Dental Clinic</span>
       </span>
     </a>
   );
@@ -211,7 +211,7 @@ function Nav({ onEmergency }: { onEmergency: () => void }) {
 
   useEffect(() => {
     const onScroll = () => {
-      setIsVisible(window.scrollY > 260);
+      setIsVisible(window.scrollY > 280);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
@@ -228,10 +228,12 @@ function Nav({ onEmergency }: { onEmergency: () => void }) {
       className={`fixed inset-x-0 top-0 z-50 px-4 sm:px-6 pt-3 sm:pt-4 transition-all duration-500 ease-out pointer-events-none ${
         isVisible
           ? 'opacity-100 translate-y-0'
-          : 'opacity-0 -translate-y-8'
+          : 'opacity-0 -translate-y-8 pointer-events-none'
       }`}
     >
-      <div className="pointer-events-auto mx-auto max-w-[1320px] rounded-2xl bg-white/90 backdrop-blur-xl shadow-[0_10px_35px_-10px_rgba(15,23,42,0.1)] border border-slate-200/80 px-5 py-3 transition-all duration-300">
+      <div className={`mx-auto max-w-[1320px] rounded-2xl bg-white/90 backdrop-blur-xl shadow-[0_10px_35px_-10px_rgba(15,23,42,0.1)] border border-slate-200/80 px-5 py-3 transition-all duration-300 ${
+        isVisible ? 'pointer-events-auto' : 'pointer-events-none'
+      }`}>
         <div className="flex items-center justify-between">
           <Logo />
 
@@ -261,13 +263,16 @@ function Nav({ onEmergency }: { onEmergency: () => void }) {
             >
               FAQ
             </button>
-            <a
-              href="/intake"
-              className="text-[13px] font-semibold text-slate-600 hover:text-[#0d9488] transition-colors"
+            <button
+              onClick={() => {
+                setOpen(false);
+                window.location.href = '/intake';
+              }}
+              className="text-[13px] font-semibold text-slate-600 hover:text-[#0d9488] transition-colors cursor-pointer"
               data-testid="nav-link-intake"
             >
               Digital Intake
-            </a>
+            </button>
           </nav>
 
           {/* Right Action Group */}
@@ -331,13 +336,16 @@ function Nav({ onEmergency }: { onEmergency: () => void }) {
               >
                 FAQ
               </button>
-              <a
-                href="/intake"
-                className="text-left py-1.5 text-sm font-semibold text-slate-700 hover:text-[#0d9488]"
+              <button
+                className="text-left py-1.5 text-sm font-semibold text-slate-700 hover:text-[#0d9488] cursor-pointer"
+                onClick={() => {
+                  setOpen(false);
+                  window.location.href = '/intake';
+                }}
                 data-testid="mobile-link-intake"
               >
                 Digital Intake
-              </a>
+              </button>
               <div className="mt-2 flex flex-col gap-2 pt-2 border-t border-slate-100">
                 <button
                   className="flex items-center justify-between rounded-xl bg-rose-50 px-3.5 py-2.5 text-xs font-bold text-rose-800"
@@ -2659,7 +2667,7 @@ function Footer({ onOpenLegal }: { onOpenLegal: (tab: LegalTab) => void }) {
                 className="h-8.5 w-auto object-contain brightness-110"
               />
               <span id="footer-title" className="display text-[16.5px] font-extrabold text-white">
-                Lumina <span className="text-[#8ce0db] font-semibold">Dental Studio</span>
+                Lumina <span className="text-[#8ce0db] font-semibold">Dental Clinic</span>
               </span>
             </div>
             <p className="text-[13.5px] text-[#9fbcc1] max-w-[420px]">
@@ -2686,7 +2694,7 @@ function Footer({ onOpenLegal }: { onOpenLegal: (tab: LegalTab) => void }) {
 
         {/* Dynamic System Year & Legal */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] text-[#7699a0]">
-          <p>© {currentYear} Lumina Dental Studio, LLC. All rights reserved.</p>
+          <p>© {currentYear} Lumina Dental Clinic, LLC. All rights reserved.</p>
           <div className="flex flex-wrap gap-5 text-[#9fbcc1]">
             <a
               href="/intake"
@@ -2809,7 +2817,15 @@ export default function Home() {
       if ('scrollRestoration' in window.history) {
         window.history.scrollRestoration = 'manual';
       }
-      window.scrollTo(0, 0);
+      if (window.location.hash) {
+        const targetId = window.location.hash.replace('#', '');
+        const elem = document.getElementById(targetId);
+        if (elem) {
+          elem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      } else {
+        window.scrollTo(0, 0);
+      }
     }
   }, []);
 

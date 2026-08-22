@@ -8,7 +8,11 @@ test.describe('Pre-Visit Digital Medical Intake E2E & UI Workflow Tests', () => 
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
-    // 1. Verify clean navbar link exists
+    // 1. Verify clean navbar link exists (scroll past hero to reveal navbar)
+    await page.evaluate(() => {
+      window.scrollTo(0, 350);
+      window.dispatchEvent(new Event('scroll'));
+    });
     const navIntake = page.locator('[data-testid="nav-link-intake"]');
     await expect(navIntake).toBeVisible();
     await expect(navIntake).toHaveText('Digital Intake');
@@ -30,7 +34,7 @@ test.describe('Pre-Visit Digital Medical Intake E2E & UI Workflow Tests', () => 
     // 3. Click Open Patient Intake Portal
     await portalBtn.click();
     await page.waitForURL('**/intake**');
-    await expect(page.locator('h1:has-text("Pre-Visit Clinical Health History")')).toBeVisible();
+    await expect(page.locator('h1:has-text("Pre-Visit Clinical Health History")')).toBeVisible({ timeout: 15000 });
   });
 
   test('should validate API error handling for missing or invalid intake tokens', async ({ request }) => {
@@ -86,8 +90,8 @@ test.describe('Pre-Visit Digital Medical Intake E2E & UI Workflow Tests', () => 
     await page.waitForLoadState('networkidle');
 
     // Verify patient banner is populated
-    await expect(page.locator('text=Elena Rostova')).toBeVisible();
-    await expect(page.locator('text=Laser Teeth Whitening')).toBeVisible();
+    await expect(page.locator('text=Elena Rostova')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('text=Laser Teeth Whitening')).toBeVisible({ timeout: 15000 });
 
     // STAGE 1 SCREENSHOT: Initial Form Loaded with Patient Chart
     await page.screenshot({

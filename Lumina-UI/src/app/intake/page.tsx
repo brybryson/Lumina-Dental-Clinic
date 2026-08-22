@@ -12,12 +12,13 @@ import {
   CheckCircle2,
   Calendar,
   Clock,
-  Sparkles,
   ArrowRight,
-  Lock,
   Phone,
   User,
   Activity,
+  Menu,
+  X,
+  Mail,
 } from 'lucide-react';
 
 const COMMON_CONDITIONS = [
@@ -40,6 +41,8 @@ const COMMON_ALLERGIES = [
   'Codeine / Opioids',
 ];
 
+type LegalTab = 'privacy' | 'terms' | 'hipaa' | 'accessibility';
+
 interface AppointmentInfo {
   id: string;
   appointment_date: string;
@@ -54,7 +57,442 @@ interface AppointmentInfo {
   };
 }
 
-function IntakeFormContent() {
+function IntakeNav({ onEmergency }: { onEmergency: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  return (
+    <header className="sticky top-0 z-50 px-4 sm:px-6 pt-3 sm:pt-4 transition-all duration-300">
+      <div
+        className={`mx-auto max-w-[1320px] rounded-2xl border transition-all duration-300 px-5 py-3 ${
+          scrolled
+            ? 'bg-white/95 backdrop-blur-xl shadow-[0_10px_35px_-10px_rgba(15,23,42,0.1)] border-slate-200/80'
+            : 'bg-white/90 backdrop-blur-md shadow-xs border-slate-200/80'
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <a href="/" className="flex items-center gap-2.5 group" data-testid="link-logo" aria-label="Lumina Dental Clinic home">
+            <img
+              src="/images/lumina-logo.png"
+              alt="Lumina Dental Clinic Logo"
+              className="h-8.5 w-auto object-contain group-hover:scale-105 transition-transform"
+            />
+            <span className="display text-[16px] font-extrabold tracking-[-.03em] text-[#0f172a]">
+              Lumina <span className="font-semibold text-[#0d9488]">Dental Clinic</span>
+            </span>
+          </a>
+
+          {/* Navigation Links */}
+          <nav aria-label="Primary navigation" className="hidden items-center gap-7 md:flex">
+            <button
+              onClick={() => { window.location.href = '/#treatments'; }}
+              className="text-[13px] font-semibold text-slate-600 hover:text-[#0d9488] transition-colors cursor-pointer"
+            >
+              Treatments
+            </button>
+            <button
+              onClick={() => { window.location.href = '/#standards'; }}
+              className="text-[13px] font-semibold text-slate-600 hover:text-[#0d9488] transition-colors cursor-pointer"
+            >
+              Our Standard
+            </button>
+            <button
+              onClick={() => { window.location.href = '/#stories'; }}
+              className="text-[13px] font-semibold text-slate-600 hover:text-[#0d9488] transition-colors cursor-pointer"
+            >
+              Stories
+            </button>
+            <button
+              onClick={() => { window.location.href = '/#faq'; }}
+              className="text-[13px] font-semibold text-slate-600 hover:text-[#0d9488] transition-colors cursor-pointer"
+            >
+              FAQ
+            </button>
+            <button
+              onClick={() => { window.location.href = '/intake'; }}
+              className="text-[13px] font-semibold text-[#0d9488] transition-colors cursor-pointer"
+              data-testid="nav-link-intake"
+            >
+              Digital Intake
+            </button>
+          </nav>
+
+          {/* Right Action Group */}
+          <div className="hidden items-center gap-3 md:flex">
+            <button
+              className="text-[12.5px] font-bold text-rose-800 bg-rose-50/90 hover:bg-rose-100 border border-rose-200/80 px-3.5 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+              onClick={onEmergency}
+              data-testid="button-emergency-care"
+            >
+              <Phone size={13} className="text-rose-600" />
+              Emergency care
+            </button>
+            <button
+              className="button-primary flex items-center gap-2 rounded-xl px-4.5 py-2.5 text-[13px] font-bold shadow-xs cursor-pointer"
+              onClick={() => { window.location.href = '/#booking-section'; }}
+              data-testid="button-nav-reserve"
+            >
+              Inquire & Book <ArrowRight size={14} />
+            </button>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700 md:hidden cursor-pointer"
+            onClick={() => setOpen(!open)}
+            aria-label="Toggle navigation menu"
+            data-testid="button-mobile-menu"
+          >
+            {open ? <X size={18} /> : <Menu size={18} />}
+          </button>
+        </div>
+
+        {/* Mobile Dropdown */}
+        {open && (
+          <div className="mt-3 border-t border-slate-100 pt-3 md:hidden">
+            <div className="flex flex-col gap-2">
+              <button
+                className="text-left py-1.5 text-sm font-semibold text-slate-700 hover:text-[#0d9488] cursor-pointer"
+                onClick={() => {
+                  setOpen(false);
+                  window.location.href = '/#treatments';
+                }}
+              >
+                Treatments
+              </button>
+              <button
+                className="text-left py-1.5 text-sm font-semibold text-slate-700 hover:text-[#0d9488] cursor-pointer"
+                onClick={() => {
+                  setOpen(false);
+                  window.location.href = '/#standards';
+                }}
+              >
+                Our Standard
+              </button>
+              <button
+                className="text-left py-1.5 text-sm font-semibold text-slate-700 hover:text-[#0d9488] cursor-pointer"
+                onClick={() => {
+                  setOpen(false);
+                  window.location.href = '/#stories';
+                }}
+              >
+                Stories
+              </button>
+              <button
+                className="text-left py-1.5 text-sm font-semibold text-slate-700 hover:text-[#0d9488] cursor-pointer"
+                onClick={() => {
+                  setOpen(false);
+                  window.location.href = '/#faq';
+                }}
+              >
+                FAQ
+              </button>
+              <button
+                className="text-left py-1.5 text-sm font-semibold text-[#0d9488] cursor-pointer"
+                onClick={() => {
+                  setOpen(false);
+                  window.location.href = '/intake';
+                }}
+                data-testid="mobile-link-intake"
+              >
+                Digital Intake
+              </button>
+              <div className="mt-2 flex flex-col gap-2 pt-2 border-t border-slate-100">
+                <button
+                  className="flex items-center justify-between rounded-xl bg-rose-50 px-3.5 py-2.5 text-xs font-bold text-rose-800 cursor-pointer"
+                  onClick={() => {
+                    setOpen(false);
+                    onEmergency();
+                  }}
+                >
+                  <span>Emergency care</span>
+                  <Phone size={14} className="text-rose-600" />
+                </button>
+                <button
+                  className="button-primary flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold cursor-pointer"
+                  onClick={() => {
+                    setOpen(false);
+                    window.location.href = '/#booking-section';
+                  }}
+                >
+                  Inquire & Book <ArrowRight size={15} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+}
+
+function IntakeFooter({ onOpenLegal }: { onOpenLegal: (tab: LegalTab) => void }) {
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <footer className="bg-[#0b242c] py-14 text-[#d4e4e6] border-t border-[#1a444e] mt-16" aria-labelledby="footer-title">
+      <div className="section-shell">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 pb-10 border-b border-[#1c4b57]">
+          {/* Logo & Tagline */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/images/lumina-logo.png"
+                alt="Lumina Dental Clinic Logo"
+                className="h-8.5 w-auto object-contain brightness-110"
+              />
+              <span id="footer-title" className="display text-[16.5px] font-extrabold text-white">
+                Lumina <span className="text-[#8ce0db] font-semibold">Dental Clinic</span>
+              </span>
+            </div>
+            <p className="text-[13.5px] text-[#9fbcc1] max-w-[420px]">
+              Modern, pain-managed dental care, restorative aesthetics, and digital diagnostics.
+            </p>
+          </div>
+
+          {/* Contact Information */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-6 text-[13px] text-[#c2dcde]">
+            <div className="flex items-center gap-2">
+              <Phone size={15} className="text-[#8ce0db] shrink-0" />
+              <a href="tel:+14155550142" className="font-bold hover:text-white transition-colors" data-testid="link-footer-phone">
+                (415) 555-0142
+              </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <Mail size={15} className="text-[#8ce0db] shrink-0" />
+              <a href="mailto:luminadentalclinic2026@gmail.com" className="hover:text-white transition-colors" data-testid="link-footer-email">
+                luminadentalclinic2026@gmail.com
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Dynamic System Year & Legal */}
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] text-[#7699a0]">
+          <p>© {currentYear} Lumina Dental Clinic, LLC. All rights reserved.</p>
+          <div className="flex flex-wrap gap-5 text-[#9fbcc1]">
+            <a
+              href="/intake"
+              className="text-[#8ce0db] font-semibold hover:text-white transition-colors"
+              data-testid="link-footer-intake"
+            >
+              Patient Medical Intake
+            </a>
+            <button
+              type="button"
+              onClick={() => onOpenLegal('privacy')}
+              className="hover:text-white transition-colors cursor-pointer"
+            >
+              Privacy Policy
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpenLegal('terms')}
+              className="hover:text-white transition-colors cursor-pointer"
+            >
+              Terms of Service
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpenLegal('hipaa')}
+              className="hover:text-white transition-colors cursor-pointer"
+            >
+              HIPAA Compliance
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpenLegal('accessibility')}
+              className="hover:text-white transition-colors cursor-pointer"
+            >
+              Accessibility
+            </button>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+function EmergencyDialog({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 sm:p-6 animate-in fade-in duration-150"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="emergency-title"
+    >
+      <div className="relative w-full max-w-[640px] overflow-hidden rounded-[30px] bg-white p-8 sm:p-11 shadow-[0_30px_90px_rgba(15,23,42,0.24)] border border-slate-100 animate-in zoom-in-95 duration-150">
+        <div className="flex items-start justify-between gap-4">
+          <h2 id="emergency-title" className="display text-[26px] sm:text-[30px] font-extrabold text-[#0f172a] leading-tight">
+            Experiencing acute dental pain?
+          </h2>
+          <button
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors cursor-pointer"
+            onClick={onClose}
+            aria-label="Close emergency care dialog"
+            data-testid="button-close-emergency"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <p className="mt-3.5 text-[15.5px] leading-relaxed text-[#527078]">
+          Our clinical team reserves same-day emergency slots daily for trauma, acute nerve pain, and infections.
+        </p>
+
+        <div className="mt-7 rounded-2xl bg-slate-50/90 border border-slate-200 p-6 sm:p-7 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[14.5px]">
+            <span className="font-semibold text-slate-500 flex items-center gap-2.5">
+              <Phone size={17} className="text-[#0d9488] shrink-0" /> Emergency Direct Line
+            </span>
+            <span className="font-bold text-[#0f172a] text-[15px] select-all">(415) 555-0142</span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-t border-slate-200/80 pt-4 text-[14.5px]">
+            <span className="font-semibold text-slate-500 flex items-center gap-2.5">
+              <Mail size={17} className="text-[#0d9488] shrink-0" /> Clinical Triage Email
+            </span>
+            <span className="font-bold text-[#0f172a] text-[15px] select-all">luminadentalclinic2026@gmail.com</span>
+          </div>
+        </div>
+
+        <div className="mt-7">
+          <a
+            href="/#booking-section"
+            className="button-primary flex w-full items-center justify-center gap-2 rounded-xl py-4 px-8 text-[15.5px] font-bold shadow-md cursor-pointer text-center"
+            onClick={onClose}
+            data-testid="button-emergency-online-slot"
+          >
+            Hold emergency appointment slot online →
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LegalDialog({ initialTab, onClose }: { initialTab: LegalTab; onClose: () => void }) {
+  const [tab, setTab] = useState<LegalTab>(initialTab);
+
+  return (
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 sm:p-6 animate-in fade-in duration-150"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="legal-title"
+    >
+      <div className="relative w-full max-w-[760px] max-h-[85vh] flex flex-col overflow-hidden rounded-[28px] bg-white shadow-[0_30px_90px_rgba(15,23,42,0.25)] border border-slate-100 animate-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between border-b border-slate-100 p-5 sm:px-8 shrink-0">
+          <h3 id="legal-title" className="display text-[20px] font-extrabold text-[#0f172a]">
+            Legal & Compliance Notices
+          </h3>
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors cursor-pointer"
+            onClick={onClose}
+            aria-label="Close dialog"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="flex border-b border-slate-100 px-5 sm:px-8 gap-2 overflow-x-auto bg-slate-50/50 shrink-0">
+          {[
+            { id: 'privacy', label: 'Privacy Policy' },
+            { id: 'terms', label: 'Terms of Service' },
+            { id: 'hipaa', label: 'HIPAA Notice' },
+            { id: 'accessibility', label: 'Accessibility' },
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id as LegalTab)}
+              className={`py-3 px-3.5 text-[13px] font-bold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
+                tab === t.id
+                  ? 'border-[#0d9488] text-[#0d9488]'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="p-5 sm:p-8 overflow-y-auto text-[13.5px] leading-relaxed text-[#475569] space-y-4">
+          {tab === 'privacy' && (
+            <div className="space-y-3">
+              <h4 className="font-extrabold text-[#0f172a] text-[16px]">Privacy Practices & Data Protection</h4>
+              <p>
+                Lumina Dental Studio is committed to safeguarding your personal and medical information. All digital intake forms, contact details, and appointment inquiries submitted through this platform are encrypted in transit using 256-bit SSL encryption.
+              </p>
+              <h5 className="font-bold text-[#0f172a] text-[14.5px] pt-1">Information Collection</h5>
+              <p>
+                We collect patient identification, insurance information, clinical concerns, and contact preferences strictly for triage and care coordination. We never sell or share patient information with third-party advertisers.
+              </p>
+            </div>
+          )}
+
+          {tab === 'terms' && (
+            <div className="space-y-3">
+              <h4 className="font-extrabold text-[#0f172a] text-[16px]">Terms & Conditions of Service</h4>
+              <p>
+                By scheduling an appointment or submitting a triage request with Lumina Dental Studio, you agree to our studio policies regarding clinical consultations, confirmed reservation holds, and insurance verification.
+              </p>
+              <h5 className="font-bold text-[#0f172a] text-[14.5px] pt-1">Cancellation & Rescheduling</h5>
+              <p>
+                We kindly request at least 24 hours advance notice for rescheduling or cancellations to allow emergency triage patients access to reserved chairside times.
+              </p>
+            </div>
+          )}
+
+          {tab === 'hipaa' && (
+            <div className="space-y-3">
+              <h4 className="font-extrabold text-[#0f172a] text-[16px]">HIPAA Health Information Privacy</h4>
+              <p>
+                Lumina Dental Studio strictly adheres to the Health Insurance Portability and Accountability Act (HIPAA) standards for Protected Health Information (PHI).
+              </p>
+              <p>
+                Your clinical records, diagnostic digital radiographs (CBCT/2D), and medical histories are stored in HIPAA-compliant, SOC-2 certified cloud dental infrastructure with role-based access control.
+              </p>
+            </div>
+          )}
+
+          {tab === 'accessibility' && (
+            <div className="space-y-3">
+              <h4 className="font-extrabold text-[#0f172a] text-[16px]">Digital Accessibility Standards</h4>
+              <p>
+                We believe healthcare should be accessible to everyone. Lumina Dental Studio is designed in compliance with the Web Content Accessibility Guidelines (WCAG) 2.1 Level AA and Section 508 standards.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 sm:px-8 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="button-primary rounded-xl py-2 px-6 text-[13.5px] font-bold cursor-pointer"
+          >
+            Close Notice
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IntakeFormContent({
+  onEmergency,
+}: {
+  onEmergency: () => void;
+}) {
   const searchParams = useSearchParams();
   const token = searchParams.get('token') || '';
 
@@ -87,9 +525,12 @@ function IntakeFormContent() {
         const res = await fetch(`/api/intake?token=${encodeURIComponent(token)}`);
         const data = await res.json();
         if (res.ok && data.appointment) {
-          setAppointment(data.appointment);
-          if (data.appointment.patients?.date_of_birth) {
-            setDateOfBirth(data.appointment.patients.date_of_birth);
+          const rawPatients = data.appointment.patients;
+          const patientObj = Array.isArray(rawPatients) ? rawPatients[0] : rawPatients;
+          const normalizedApt = { ...data.appointment, patients: patientObj };
+          setAppointment(normalizedApt);
+          if (patientObj?.date_of_birth) {
+            setDateOfBirth(patientObj.date_of_birth);
           }
         } else {
           setErrorMsg(data.error || 'Invalid or expired intake token.');
@@ -158,10 +599,23 @@ function IntakeFormContent() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-9 w-9 animate-spin rounded-full border-3 border-[#0d9488] border-t-transparent" />
-          <p className="text-[14px] font-medium text-slate-500">Loading your confidential patient intake...</p>
+      <div className="flex min-h-[60vh] items-center justify-center px-4 py-16">
+        <div className="relative mx-auto w-full max-w-[440px] rounded-3xl border border-teal-100/80 bg-white/95 p-8 sm:p-10 shadow-[0_20px_50px_rgba(15,62,74,0.08)] backdrop-blur-xl text-center animate-in fade-in duration-300">
+          <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-50 text-[#0d9488]">
+            <div className="absolute inset-0 rounded-2xl border-2 border-[#0d9488]/30 animate-ping opacity-30" />
+            <ShieldCheck size={32} className="relative z-10 text-[#0d9488]" />
+          </div>
+          <h3 className="mt-5 text-[18px] font-extrabold text-[#0f172a]">
+            Accessing Patient Portal
+          </h3>
+          <p className="mt-2 text-[13.5px] leading-relaxed text-slate-500">
+            Securely decrypting session and loading your confidential health chart...
+          </p>
+          <div className="mt-6 flex items-center justify-center gap-2">
+            <div className="h-2.5 w-2.5 rounded-full bg-[#0d9488] animate-bounce [animation-delay:-0.3s]" />
+            <div className="h-2.5 w-2.5 rounded-full bg-[#0d9488] animate-bounce [animation-delay:-0.15s]" />
+            <div className="h-2.5 w-2.5 rounded-full bg-[#0d9488] animate-bounce" />
+          </div>
         </div>
       </div>
     );
@@ -229,39 +683,46 @@ function IntakeFormContent() {
 
       {/* Appointment Overview Bar */}
       {appointment && (
-        <div className="mb-8 rounded-2xl bg-gradient-to-r from-[#0f3e4a] to-[#16505e] p-5 sm:p-6 text-white shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <span className="text-[11.5px] font-bold uppercase tracking-wider text-[#a2dfd9]">Patient Chart</span>
-            <h2 className="text-[18px] font-extrabold flex items-center gap-2">
-              <User size={18} className="text-[#a2dfd9]" />
-              {appointment.patients.first_name} {appointment.patients.last_name}
-            </h2>
-            <p className="text-[13px] text-[#c2dcde]">{appointment.service_name}</p>
-          </div>
-          <div className="flex flex-wrap sm:flex-col sm:items-end gap-2 text-[13px] text-[#d4e4e6]">
-            <div className="flex items-center gap-1.5 font-semibold">
-              <Calendar size={14} className="text-[#8ce0db]" /> {appointment.appointment_date}
+        <div className="mb-8 rounded-2xl border border-teal-200/90 bg-gradient-to-r from-teal-50/90 via-[#f0fcfb] to-teal-50/90 p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <span className="text-[11.5px] font-bold uppercase tracking-wider text-[#0d9488]">Patient Chart</span>
+              <h2 className="text-[18px] font-extrabold flex items-center gap-2 text-[#0f172a]">
+                <User size={18} className="text-[#0d9488]" />
+                {appointment.patients?.first_name} {appointment.patients?.last_name}
+              </h2>
             </div>
-            <div className="flex items-center gap-1.5 font-semibold">
-              <Clock size={14} className="text-[#8ce0db]" /> {appointment.time_slot}
+            <div className="flex flex-wrap gap-4 text-[13px] text-slate-600">
+              <div className="flex items-center gap-1.5 font-semibold">
+                <Calendar size={15} className="text-[#0d9488]" />
+                <span>{appointment.appointment_date}</span>
+              </div>
+              <div className="flex items-center gap-1.5 font-semibold">
+                <Clock size={15} className="text-[#0d9488]" />
+                <span>{appointment.time_slot}</span>
+              </div>
+              <div className="flex items-center gap-1.5 font-semibold">
+                <Activity size={15} className="text-[#0d9488]" />
+                <span>{appointment.service_name}</span>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {errorMsg && (
-        <div className="mb-6 rounded-2xl bg-rose-50 border border-rose-200 p-4 text-[14px] text-rose-800 flex items-center gap-3">
+        <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-4 text-[14px] font-semibold text-rose-800">
           <AlertCircle size={18} className="shrink-0 text-rose-600" />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      {/* Form Container */}
-      <form onSubmit={handleSubmit} className="space-y-8 rounded-[28px] border border-slate-200/90 bg-white p-6 sm:p-10 shadow-[0_20px_60px_rgba(15,62,74,0.06)]">
-        {/* Section 1: Patient Identity & DOB */}
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Section 1: Verification & Demographics */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-xs space-y-5">
           <h3 className="text-[17px] font-extrabold text-[#0f172a] flex items-center gap-2">
-            <UserCheck size={19} className="text-[#0d9488]" /> 1. Patient Details
+            <UserCheck size={20} className="text-[#0d9488]" />
+            1. Patient Identification & Date of Birth
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -280,192 +741,197 @@ function IntakeFormContent() {
             </div>
             <div>
               <label htmlFor="intake-phone" className="block text-[13px] font-bold text-slate-700 mb-1.5">
-                Primary Contact Number
+                Confirm Mobile Number <span className="text-rose-500">*</span>
               </label>
               <input
                 id="intake-phone"
                 data-testid="input-intake-phone"
                 type="tel"
-                placeholder="(415) 555-0142"
+                placeholder="(415) 000-0000"
                 defaultValue={appointment?.patients?.mobile || ''}
+                required
                 className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-[14px] font-medium text-slate-800 focus:border-[#0d9488] focus:bg-white focus:outline-none transition-all"
               />
             </div>
           </div>
         </div>
 
-        <hr className="border-slate-100" />
-
         {/* Section 2: Medical Conditions */}
-        <div className="space-y-4">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-[17px] font-extrabold text-[#0f172a] flex items-center gap-2">
-              <HeartPulse size={19} className="text-[#0d9488]" /> 2. Systemic & Clinical Health Conditions
+              <HeartPulse size={20} className="text-[#0d9488]" />
+              2. Medical History & Systemic Conditions
             </h3>
             <span className="text-[12px] font-semibold text-slate-400">Select all that apply</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
             {COMMON_CONDITIONS.map((cond, idx) => {
-              const isChecked = selectedConditions.includes(cond);
+              const selected = selectedConditions.includes(cond);
               return (
-                <label
+                <button
+                  type="button"
                   key={cond}
+                  onClick={() => toggleCondition(cond)}
                   data-testid={`checkbox-condition-${idx}`}
-                  className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
-                    isChecked
+                  className={`flex items-center justify-between rounded-xl border p-3.5 text-left text-[13.5px] transition-all cursor-pointer ${
+                    selected
                       ? 'border-[#0d9488] bg-teal-50/70 text-[#0f3e4a] font-bold ring-1 ring-[#0d9488]'
                       : 'border-slate-200 bg-slate-50/50 text-slate-700 hover:bg-slate-100/80 font-medium'
                   }`}
                 >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => toggleCondition(cond)}
-                    className="h-4.5 w-4.5 rounded border-slate-300 text-[#0d9488] focus:ring-[#0d9488]"
-                  />
-                  <span className="text-[13.5px]">{cond}</span>
-                </label>
+                  <span>{cond}</span>
+                  <div
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                      selected ? 'border-[#0d9488] bg-[#0d9488] text-white' : 'border-slate-300 bg-white'
+                    }`}
+                  >
+                    {selected && <CheckCircle2 size={13} strokeWidth={3} />}
+                  </div>
+                </button>
               );
             })}
           </div>
         </div>
 
-        <hr className="border-slate-100" />
-
-        {/* Section 3: Drug & Material Allergies */}
-        <div className="space-y-4">
+        {/* Section 3: Drug Allergies */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-[17px] font-extrabold text-[#0f172a] flex items-center gap-2">
-              <Activity size={19} className="text-rose-500" /> 3. Drug & Material Allergies
+              <AlertCircle size={20} className="text-rose-600" />
+              3. Known Drug & Material Allergies
             </h3>
             <span className="text-[12px] font-semibold text-rose-500">Crucial for anesthesia safety</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
             {COMMON_ALLERGIES.map((allergy, idx) => {
-              const isChecked = selectedAllergies.includes(allergy);
+              const selected = selectedAllergies.includes(allergy);
               return (
-                <label
+                <button
+                  type="button"
                   key={allergy}
+                  onClick={() => toggleAllergy(allergy)}
                   data-testid={`checkbox-allergy-${idx}`}
-                  className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
-                    isChecked
+                  className={`flex items-center justify-between rounded-xl border p-3.5 text-left text-[13.5px] transition-all cursor-pointer ${
+                    selected
                       ? 'border-rose-400 bg-rose-50/80 text-rose-950 font-bold ring-1 ring-rose-400'
                       : 'border-slate-200 bg-slate-50/50 text-slate-700 hover:bg-slate-100/80 font-medium'
                   }`}
                 >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => toggleAllergy(allergy)}
-                    className="h-4.5 w-4.5 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
-                  />
-                  <span className="text-[13.5px]">{allergy}</span>
-                </label>
+                  <span>{allergy}</span>
+                  <div
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                      selected ? 'border-rose-600 bg-rose-600 text-white' : 'border-slate-300 bg-white'
+                    }`}
+                  >
+                    {selected && <CheckCircle2 size={13} strokeWidth={3} />}
+                  </div>
+                </button>
               );
             })}
           </div>
         </div>
 
-        <hr className="border-slate-100" />
-
         {/* Section 4: Current Medications */}
-        <div className="space-y-3">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-xs space-y-4">
           <h3 className="text-[17px] font-extrabold text-[#0f172a] flex items-center gap-2">
-            <Pill size={19} className="text-[#0d9488]" /> 4. Current Medications & Supplements
+            <Pill size={20} className="text-[#0d9488]" />
+            4. Current Prescription Medications & Dosages
           </h3>
-          <textarea
-            data-testid="textarea-medications"
-            rows={2}
-            value={currentMedications}
-            onChange={(e) => setCurrentMedications(e.target.value)}
-            placeholder="List any daily prescription drugs, blood thinners, herbal supplements, or vitamins..."
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-[14px] text-slate-800 focus:border-[#0d9488] focus:bg-white focus:outline-none transition-all placeholder:text-slate-400"
-          />
+          <div>
+            <textarea
+              id="intake-medications"
+              data-testid="textarea-medications"
+              rows={3}
+              placeholder="e.g. Lisinopril 10mg daily, Metformin 500mg, Daily Multivitamin (or type 'None')"
+              value={currentMedications}
+              onChange={(e) => setCurrentMedications(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-[14px] font-medium text-slate-800 focus:border-[#0d9488] focus:bg-white focus:outline-none transition-all"
+            />
+          </div>
         </div>
 
-        <hr className="border-slate-100" />
-
         {/* Section 5: Emergency Contact */}
-        <div className="space-y-4">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-xs space-y-5">
           <h3 className="text-[17px] font-extrabold text-[#0f172a] flex items-center gap-2">
-            <Phone size={19} className="text-[#0d9488]" /> 5. Emergency Contact
+            <Phone size={20} className="text-[#0d9488]" />
+            5. Designated Emergency Contact
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="emergency-name" className="block text-[13px] font-bold text-slate-700 mb-1.5">
-                Contact Full Name
+                Contact Full Name <span className="text-rose-500">*</span>
               </label>
               <input
                 id="emergency-name"
                 data-testid="input-emergency-name"
                 type="text"
+                placeholder="e.g. Marcus Vance"
+                required
                 value={emergencyContactName}
                 onChange={(e) => setEmergencyContactName(e.target.value)}
-                placeholder="e.g. Jonathan Vane"
                 className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-[14px] font-medium text-slate-800 focus:border-[#0d9488] focus:bg-white focus:outline-none transition-all"
               />
             </div>
             <div>
               <label htmlFor="emergency-phone" className="block text-[13px] font-bold text-slate-700 mb-1.5">
-                Contact Phone Number
+                Contact Phone Number <span className="text-rose-500">*</span>
               </label>
               <input
                 id="emergency-phone"
                 data-testid="input-emergency-phone"
                 type="tel"
+                placeholder="(415) 000-0000"
+                required
                 value={emergencyContactPhone}
                 onChange={(e) => setEmergencyContactPhone(e.target.value)}
-                placeholder="(415) 555-9988"
                 className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-[14px] font-medium text-slate-800 focus:border-[#0d9488] focus:bg-white focus:outline-none transition-all"
               />
             </div>
           </div>
         </div>
 
-        <hr className="border-slate-100" />
-
-        {/* Section 6: Insurance & HMO Details */}
-        <div className="space-y-4">
+        {/* Section 6: Dental Insurance & HMO Carrier */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-xs space-y-5">
           <h3 className="text-[17px] font-extrabold text-[#0f172a] flex items-center gap-2">
-            <CreditCard size={19} className="text-[#0d9488]" /> 6. Dental Insurance / HMO Provider (Optional)
+            <CreditCard size={20} className="text-[#0d9488]" />
+            6. Dental Benefit & Insurance Carrier (Optional)
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="hmo-provider" className="block text-[13px] font-bold text-slate-700 mb-1.5">
-                Insurance Carrier / HMO
+              <label htmlFor="intake-insurance" className="block text-[13px] font-bold text-slate-700 mb-1.5">
+                Insurance Carrier / HMO Provider
               </label>
               <input
-                id="hmo-provider"
+                id="intake-insurance"
                 data-testid="input-hmo-provider"
                 type="text"
+                placeholder="e.g. Delta Dental Premier / MetLife"
                 value={hmoProvider}
                 onChange={(e) => setHmoProvider(e.target.value)}
-                placeholder="e.g. Delta Dental Premier, Cigna, MetLife"
                 className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-[14px] font-medium text-slate-800 focus:border-[#0d9488] focus:bg-white focus:outline-none transition-all"
               />
             </div>
             <div>
-              <label htmlFor="hmo-member-id" className="block text-[13px] font-bold text-slate-700 mb-1.5">
-                Member ID / Group Number
+              <label htmlFor="intake-member-id" className="block text-[13px] font-bold text-slate-700 mb-1.5">
+                Member ID / Subscriber #
               </label>
               <input
-                id="hmo-member-id"
+                id="intake-member-id"
                 data-testid="input-hmo-member-id"
                 type="text"
+                placeholder="e.g. DLT-8849201"
                 value={hmoMemberId}
                 onChange={(e) => setHmoMemberId(e.target.value)}
-                placeholder="e.g. DD-992140"
                 className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-[14px] font-medium text-slate-800 focus:border-[#0d9488] focus:bg-white focus:outline-none transition-all"
               />
             </div>
           </div>
         </div>
 
-        <hr className="border-slate-100" />
-
-        {/* Section 7: HIPAA & Digital Consent */}
-        <div className="rounded-2xl bg-teal-50/60 border border-teal-200/80 p-5 space-y-3">
-          <label className="flex items-start gap-3 cursor-pointer">
+        {/* Legal Consent & Signature Checkbox */}
+        <div className="rounded-2xl border border-teal-200 bg-teal-50/40 p-5 sm:p-6">
+          <label className="flex items-start gap-3.5 cursor-pointer">
             <input
               type="checkbox"
               data-testid="checkbox-intake-consent"
@@ -488,13 +954,7 @@ function IntakeFormContent() {
             disabled={submitting}
             className="button-primary flex w-full items-center justify-center gap-2.5 rounded-xl py-4 px-8 text-[15.5px] font-bold shadow-lg cursor-pointer"
           >
-            {submitting ? (
-              <>Encrypting & Saving Health Chart...</>
-            ) : (
-              <>
-                <Lock size={16} /> Submit Confidential Medical Intake <Sparkles size={16} />
-              </>
-            )}
+            {submitting ? 'Encrypting & Saving Health Chart...' : 'Submit Confidential Medical Intake'}
           </button>
         </div>
       </form>
@@ -503,15 +963,54 @@ function IntakeFormContent() {
 }
 
 export default function MedicalIntakePage() {
+  const [emergencyOpen, setEmergencyOpen] = useState(false);
+  const [legalModal, setLegalModal] = useState<{ open: boolean; tab: LegalTab }>({
+    open: false,
+    tab: 'privacy',
+  });
+
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <div className="h-9 w-9 animate-spin rounded-full border-3 border-[#0d9488] border-t-transparent" />
-        </div>
-      }
-    >
-      <IntakeFormContent />
-    </Suspense>
+    <div className="min-h-[100dvh] flex flex-col justify-between bg-[#f8fafc]">
+      <div>
+        <IntakeNav onEmergency={() => setEmergencyOpen(true)} />
+        <main>
+          <Suspense
+            fallback={
+              <div className="flex min-h-[60vh] items-center justify-center px-4 py-16">
+                <div className="relative mx-auto w-full max-w-[440px] rounded-3xl border border-teal-100/80 bg-white/95 p-8 sm:p-10 shadow-[0_20px_50px_rgba(15,62,74,0.08)] backdrop-blur-xl text-center">
+                  <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-50 text-[#0d9488]">
+                    <div className="absolute inset-0 rounded-2xl border-2 border-[#0d9488]/30 animate-ping opacity-30" />
+                    <ShieldCheck size={32} className="relative z-10 text-[#0d9488]" />
+                  </div>
+                  <h3 className="mt-5 text-[18px] font-extrabold text-[#0f172a]">
+                    Accessing Patient Portal
+                  </h3>
+                  <p className="mt-2 text-[13.5px] leading-relaxed text-slate-500">
+                    Initializing encrypted patient session...
+                  </p>
+                  <div className="mt-6 flex items-center justify-center gap-2">
+                    <div className="h-2.5 w-2.5 rounded-full bg-[#0d9488] animate-bounce [animation-delay:-0.3s]" />
+                    <div className="h-2.5 w-2.5 rounded-full bg-[#0d9488] animate-bounce [animation-delay:-0.15s]" />
+                    <div className="h-2.5 w-2.5 rounded-full bg-[#0d9488] animate-bounce" />
+                  </div>
+                </div>
+              </div>
+            }
+          >
+            <IntakeFormContent onEmergency={() => setEmergencyOpen(true)} />
+          </Suspense>
+        </main>
+      </div>
+
+      <IntakeFooter onOpenLegal={(tab) => setLegalModal({ open: true, tab })} />
+
+      {emergencyOpen && <EmergencyDialog onClose={() => setEmergencyOpen(false)} />}
+      {legalModal.open && (
+        <LegalDialog
+          initialTab={legalModal.tab}
+          onClose={() => setLegalModal((p) => ({ ...p, open: false }))}
+        />
+      )}
+    </div>
   );
 }

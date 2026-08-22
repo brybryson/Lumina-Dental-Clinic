@@ -20,7 +20,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.luminadentalstu
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: 'Lumina Dental Studio | Precision Dentistry, Complete Comfort',
+  title: 'Lumina Dental Clinic | Precision Dentistry, Complete Comfort',
   description: 'Modern, pain-managed dentistry with transparent pricing, digital intake, and calm clinical care in Northbridge. Accepting new patients.',
   keywords: [
     'Dental clinic',
@@ -30,11 +30,11 @@ export const metadata: Metadata = {
     'Clear aligners',
     'Porcelain veneers',
     'Emergency dentist',
-    'Lumina Dental Studio',
+    'Lumina Dental Clinic',
   ],
-  authors: [{ name: 'Lumina Dental Studio' }],
-  creator: 'Lumina Dental Studio',
-  publisher: 'Lumina Dental Studio',
+  authors: [{ name: 'Lumina Dental Clinic' }],
+  creator: 'Lumina Dental Clinic',
+  publisher: 'Lumina Dental Clinic',
   formatDetection: {
     email: false,
     address: false,
@@ -52,16 +52,16 @@ export const metadata: Metadata = {
     shortcut: '/images/lumina-logo.png',
   },
   openGraph: {
-    title: 'Lumina Dental Studio | Precision Dentistry, Complete Comfort',
+    title: 'Lumina Dental Clinic | Precision Dentistry, Complete Comfort',
     description: 'Modern, pain-managed dentistry with transparent pricing, digital intake, and calm clinical care in Northbridge. Accepting new patients.',
     url: siteUrl,
-    siteName: 'Lumina Dental Studio',
+    siteName: 'Lumina Dental Clinic',
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Lumina Dental Studio | Precision Dentistry, Complete Comfort',
+    title: 'Lumina Dental Clinic | Precision Dentistry, Complete Comfort',
     description: 'Modern, pain-managed dentistry with transparent pricing, digital intake, and calm clinical care. Accepting new patients.',
   },
   robots: {
@@ -86,7 +86,7 @@ export const viewport: Viewport = {
 const dentistSchema = {
   '@context': 'https://schema.org',
   '@type': 'Dentist',
-  name: 'Lumina Dental Studio',
+  name: 'Lumina Dental Clinic',
   description: 'Modern, pain-managed dental clinic with transparent pricing, digital intake, and comprehensive specialized dentistry.',
   url: siteUrl,
   telephone: '(415) 555-0142',
