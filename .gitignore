@@ -26,7 +26,3 @@ playwright/.cache/
 .vscode/
 .idea/
 *.tsbuildinfo
-
-# Internal feature specifications
-features/
-**/features/
