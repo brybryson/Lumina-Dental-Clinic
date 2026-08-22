@@ -1289,6 +1289,7 @@ function Booking() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [intakeToken, setIntakeToken] = useState<string | null>(null);
+  const [capturedInquiryId, setCapturedInquiryId] = useState<string | null>(null);
   const bookingRef = useRef<HTMLElement>(null);
 
   // Live clinic appointment schedule with booked slots & fully booked days
@@ -1461,6 +1462,28 @@ function Booking() {
     event.preventDefault();
     if (!validateContact()) return;
     trackEvent('booking_step_completed', { step: 'contact' });
+
+    // Background capture of Step 1 lead so abandoner recovery automation can follow up if unfinished
+    fetch('/api/inquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName: bookingFirstName.trim(),
+        lastName: bookingLastName.trim(),
+        email: email.trim(),
+        phone: mobile.trim() || undefined,
+        source: 'booking_funnel_step1',
+        status: 'lead_captured',
+      }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (data.inquiryId) {
+          setCapturedInquiryId(data.inquiryId);
+        }
+      })
+      .catch((err) => console.warn('[Lead Capture] Background notification:', err));
+
     setStep(2);
   };
 
@@ -1512,6 +1535,7 @@ function Booking() {
         date: selectedDate,
         time: selectedTime,
         notes: notes.trim() || undefined,
+        sourceInquiryId: capturedInquiryId || undefined,
       }),
     })
       .then(async (res) => {
@@ -1546,6 +1570,7 @@ function Booking() {
     setNotes('');
     setErrors({});
     setIntakeToken(null);
+    setCapturedInquiryId(null);
   };
 
   useEffect(() => {

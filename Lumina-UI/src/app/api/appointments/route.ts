@@ -15,6 +15,8 @@ export async function POST(request: Request) {
       date,
       time,
       notes,
+      sourceInquiryId,
+      flagForManualFollowup,
     } = body;
 
     if (!firstName || !lastName || !email || !mobile || !service || !date || !time) {
@@ -66,31 +68,99 @@ export async function POST(request: Request) {
       }
     }
 
-    // 2. Insert Appointment
-    const { data: appointment, error: aptError } = await supabaseAdmin
+    // 2. Identify and Link Source Inquiry Lead
+    let linkedInquiryId = sourceInquiryId || null;
+    if (!linkedInquiryId) {
+      try {
+        const { data: matchedInquiry } = await supabaseAdmin
+          .from('inquiries')
+          .select('id')
+          .eq('email', cleanEmail)
+          .in('status', ['new', 'lead_captured', 'in_review'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (matchedInquiry) {
+          linkedInquiryId = matchedInquiry.id;
+        }
+      } catch (inqErr) {
+        console.warn('[API/appointments] Inquiry lookup fallback:', inqErr);
+      }
+    }
+
+    // 3. Insert Appointment with resilient column handling
+    const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    
+    let appointment: any = null;
+    let aptError: any = null;
+
+    // Try inserting with all revision columns first
+    const fullPayload: any = {
+      patient_id: patientId,
+      service_name: service,
+      appointment_date: date,
+      time_slot: time,
+      patient_notes: notes || null,
+      status: 'confirmed',
+      source_inquiry_id: linkedInquiryId,
+      flag_for_manual_followup: Boolean(flagForManualFollowup),
+      intake_token_expires_at: expiresAt,
+    };
+
+    const res = await supabaseAdmin
       .from('appointments')
-      .insert({
+      .insert(fullPayload)
+      .select('id, intake_token, created_at')
+      .single();
+
+    appointment = res.data;
+    aptError = res.error;
+
+    // If new schema columns don't exist yet on remote db, fallback to base columns
+    if (aptError) {
+      const basePayload: any = {
         patient_id: patientId,
         service_name: service,
         appointment_date: date,
         time_slot: time,
         patient_notes: notes || null,
         status: 'confirmed',
-      })
-      .select('id, intake_token, created_at')
-      .single();
+      };
 
-    if (aptError) {
+      const fallbackRes = await supabaseAdmin
+        .from('appointments')
+        .insert(basePayload)
+        .select('id, intake_token, created_at')
+        .single();
+
+      appointment = fallbackRes.data;
+      aptError = fallbackRes.error;
+    }
+
+    if (aptError || !appointment) {
       console.error('[API/appointments] Supabase appointment error:', aptError);
       return NextResponse.json(
         {
           success: true,
           appointmentId: 'mock-app-id',
           intakeToken: 'mock-intake-token',
-          warning: aptError.message,
+          warning: aptError?.message,
         },
         { status: 200 }
       );
+    }
+
+    // 4. Mark the linked inquiry as converted if present
+    if (linkedInquiryId) {
+      try {
+        await supabaseAdmin
+          .from('inquiries')
+          .update({ status: 'converted' })
+          .eq('id', linkedInquiryId);
+      } catch (convErr) {
+        console.warn('[API/appointments] Inquiry status conversion:', convErr);
+      }
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.luminadentalstudio.com';
@@ -100,6 +170,7 @@ export async function POST(request: Request) {
       success: true,
       appointmentId: appointment.id,
       intakeToken: appointment.intake_token,
+      intakeExpiresAt: expiresAt,
       intakeUrl,
       message: 'Appointment reserved successfully.',
     });

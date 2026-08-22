@@ -17,6 +17,8 @@ appointmentsRouter.post('/', async (req: Request, res: Response): Promise<void> 
       date,
       time,
       notes,
+      sourceInquiryId,
+      flagForManualFollowup,
     } = req.body;
 
     if (!firstName || !lastName || !email || !mobile || !service || !date || !time) {
@@ -69,7 +71,25 @@ appointmentsRouter.post('/', async (req: Request, res: Response): Promise<void> 
       }
     }
 
-    // 2. Insert Appointment
+    // 2. Identify and Link Source Inquiry Lead
+    let linkedInquiryId = sourceInquiryId || null;
+    if (!linkedInquiryId) {
+      const { data: matchedInquiry } = await supabase
+        .from('inquiries')
+        .select('id')
+        .eq('email', cleanEmail)
+        .in('status', ['new', 'lead_captured', 'in_review'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (matchedInquiry) {
+        linkedInquiryId = matchedInquiry.id;
+      }
+    }
+
+    // 3. Insert Appointment with 14-day token expiration and foreign key link
+    const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
     const { data: appointment, error: aptError } = await supabase
       .from('appointments')
       .insert({
@@ -79,8 +99,11 @@ appointmentsRouter.post('/', async (req: Request, res: Response): Promise<void> 
         time_slot: time,
         patient_notes: notes || null,
         status: 'confirmed',
+        source_inquiry_id: linkedInquiryId,
+        flag_for_manual_followup: Boolean(flagForManualFollowup),
+        intake_token_expires_at: expiresAt,
       })
-      .select('id, intake_token, created_at')
+      .select('id, intake_token, intake_token_expires_at, created_at')
       .single();
 
     if (aptError) {
@@ -89,11 +112,20 @@ appointmentsRouter.post('/', async (req: Request, res: Response): Promise<void> 
       return;
     }
 
+    // 4. Mark the linked inquiry as converted
+    if (linkedInquiryId) {
+      await supabase
+        .from('inquiries')
+        .update({ status: 'converted' })
+        .eq('id', linkedInquiryId);
+    }
+
     const intakeToken = appointment?.intake_token;
     res.status(201).json({
       success: true,
       appointmentId: appointment.id,
       intakeToken,
+      intakeExpiresAt: appointment.intake_token_expires_at,
       message: 'Appointment reserved successfully.',
     });
   } catch (err: unknown) {

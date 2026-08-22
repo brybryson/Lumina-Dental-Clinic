@@ -22,6 +22,9 @@ intakeRouter.get('/:token', async (req: Request, res: Response): Promise<void> =
         service_name,
         status,
         intake_completed_at,
+        intake_token_expires_at,
+        source_inquiry_id,
+        flag_for_manual_followup,
         patients (
           first_name,
           last_name,
@@ -34,7 +37,16 @@ intakeRouter.get('/:token', async (req: Request, res: Response): Promise<void> =
       .single();
 
     if (error || !appointment) {
-      res.status(404).json({ error: 'Invalid or expired intake token.' });
+      res.status(404).json({ error: 'Invalid intake token.' });
+      return;
+    }
+
+    // Check token expiration (14-day window)
+    if (appointment.intake_token_expires_at && new Date(appointment.intake_token_expires_at) < new Date()) {
+      res.status(410).json({
+        error: 'This digital medical intake link has expired. Please contact reception at (415) 555-0142.',
+        expired: true,
+      });
       return;
     }
 
@@ -58,6 +70,8 @@ intakeRouter.post('/', async (req: Request, res: Response): Promise<void> => {
       hmoProvider,
       hmoMemberId,
       consentSigned,
+      alertAcknowledged,
+      alertAcknowledgedBy,
     } = req.body;
 
     if (!intakeToken) {
@@ -65,10 +79,10 @@ intakeRouter.post('/', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // 1. Verify Appointment
+    // 1. Verify Appointment & Expiry
     const { data: appointment, error: aptError } = await supabase
       .from('appointments')
-      .select('id, patient_id')
+      .select('id, patient_id, intake_token_expires_at')
       .eq('intake_token', intakeToken)
       .single();
 
@@ -77,7 +91,15 @@ intakeRouter.post('/', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // 2. Insert or Upsert Medical Intake Record
+    if (appointment.intake_token_expires_at && new Date(appointment.intake_token_expires_at) < new Date()) {
+      res.status(410).json({
+        error: 'This digital medical intake link has expired. Please contact reception at (415) 555-0142.',
+        expired: true,
+      });
+      return;
+    }
+
+    // 2. Insert or Upsert Medical Intake Record with explicit consent tracking
     const { error: intakeError } = await supabase
       .from('medical_intakes')
       .upsert(
@@ -92,6 +114,9 @@ intakeRouter.post('/', async (req: Request, res: Response): Promise<void> => {
           hmo_provider: hmoProvider || null,
           hmo_member_id: hmoMemberId || null,
           consent_signed: Boolean(consentSigned),
+          alert_acknowledged: Boolean(alertAcknowledged),
+          alert_acknowledged_by: alertAcknowledgedBy || null,
+          alert_acknowledged_at: alertAcknowledged ? new Date().toISOString() : null,
           submitted_at: new Date().toISOString(),
         },
         { onConflict: 'appointment_id' }

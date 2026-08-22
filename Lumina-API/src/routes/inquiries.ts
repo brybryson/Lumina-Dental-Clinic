@@ -3,28 +3,39 @@ import { supabase } from '../lib/supabase.js';
 
 export const inquiriesRouter = Router();
 
-// POST /api/inquiries - Submit a general/clinical inquiry
+// POST /api/inquiries - Submit a general inquiry or capture booking funnel Step 1 lead
 inquiriesRouter.post('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { firstName, lastName, email, phone, service, message } = req.body;
+    const { firstName, lastName, email, phone, service, message, source, status } = req.body;
 
-    if (!firstName || !lastName || !email || !message) {
-      res.status(400).json({ error: 'First name, last name, email, and message are required.' });
+    if (!firstName || !email) {
+      res.status(400).json({ error: 'First name and email are required.' });
       return;
     }
+
+    const leadSource = source || 'contact_modal';
+
+    // For organic contact modal inquiries, a message is required
+    if (leadSource === 'contact_modal' && !message) {
+      res.status(400).json({ error: 'Message is required for general inquiries.' });
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
 
     const { data, error } = await supabase
       .from('inquiries')
       .insert({
         first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        email: email.trim().toLowerCase(),
+        last_name: lastName ? lastName.trim() : null,
+        email: cleanEmail,
         phone: phone ? phone.trim() : null,
         service_of_interest: service || null,
-        message: message.trim(),
-        status: 'new',
+        message: message ? message.trim() : null,
+        source: leadSource,
+        status: status || (leadSource === 'booking_funnel_step1' ? 'lead_captured' : 'new'),
       })
-      .select('id, created_at')
+      .select('id, created_at, status, source')
       .single();
 
     if (error) {
@@ -36,7 +47,7 @@ inquiriesRouter.post('/', async (req: Request, res: Response): Promise<void> => 
     res.status(201).json({
       success: true,
       inquiryId: data?.id,
-      message: 'Inquiry received successfully.',
+      message: 'Inquiry/lead recorded successfully.',
     });
   } catch (err: unknown) {
     console.error('[API/inquiries] Unexpected server error:', err);
