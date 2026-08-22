@@ -247,25 +247,7 @@ Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
 
 ---
 
-### Workflow 4: Automated 5-Star Google Reviews & Reputation Engine
-- **Objective:** Systematically grow Google Maps ranking and social proof by soliciting reviews from verified, completed patients 24 hours post-treatment.
-- **Trigger:** 24 hours after an appointment is marked `'completed'`.
-- **Execution Flow:**
-  1. **Fetch Patient Details** (Ensure patient had no recorded complaints).
-  2. **Send Personalized Review Request**:
-     - **Subject:** *How was your visit with Dr. Lumina yesterday, {{first_name}}?*
-     - **Body:**
-       > *Hi {{first_name}},*
-       > 
-       > *Thank you for choosing Lumina Dental Clinic for your {{service_name}}. Our team strives to deliver the gentlest, highest-standard dental care.*
-       > 
-       > *If you had a comfortable experience, would you take 30 seconds to share your feedback on Google? It means the world to our staff:*
-       > 
-       > ⭐⭐⭐⭐⭐ **[Leave a 5-Star Review on Google Maps](https://g.page/r/your-google-review-link/review)**
-
----
-
-### Workflow 5: 6-Month Preventive Hygiene Recall Engine
+### Workflow 4: 6-Month Preventive Hygiene Recall Engine
 - **Objective:** Maximize patient lifetime value (LTV) and ensure continuous preventive oral health by automatically reaching out to patients due for their 6-month cleaning.
 - **Trigger:** **Daily Cron Schedule (Every morning at 09:00 AM)** (`0 9 * * *`).
 - **SQL Fetch Query:**
@@ -300,7 +282,7 @@ Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
 
 ---
 
-### Workflow 6: Lead Recovery for Abandoned Squeeze Bookings & Inquiries
+### Workflow 5: Lead Recovery for Abandoned Squeeze Bookings & Inquiries
 - **Objective:** Recover patients who submit an inquiry or begin filling their name/email but abandon before confirming a calendar slot.
 - **Trigger:** `inquiries` created with `status = 'new'` without an appointment booked within 2 hours.
 - **SQL Query:**
@@ -326,7 +308,7 @@ Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
 
 ---
 
-### Workflow 7: Real-Time Google Calendar Synchronization
+### Workflow 6: Real-Time Google Calendar Synchronization
 - **Objective:** Prevent double-booking across dentist chairs by syncing confirmed Lumina appointments directly into the clinic's Google Calendar.
 - **Trigger:** Supabase `appointments` `INSERT` where `status = 'confirmed'`.
 - **Node Steps:**

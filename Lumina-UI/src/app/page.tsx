@@ -455,10 +455,10 @@ function Hero({ onEmergency }: { onEmergency: () => void }) {
           {/* Hero Trust Bar: 1 horizontal row on mobile & desktop with clean readable font */}
           <div className="hero-proof mt-6 sm:mt-12 grid grid-cols-3 gap-2 sm:gap-6 border-t border-slate-300/80 pt-4 sm:pt-8 max-w-[840px]">
             <div className="flex flex-col gap-0.5 sm:gap-1 text-center items-center sm:text-left sm:items-start">
-              <span className="text-[13.5px] sm:text-[15px] font-extrabold text-[#0f172a]">4.9 / 5.0</span>
+              <span className="text-[13.5px] sm:text-[15px] font-extrabold text-[#0f172a]">Pain-Managed</span>
               <span className="text-[11px] sm:text-[12.5px] text-slate-600 font-medium leading-tight">
-                <span className="sm:hidden">450+ Reviews</span>
-                <span className="hidden sm:inline">450+ Verified Google Reviews</span>
+                <span className="sm:hidden">Gentle & anxiety-free</span>
+                <span className="hidden sm:inline">Gentle care & anxiety-free comfort</span>
               </span>
             </div>
 
