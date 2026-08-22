@@ -26,3 +26,6 @@ playwright/.cache/
 .vscode/
 .idea/
 *.tsbuildinfo
+
+#Automations MD files
+automation-progress.md
