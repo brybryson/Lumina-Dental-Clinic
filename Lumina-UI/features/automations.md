@@ -112,9 +112,94 @@ General clinical inquiries submitted via the primary landing page contact modal.
 | `message` | `TEXT` | `NOT NULL` | Clinical question or inquiry text |
 | `status` | `TEXT` | `DEFAULT 'new'` | `'new'`, `'in_review'`, `'replied'`, `'archived'` |
 
+### Table 5: `clinic_knowledge_docs` (pgvector Vector Store)
+Stores vectorized clinical post-op care guidelines, HMO insurance coverage rules, procedure pricing, and FAQs for RAG retrieval.
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `UUID` | `PRIMARY KEY, DEFAULT gen_random_uuid()` | Unique document chunk ID |
+| `created_at` | `TIMESTAMPTZ` | `DEFAULT NOW()` | Record creation timestamp |
+| `title` | `TEXT` | `NOT NULL` | Document title / section name |
+| `category` | `TEXT` | `NOT NULL` | `'post_op'`, `'pricing'`, `'insurance'`, `'faq'`, `'clinical_sop'` |
+| `content` | `TEXT` | `NOT NULL` | Raw text knowledge chunk |
+| `metadata` | `JSONB` | `DEFAULT '{}'::jsonb` | Flexible key-value metadata (author, tags, url) |
+| `embedding` | `VECTOR(1536)` | `NULLABLE` | 1536-dimensional vector embedding (`text-embedding-3-small` / `ada-002`) |
+
 ---
 
-## 2. Recommended n8n Workflows & Blueprint
+## 2. How to Install & Configure pgvector on Supabase
+
+`pgvector` is natively supported on all Supabase PostgreSQL instances without third-party plugins.
+
+### Method A: One-Click SQL Editor (Recommended)
+1. Open your **Supabase Project Dashboard**.
+2. Click **SQL Editor** in the left sidebar.
+3. Paste and run the following script:
+
+```sql
+-- 1. Enable the pgvector extension
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- 2. Create the Knowledge Base Table
+CREATE TABLE IF NOT EXISTS clinic_knowledge_docs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  title TEXT NOT NULL,
+  category TEXT NOT NULL, -- 'post_op', 'pricing', 'insurance', 'faq', 'clinical_sop'
+  content TEXT NOT NULL,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  embedding VECTOR(1536) -- 1536 dimensions for OpenAI text-embedding-3-small
+);
+
+-- 3. Create high-performance HNSW index for ultra-fast vector search
+CREATE INDEX IF NOT EXISTS idx_knowledge_embedding 
+ON clinic_knowledge_docs 
+USING hnsw (embedding vector_cosine_ops);
+
+-- 4. Enable Row-Level Security
+ALTER TABLE clinic_knowledge_docs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Service role full access on knowledge docs" ON clinic_knowledge_docs;
+CREATE POLICY "Service role full access on knowledge docs" ON clinic_knowledge_docs USING (true) WITH CHECK (true);
+
+-- 5. Create the Cosine Similarity Match Function for n8n / API RPC calls
+CREATE OR REPLACE FUNCTION match_clinic_knowledge (
+  query_embedding VECTOR(1536),
+  match_threshold FLOAT DEFAULT 0.75,
+  match_count INT DEFAULT 5
+)
+RETURNS TABLE (
+  id UUID,
+  title TEXT,
+  category TEXT,
+  content TEXT,
+  similarity FLOAT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    clinic_knowledge_docs.id,
+    clinic_knowledge_docs.title,
+    clinic_knowledge_docs.category,
+    clinic_knowledge_docs.content,
+    1 - (clinic_knowledge_docs.embedding <=> query_embedding) AS similarity
+  FROM clinic_knowledge_docs
+  WHERE 1 - (clinic_knowledge_docs.embedding <=> query_embedding) > match_threshold
+  ORDER BY similarity DESC
+  LIMIT match_count;
+END;
+$$;
+```
+
+### Method B: Supabase Web GUI
+1. Navigate to **Database** ➔ **Extensions** in your Supabase dashboard.
+2. In the search box, type `vector`.
+3. Locate `vector` (Vector data types and similarity metrics) and toggle the switch to **ON**.
+
+---
+
+## 3. Recommended n8n Workflows & Blueprint
 
 Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
 
@@ -128,6 +213,10 @@ Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
  1. Digital Intake       2. Allergy & Alert                     3. Post-Op Care         4. 6-Month Hygiene
   Dispatch Link           Staff Escalation                       Pathways                Recall Engine
  (On Appointment)        (On Intake Submit)                     (On Completed)          (Daily Cron)
+                                               │
+                                               ▼
+                                  7. 24/7 AI Clinical Concierge
+                                     (RAG + Supabase pgvector)
 ```
 
 ---
@@ -322,7 +411,28 @@ Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
 
 ---
 
-## 3. Environment Variables Reference for n8n & Backend
+### Workflow 7: 24/7 AI Clinical Concierge & Dental Triage (RAG + pgvector)
+- **Objective:** Provide instant, clinically grounded 24/7 answers to patient questions on pricing, HMO insurance coverage, post-op care, and emergency triage.
+- **Trigger:** Webhook from website live chat or WhatsApp incoming message.
+- **Node Steps in n8n:**
+  1. **Webhook Trigger Node**: Receives incoming user question string (`query`).
+  2. **Embeddings Node (OpenAI / Google Gemini)**: Generates 1536-dimensional vector embedding for the query.
+  3. **Supabase Vector Store Node / Postgres RPC**:
+     ```sql
+     SELECT * FROM match_clinic_knowledge(
+       query_embedding := '{{$json.embedding}}'::vector,
+       match_threshold := 0.72,
+       match_count := 3
+     );
+     ```
+  4. **AI Agent / LLM Chain Node (`gpt-4o-mini` / `gemini-1.5-flash`)**:
+     - **System Prompt:**
+       > *You are the Lumina Dental Clinic Virtual Concierge. Answer the patient's inquiry strictly using the provided context chunks. Be warm, professional, reassuring, and precise. If they ask about emergency symptoms (uncontrolled bleeding, severe facial swelling), advise immediate urgent care and provide the clinic phone: (415) 555-0142. Always invite them to book an appointment with our direct booking link: https://luminaclinic.com/#booking.*
+  5. **Respond to Webhook / WhatsApp Send Node**: Dispatches the grounded AI response back to the patient.
+
+---
+
+## 4. Environment Variables Reference for n8n & Backend
 
 When configuring n8n credentials, use the following variables:
 
@@ -338,6 +448,11 @@ POSTGRES_PASSWORD=your-super-secret-db-password
 SUPABASE_URL=https://xxxxxxxxxxxxxxxxxxxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJh......
 
+# AI & Embeddings (for RAG / Vector Store)
+OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxx
+EMBEDDING_MODEL=text-embedding-3-small
+LLM_MODEL=gpt-4o-mini
+
 # Clinical Email Delivery (Resend / SendGrid)
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
 CLINIC_SENDER_EMAIL=care@luminaclinic.com
@@ -349,15 +464,15 @@ TWILIO_PHONE_NUMBER=+14155550142
 
 # Google Integrations
 GOOGLE_CALENDAR_ID=care@luminaclinic.com
-GOOGLE_REVIEW_LINK=https://g.page/r/your-google-place-id/review
 ```
 
 ---
 
-## 4. Deployment & Testing Checklist
+## 5. Deployment & Testing Checklist
 
-- [ ] **Supabase Tables & RLS**: Ensure `schema.sql` is run in the Supabase SQL Editor.
+- [ ] **Supabase Tables & RLS**: Ensure `schema.sql` (including `pgvector` and `clinic_knowledge_docs`) is run in the Supabase SQL Editor.
 - [ ] **Supabase Webhooks**: Enable Database Webhooks in Supabase Dashboard -> Database -> Webhooks pointing to your n8n Webhook URLs.
 - [ ] **Lumina-UI Hosting**: Deploy to Vercel / Netlify / Cloudflare Pages.
 - [ ] **Lumina-API Hosting**: Deploy to Render / Railway / Fly.io with the appropriate `PORT`, `CORS_ORIGIN`, and Supabase env vars.
 - [ ] **E2E Validation**: Run `npx playwright test` to verify zero UI regressions.
+

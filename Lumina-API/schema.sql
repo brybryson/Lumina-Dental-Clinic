@@ -102,3 +102,62 @@ CREATE POLICY "Service role full access on appointments" ON appointments USING (
 
 DROP POLICY IF EXISTS "Service role full access on medical_intakes" ON medical_intakes;
 CREATE POLICY "Service role full access on medical_intakes" ON medical_intakes USING (true) WITH CHECK (true);
+
+-- ====================================================================
+-- 8. Enable pgvector & Knowledge Base for AI RAG / Clinical Concierge
+-- ====================================================================
+
+-- Enable the pgvector extension to work with embedding vectors
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Table to store clinic SOPs, FAQs, post-op instructions, and insurance rules
+CREATE TABLE IF NOT EXISTS clinic_knowledge_docs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  title TEXT NOT NULL,
+  category TEXT NOT NULL, -- 'post_op', 'pricing', 'insurance', 'faq', 'clinical_sop'
+  content TEXT NOT NULL,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  embedding VECTOR(1536) -- 1536-dim standard (OpenAI text-embedding-3-small / ada-002)
+);
+
+-- Performance HNSW index for high-speed sub-millisecond similarity searches
+CREATE INDEX IF NOT EXISTS idx_knowledge_embedding 
+ON clinic_knowledge_docs 
+USING hnsw (embedding vector_cosine_ops);
+
+-- Enable RLS for Knowledge Docs
+ALTER TABLE clinic_knowledge_docs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Service role full access on knowledge docs" ON clinic_knowledge_docs;
+CREATE POLICY "Service role full access on knowledge docs" ON clinic_knowledge_docs USING (true) WITH CHECK (true);
+
+-- RPC Function for Cosine Similarity Vector Search
+CREATE OR REPLACE FUNCTION match_clinic_knowledge (
+  query_embedding VECTOR(1536),
+  match_threshold FLOAT DEFAULT 0.75,
+  match_count INT DEFAULT 5
+)
+RETURNS TABLE (
+  id UUID,
+  title TEXT,
+  category TEXT,
+  content TEXT,
+  similarity FLOAT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    clinic_knowledge_docs.id,
+    clinic_knowledge_docs.title,
+    clinic_knowledge_docs.category,
+    clinic_knowledge_docs.content,
+    1 - (clinic_knowledge_docs.embedding <=> query_embedding) AS similarity
+  FROM clinic_knowledge_docs
+  WHERE 1 - (clinic_knowledge_docs.embedding <=> query_embedding) > match_threshold
+  ORDER BY similarity DESC
+  LIMIT match_count;
+END;
+$$;
+
