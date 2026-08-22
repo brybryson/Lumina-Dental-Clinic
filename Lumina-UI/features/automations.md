@@ -432,6 +432,60 @@ Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
 
 ---
 
+### Workflow 8: Automated Google Drive Knowledge Ingestion & Vectorization Pipeline
+- **Objective:** Allow clinic staff (dentists, practice manager) to simply drop PDFs/Word docs (Post-Op Guidelines, Pricing Sheets, HMO policies) into a dedicated Google Drive folder, and have n8n automatically extract the text, chunk it, generate embeddings, and upsert into Supabase `clinic_knowledge_docs`.
+- **Google Drive Folder Name:** `Lumina Dental SOPs & Knowledge Base`
+- **Trigger:** **Google Drive Trigger Node in n8n**
+  - **Event:** `File Created or Updated`
+  - **Filter:** MIME types `application/pdf`, `application/vnd.google-apps.document`, `text/plain`, `.docx`.
+- **Node Execution Flow in n8n:**
+  ```
+  [Google Drive Trigger] (File Created/Updated in Folder)
+           │
+           ▼
+  [Download File Node] (Get Binary PDF / Doc)
+           │
+           ▼
+  [Extract Text / PDF Parser] (Extract clinical text contents)
+           │
+           ▼
+  [Delete Old Vectors Node] (If updating existing file, remove previous chunks by `metadata->>'file_id'`)
+           │
+           ▼
+  [Text Splitter / Chunking Node] (Chunk size: 800 tokens, Overlap: 100 tokens)
+           │
+           ▼
+  [OpenAI / Gemini Embeddings Node] (Generate 1536-dim vector for each chunk)
+           │
+           ▼
+  [Supabase Insert Node] (Write chunks to `clinic_knowledge_docs`)
+           │
+           ▼
+  [Slack / Telegram Staff Notification] ("✅ Successfully vectorized: Root_Canal_PostOp.pdf (6 chunks added)")
+  ```
+- **SQL Clean-up & Upsert Query for n8n:**
+  ```sql
+  -- Step A: Delete previous chunks of this file to prevent duplicate / stale answers
+  DELETE FROM clinic_knowledge_docs 
+  WHERE metadata->>'file_id' = '{{$json.id}}';
+
+  -- Step B: Insert new vectorized chunk
+  INSERT INTO clinic_knowledge_docs (title, category, content, metadata, embedding)
+  VALUES (
+    '{{$json.name}}',
+    '{{$json.category || "clinical_sop"}}',
+    '{{$json.chunk_text}}',
+    jsonb_build_object(
+      'file_id', '{{$json.id}}',
+      'web_view_link', '{{$json.webViewLink}}',
+      'modified_time', '{{$json.modifiedTime}}'
+    ),
+    '{{$json.embedding}}'::vector
+  );
+  ```
+
+---
+
 ## 4. Environment Variables Reference for n8n & Backend
 
 When configuring n8n credentials, use the following variables:
