@@ -244,7 +244,7 @@ Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
   1. **Webhook Trigger / Supabase Node**: Receive new appointment ID.
   2. **Execute SQL Node**: Fetch patient details and `intake_token`.
   3. **Format Email Node**: Generate link `https://luminaclinic.com/intake?token={{$json.intake_token}}`.
-  4. **Send Email (Resend / SendGrid / Gmail)**:
+  4. **Send Official Clinic Email (from `care@luminaclinic.com` via Resend / SendGrid / SMTP)**:
      - **Subject:** `Confirming your visit + Pre-visit digital health history (Lumina Dental Clinic)`
      - **Body:**
        > *Hi {{first_name}},*
@@ -254,8 +254,12 @@ Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
        > *To save you 15 minutes in our lounge, please complete your secure pre-visit medical intake form prior to arriving:*
        > 
        > 👉 **[Complete Digital Intake Form](https://luminaclinic.com/intake?token={{intake_token}})**
-  5. **Send SMS / WhatsApp (Twilio)**:
-     > *Lumina Dental: Hi {{first_name}}, please fill your pre-visit health history before your {{service_name}} visit on {{appointment_date}}: https://luminaclinic.com/intake?token={{intake_token}}*
+       > 
+       > *Warm regards,*  
+       > *Dr. Lumina & Patient Care Team*  
+       > *Lumina Dental Clinic | care@luminaclinic.com*
+  5. **Internal Slack Notification (#new-appointments)**:
+     > 📅 *New Booking Confirmed: {{first_name}} {{last_name}} for {{service_name}} on {{appointment_date}} ({{time_slot}}).*
 
 ---
 
@@ -286,14 +290,13 @@ Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
 - **Execution Flow:**
   1. **IF Node**: Check if `allergies.length > 0` OR `medical_conditions.length > 0`.
   2. **True Branch**:
-     - Dispatch instant **Slack / Discord / Clinic WhatsApp Alert**:
+     - Dispatch instant **Slack Notification to `#clinical-alerts`**:
        > ⚠️ **CLINICAL HEALTH ALERT — Patient: {{first_name}} {{last_name}}**
        > - **Scheduled Service:** {{service_name}} on {{appointment_date}} ({{time_slot}})
        > - **Reported Allergies:** {{allergies.join(', ')}}
        > - **Conditions:** {{medical_conditions.join(', ')}}
        > - **Medications:** {{current_medications || 'None'}}
        > - **Emergency Contact:** {{emergency_contact_name}} ({{emergency_contact_phone}})
-  3. **Sync to Google Sheets / Notion Dental Chart**: Update the patient's record with a colored 🔴 badge.
 
 ---
 
@@ -325,14 +328,16 @@ Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
   2. **Wait Node (2 Hours)**:
   3. **Switch Node (by `service_name`)**:
      - **Case 'Root Canal Therapy' / 'Tooth Extraction' / 'Surgical'**:
-       - Send Surgical Recovery PDF & Dos/Don'ts (No hot liquids, no straws, soft diet, cold compress guidelines).
+       - Send Surgical Recovery PDF & Dos/Don'ts from `care@luminaclinic.com` (No hot liquids, no straws, soft diet, cold compress guidelines).
      - **Case 'Laser Teeth Whitening'**:
-       - Send "White Diet" guidelines (avoid coffee, wine, tomato sauce for 48 hours).
+       - Send "White Diet" guidelines from `care@luminaclinic.com` (avoid coffee, wine, tomato sauce for 48 hours).
      - **Case Default (Routine Cleaning / Exam)**:
-       - Send general oral hygiene maintenance tips.
+       - Send general oral hygiene maintenance tips from `care@luminaclinic.com`.
   4. **Wait Node (Until Next Morning at 9:00 AM)**:
-  5. **Send Follow-up Email / SMS**:
-     > *Hi {{first_name}}, Dr. Lumina team checking in! How is your comfort level today? If you have any soreness or questions, reply to this message directly or call our clinic desk.*
+  5. **Send Follow-up Email (from `care@luminaclinic.com`)**:
+     - **Subject:** `Dr. Lumina Check-in: How are you feeling today, {{first_name}}?`
+     - **Body:**
+       > *Hi {{first_name}}, Dr. Lumina and the clinical team checking in! How is your comfort level today? If you have any soreness, questions, or need anything, reply directly to this email or call our desk at (415) 555-0142.*
 
 ---
 
@@ -356,12 +361,14 @@ Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
 - **Execution Flow:**
   1. **Execute Query**: Find all eligible patients overdue for their semi-annual exam.
   2. **Loop Over Items**:
-     - Dispatch recall email:
-       > *Hi {{first_name}}, it has been 6 months since your last dental cleaning at Lumina Dental Clinic!*
-       > 
-       > *Routine cleanings are essential for preventing plaque buildup and preserving enamel health. Click below to view available chairside times:*
-       > 
-       > 📅 **[Schedule Your 6-Month Checkup](https://luminaclinic.com/#booking)**
+     - Dispatch recall email from `care@luminaclinic.com`:
+       - **Subject:** `Time for your 6-month dental cleaning & checkup (Lumina Dental Clinic)`
+       - **Body:**
+         > *Hi {{first_name}}, it has been 6 months since your last dental cleaning at Lumina Dental Clinic!*
+         > 
+         > *Routine cleanings are essential for preventing plaque buildup and preserving enamel health. Click below to view available chairside times:*
+         > 
+         > 📅 **[Schedule Your 6-Month Checkup](https://luminaclinic.com/#booking)**
      - Mark patient record as recall sent:
        ```sql
        UPDATE patients 
@@ -392,8 +399,10 @@ Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
     AND i.created_at <= NOW() - INTERVAL '1 hour'
     AND a.id IS NULL;
   ```
-- **Action:** Send gentle, conversational follow-up email:
-  > *Hi {{first_name}}, we noticed you were looking into {{service_of_interest || 'dental care'}} at Lumina Dental Clinic. Did you have any questions about pricing, insurance coverage, or procedure steps that our reception team can help clarify?*
+- **Action:** Send gentle, conversational follow-up email from `care@luminaclinic.com`:
+  - **Subject:** `Following up on your Lumina Dental Clinic inquiry`
+  - **Body:**
+    > *Hi {{first_name}}, we noticed you were looking into {{service_of_interest || 'dental care'}} at Lumina Dental Clinic. Did you have any questions about pricing, insurance coverage, or procedure steps that our reception team can help clarify? You can reply directly to this email anytime.*
 
 ---
 
@@ -413,7 +422,7 @@ Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
 
 ### Workflow 7: 24/7 AI Clinical Concierge & Dental Triage (RAG + pgvector)
 - **Objective:** Provide instant, clinically grounded 24/7 answers to patient questions on pricing, HMO insurance coverage, post-op care, and emergency triage.
-- **Trigger:** Webhook from website live chat or WhatsApp incoming message.
+- **Trigger:** Webhook from website live chat or inbound email to `care@luminaclinic.com`.
 - **Node Steps in n8n:**
   1. **Webhook Trigger Node**: Receives incoming user question string (`query`).
   2. **Embeddings Node (OpenAI / Google Gemini)**: Generates 1536-dimensional vector embedding for the query.
@@ -428,7 +437,7 @@ Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
   4. **AI Agent / LLM Chain Node (`gpt-4o-mini` / `gemini-1.5-flash`)**:
      - **System Prompt:**
        > *You are the Lumina Dental Clinic Virtual Concierge. Answer the patient's inquiry strictly using the provided context chunks. Be warm, professional, reassuring, and precise. If they ask about emergency symptoms (uncontrolled bleeding, severe facial swelling), advise immediate urgent care and provide the clinic phone: (415) 555-0142. Always invite them to book an appointment with our direct booking link: https://luminaclinic.com/#booking.*
-  5. **Respond to Webhook / WhatsApp Send Node**: Dispatches the grounded AI response back to the patient.
+  5. **Respond to Webhook / Send Email Node**: Dispatches the grounded AI response back to the patient via Web Chat or from `care@luminaclinic.com`.
 
 ---
 
@@ -461,7 +470,7 @@ Below are the 7 high-impact automation pipelines for Lumina Dental Clinic:
   [Supabase Insert Node] (Write chunks to `clinic_knowledge_docs`)
            │
            ▼
-  [Slack / Telegram Staff Notification] ("✅ Successfully vectorized: Root_Canal_PostOp.pdf (6 chunks added)")
+  [Slack Staff Notification (#knowledge-updates)] ("✅ Successfully vectorized: Root_Canal_PostOp.pdf (6 chunks added)")
   ```
 - **SQL Clean-up & Upsert Query for n8n:**
   ```sql
@@ -507,14 +516,12 @@ OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxx
 EMBEDDING_MODEL=text-embedding-3-small
 LLM_MODEL=gpt-4o-mini
 
-# Clinical Email Delivery (Resend / SendGrid)
+# Official Clinic Email Delivery (Resend / SendGrid / SMTP)
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
 CLINIC_SENDER_EMAIL=care@luminaclinic.com
 
-# SMS & WhatsApp Notifications (Twilio)
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_PHONE_NUMBER=+14155550142
+# Internal Staff Alerts (Slack)
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T00/B00/XXXXX
 
 # Google Integrations
 GOOGLE_CALENDAR_ID=care@luminaclinic.com
