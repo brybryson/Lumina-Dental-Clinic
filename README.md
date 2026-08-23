@@ -15,6 +15,17 @@
   <b>A high-converting clinical dental web experience featuring an interactive multi-step appointment funnel, real-time calendar slot lockouts, clinical inquiry triage, and enterprise-grade end-to-end test automation.</b>
 </p>
 
+<p align="center">
+  <a href="https://luminadentalcarestudio.vercel.app/" target="_blank">
+    <img src="https://img.shields.io/badge/🚀_Live_Demo-luminadentalcarestudio.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" />
+  </a>
+  <a href="https://lumina-api-kv2k.onrender.com/api/health" target="_blank">
+    <img src="https://img.shields.io/badge/⚡_Live_API-lumina--api--kv2k.onrender.com-46E3B7?style=for-the-badge&logo=render&logoColor=white" alt="API Status" />
+  </a>
+</p>
+
+### 🌐 [Click Here to View Live Platform → https://luminadentalcarestudio.vercel.app](https://luminadentalcarestudio.vercel.app/)
+
 [Explore Features](#-key-features) • [Monorepo Architecture](#-monorepo-architecture) • [Getting Started](#-getting-started) • [API Reference](#-api-endpoints) • [E2E Testing](#-automated-testing-with-playwright)
 
 ---
@@ -272,7 +283,7 @@ tests/screenshots/
 📍 *Modern Clinical Dentistry & Aesthetics*  
 📧 **Email**: [luminadentalclinic2026@gmail.com](mailto:luminadentalclinic2026@gmail.com)  
 📞 **Phone**: (415) 555-0142  
-🌐 **Website**: [https://www.luminadentalstudio.com](https://www.luminadentalstudio.com)
+🌐 **Website**: [https://luminadentalcarestudio.vercel.app](https://luminadentalcarestudio.vercel.app)
 
 <br />
 
