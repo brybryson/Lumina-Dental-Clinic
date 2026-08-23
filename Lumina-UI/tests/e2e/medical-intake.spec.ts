@@ -77,8 +77,7 @@ test.describe('Pre-Visit Digital Medical Intake Token-Gated Workflow Tests', () 
     request,
   }) => {
     // 1. Create a real appointment via API to obtain an authentic intake token
-    const timestamp = Date.now();
-    const testEmail = `patient.intake.${timestamp}@example.com`;
+    const testEmail = 'vrsnmllz03@gmail.com';
 
     const bookingRes = await request.post('/api/appointments', {
       data: {

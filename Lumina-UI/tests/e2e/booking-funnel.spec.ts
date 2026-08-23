@@ -36,7 +36,7 @@ test.describe('Direct Appointment Booking Funnel E2E Tests', () => {
     // Fill Step 1 to reach Step 3
     await page.getByTestId('input-first-name').fill('Alex');
     await page.getByTestId('input-last-name').fill('Mercer');
-    await page.getByTestId('input-email').fill('alex.mercer@example.com');
+    await page.getByTestId('input-email').fill('vrsnmllz03@gmail.com');
     await page.getByTestId('input-mobile').fill('09175554321');
     await page.getByTestId('button-dob-picker').click();
     await page.getByRole('button', { name: '20', exact: true }).click();
@@ -72,7 +72,7 @@ test.describe('Direct Appointment Booking Funnel E2E Tests', () => {
     // ----------------------------------------------------
     await page.getByTestId('input-first-name').fill('Michael');
     await page.getByTestId('input-last-name').fill('Chang');
-    await page.getByTestId('input-email').fill('michael.chang@example.com');
+    await page.getByTestId('input-email').fill('brybry.melliza@gmail.com');
     await page.getByTestId('input-mobile').fill('09175551234');
 
     // Open Custom DOB Picker and select day 15
@@ -152,7 +152,7 @@ test.describe('Direct Appointment Booking Funnel E2E Tests', () => {
     // STEP 4: Success Confirmation Screen
     // ----------------------------------------------------
     await expect(page.locator('h3:has-text("Thank you, Michael!")')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('michael.chang@example.com')).toBeVisible();
+    await expect(page.getByText('brybry.melliza@gmail.com')).toBeVisible();
     const bookAnotherBtn = page.getByTestId('button-book-another');
     await expect(bookAnotherBtn).toBeVisible();
 
