@@ -1398,11 +1398,16 @@ function Booking() {
   }, []);
 
   const formatPhoneNumber = (val: string) => {
-    const digits = val.replace(/\D/g, '').slice(0, 10);
+    // Standard Philippine Mobile Format: 09XX XXX XXXX (11 digits)
+    let digits = val.replace(/\D/g, '');
+    if (digits.startsWith('63') && digits.length > 10) {
+      digits = '0' + digits.slice(2);
+    }
+    digits = digits.slice(0, 11);
     if (digits.length === 0) return '';
-    if (digits.length <= 3) return `(${digits}`;
-    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+    if (digits.length <= 4) return digits;
+    if (digits.length <= 7) return `${digits.slice(0, 4)} ${digits.slice(4)}`;
+    return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7, 11)}`;
   };
 
   const handleInquirySubmit = (e: React.FormEvent) => {
@@ -1412,6 +1417,12 @@ function Booking() {
     if (lastName.trim().length < 2) next.lastName = 'Enter your last name (at least 2 letters).';
     if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(inquiryEmail.trim())) {
       next.inquiryEmail = 'Enter a valid email address (e.g. name@example.com).';
+    }
+    if (inquiryPhone.trim()) {
+      const rawInqPhone = inquiryPhone.replace(/\D/g, '');
+      if (!rawInqPhone.startsWith('09') || rawInqPhone.length !== 11) {
+        next.inquiryPhone = 'Enter a valid 11-digit PH mobile number starting with 09 (e.g. 0917 123 4567).';
+      }
     }
     if (inquiryMessage.trim().length < 10) {
       next.inquiryMessage = 'Please describe your inquiry or questions (at least 10 characters).';
@@ -1468,8 +1479,10 @@ function Booking() {
     }
 
     const rawMobile = mobile.replace(/\D/g, '');
-    if (rawMobile.length !== 10) {
-      next.mobile = 'Phone number must be exactly 10 digits.';
+    if (!rawMobile.startsWith('09')) {
+      next.mobile = 'Mobile number must start with 09 (e.g. 0917 123 4567).';
+    } else if (rawMobile.length !== 11) {
+      next.mobile = 'Mobile number must be 11 digits (e.g. 0917 123 4567).';
     }
 
     if (!dob) {
@@ -1797,7 +1810,7 @@ function Booking() {
 
                   <div>
                     <label htmlFor="inquiry-phone" className="mb-1.5 block text-[12px] font-bold text-slate-700">
-                      Mobile phone <span className="text-slate-400 font-normal">(optional)</span>
+                      Mobile phone <span className="text-slate-400 font-normal">(PH: 09XX XXX XXXX)</span>
                     </label>
                     <div className="relative">
                       <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -1805,12 +1818,17 @@ function Booking() {
                         id="inquiry-phone"
                         type="tel"
                         value={inquiryPhone}
-                        placeholder="(415) 555-0142"
-                        maxLength={14}
+                        placeholder="0917 123 4567"
+                        maxLength={13}
                         onChange={(e) => setInquiryPhone(formatPhoneNumber(e.target.value))}
                         className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-3.5 py-3.5 text-[14.5px] text-slate-900 placeholder:text-slate-400 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0f766e] focus:border-[#0f766e]"
                       />
                     </div>
+                    {inquiryErrors.inquiryPhone && (
+                      <p className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-rose-600">
+                        <CircleAlert size={13} /> {inquiryErrors.inquiryPhone}
+                      </p>
+                    )}
                   </div>
 
                   <div className="sm:col-span-2">
@@ -2011,7 +2029,7 @@ function Booking() {
 
                   <div>
                     <label htmlFor="mobile" className="mb-1.5 block text-[12px] font-bold text-slate-700">
-                      Mobile phone
+                      Mobile phone <span className="text-slate-400 font-normal">(PH: 09XX XXX XXXX)</span>
                     </label>
                     <div className="relative">
                       <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -2019,8 +2037,8 @@ function Booking() {
                         id="mobile"
                         type="tel"
                         value={mobile}
-                        placeholder="(415) 555-0142"
-                        maxLength={14}
+                        placeholder="0917 123 4567"
+                        maxLength={13}
                         onChange={(e) => {
                           const formatted = formatPhoneNumber(e.target.value);
                           setMobile(formatted);
@@ -2113,16 +2131,16 @@ function Booking() {
                     <div className="flex items-center gap-2.5">
                       <h3 className="display text-[22px] font-extrabold text-[#0f172a]">Select your clinical treatment(s).</h3>
                       {selectedServices.length > 0 && (
-                        <span className="rounded-full bg-teal-100 text-[#0d9488] px-2.5 py-0.5 text-[11.5px] font-extrabold">
+                        <span className="rounded-full bg-teal-100 text-[#0d9488] px-2.5 py-0.5 text-[11.5px] font-extrabold shadow-2xs">
                           {selectedServices.length} selected
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 text-[13.5px] text-slate-500">Pick one or more dental procedures you would like to reserve time for.</p>
+                    <p className="mt-1 text-[13.5px] text-slate-500">Pick one or more dental procedures you would like to reserve chairside time for.</p>
                   </div>
                   <button
                     type="button"
-                    className="text-[12.5px] font-bold text-slate-500 hover:text-[#0d9488] cursor-pointer self-start sm:self-auto"
+                    className="text-[12.5px] font-bold text-slate-500 hover:text-[#0d9488] cursor-pointer self-start sm:self-auto transition-colors"
                     onClick={() => setStep(1)}
                     data-testid="button-booking-back-contact"
                   >
@@ -2132,47 +2150,55 @@ function Booking() {
 
                 <div className="space-y-6">
                   {organizedCareCategories.map((group) => (
-                    <div key={group.category} className="space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-[12px] font-extrabold uppercase tracking-wider text-slate-400">
+                    <div key={group.category} className="space-y-3">
+                      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <span className="h-2 w-2 rounded-full bg-[#0d9488]" />
+                        <h4 className="text-[12.5px] font-extrabold uppercase tracking-wider text-slate-700">
                           {group.category}
                         </h4>
                       </div>
-                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {group.items.map((item, idx) => {
+                      <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+                        {group.items.map((item) => {
                           const isSelected = selectedServices.includes(item.name);
                           return (
                             <button
                               key={item.name}
                               type="button"
                               onClick={() => toggleService(item.name)}
-                              className={`flex flex-col justify-between rounded-2xl p-4 text-left transition-all border cursor-pointer ${
+                              className={`group flex flex-col justify-between rounded-2xl p-4.5 text-left transition-all border cursor-pointer ${
                                 isSelected
-                                  ? 'border-[#0d9488] bg-[#f0faf9] text-[#0f172a] shadow-xs ring-2 ring-[#0d9488]/40'
-                                  : 'border-slate-200/90 bg-slate-50/50 hover:bg-slate-100/70 text-slate-700'
+                                  ? 'border-[#0d9488] bg-gradient-to-br from-[#f0faf9] via-white to-teal-50/50 text-[#0f172a] shadow-sm ring-2 ring-[#0d9488]/40 -translate-y-0.5'
+                                  : 'border-slate-200/90 bg-white hover:border-teal-300 hover:bg-slate-50/80 hover:shadow-[0_8px_20px_-6px_rgba(13,148,136,0.12)] hover:-translate-y-0.5 text-slate-700'
                               }`}
                               data-testid={`service-card-${item.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
                             >
                               <div>
                                 <div className="flex items-start justify-between gap-2.5">
-                                  <span className="text-[14px] font-extrabold leading-snug text-[#0f172a]">
+                                  <span className={`text-[14.5px] font-bold leading-snug transition-colors ${
+                                    isSelected ? 'text-[#0f172a]' : 'text-slate-800 group-hover:text-[#0d9488]'
+                                  }`}>
                                     {item.name}
                                   </span>
                                   <span
-                                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all ${
+                                    className={`flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-lg border transition-all ${
                                       isSelected
-                                        ? 'border-[#0d9488] bg-[#0d9488] text-white'
-                                        : 'border-slate-300 bg-white'
+                                        ? 'border-[#0d9488] bg-[#0d9488] text-white shadow-2xs'
+                                        : 'border-slate-300 bg-slate-50 group-hover:border-teal-400'
                                     }`}
                                   >
-                                    {isSelected && <Check size={12} strokeWidth={3} />}
+                                    {isSelected && <Check size={13} strokeWidth={3} />}
                                   </span>
                                 </div>
-                                <p className="mt-1.5 text-[12px] leading-relaxed text-slate-500 line-clamp-2">
+                                <p className="mt-2 text-[12.5px] leading-relaxed text-slate-500 line-clamp-2">
                                   {item.desc}
                                 </p>
                               </div>
-                              <span className="inline-block mt-3 text-[11px] font-semibold text-[#0d9488] bg-teal-100/60 px-2.5 py-0.5 rounded-md border border-teal-200/60 w-fit">
+                              <span className={`inline-flex items-center gap-1.5 mt-3.5 text-[11px] font-bold px-2.5 py-0.5 rounded-md border w-fit transition-colors ${
+                                isSelected
+                                  ? 'text-[#0d9488] bg-teal-100/70 border-teal-200'
+                                  : 'text-slate-600 bg-slate-100 border-slate-200/70 group-hover:bg-teal-50 group-hover:text-[#0d9488] group-hover:border-teal-200/60'
+                              }`}>
+                                <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-[#0d9488]' : 'bg-slate-400 group-hover:bg-[#0d9488]'}`} />
                                 {item.badge}
                               </span>
                             </button>

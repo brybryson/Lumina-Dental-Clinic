@@ -21,7 +21,7 @@ test.describe('Direct Appointment Booking Funnel E2E Tests', () => {
     await expect(page.getByText(/Please enter your first name/i)).toBeVisible();
     await expect(page.getByText(/Please enter your last name/i)).toBeVisible();
     await expect(page.getByText(/Enter a valid email address/i)).toBeVisible();
-    await expect(page.getByText(/Phone number must be exactly 10 digits/i)).toBeVisible();
+    await expect(page.getByText(/Mobile number must/i)).toBeVisible();
     await expect(page.getByText(/Please select your date of birth/i)).toBeVisible();
     await expect(page.getByText(/Please select your sex assigned at birth/i)).toBeVisible();
 
@@ -37,7 +37,7 @@ test.describe('Direct Appointment Booking Funnel E2E Tests', () => {
     await page.getByTestId('input-first-name').fill('Alex');
     await page.getByTestId('input-last-name').fill('Mercer');
     await page.getByTestId('input-email').fill('alex.mercer@example.com');
-    await page.getByTestId('input-mobile').fill('4155554321');
+    await page.getByTestId('input-mobile').fill('09175554321');
     await page.getByTestId('button-dob-picker').click();
     await page.getByRole('button', { name: '20', exact: true }).click();
     await page.getByTestId('button-sex-male').click();
@@ -75,7 +75,7 @@ test.describe('Direct Appointment Booking Funnel E2E Tests', () => {
     await page.getByTestId('input-first-name').fill('Michael');
     await page.getByTestId('input-last-name').fill('Chang');
     await page.getByTestId('input-email').fill('michael.chang@example.com');
-    await page.getByTestId('input-mobile').fill('4155551234');
+    await page.getByTestId('input-mobile').fill('09175551234');
 
     // Open Custom DOB Picker and select day 15
     await page.getByTestId('button-dob-picker').click();

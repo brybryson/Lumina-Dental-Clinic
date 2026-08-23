@@ -42,7 +42,7 @@ test.describe('General & Clinical Inquiries Form E2E Tests', () => {
     await page.locator('#first-name').fill('Sarah');
     await page.locator('#last-name').fill('Connor');
     await page.locator('#inquiry-email').fill('sarah.connor@example.com');
-    await page.locator('#inquiry-phone').fill('(415) 555-9876');
+    await page.locator('#inquiry-phone').fill('09175559876');
     await page.locator('#inquiry-service').selectOption({ label: 'Laser Teeth Whitening' });
     await page.locator('#inquiry-message').fill(
       'Hello! I would like to inquire about the Laser Teeth Whitening treatment and whether you accept direct HMO billing for cosmetic consultations.'

@@ -69,7 +69,7 @@ test.describe('Pre-Visit Digital Medical Intake E2E & UI Workflow Tests', () => 
         firstName: 'Elena',
         lastName: 'Rostova',
         email: testEmail,
-        mobile: '(415) 555-8822',
+        mobile: '09175558822',
         dob: '1992-04-14',
         sex: 'Female',
         service: 'Laser Teeth Whitening, Dental Cleaning & Routine Checkup',
