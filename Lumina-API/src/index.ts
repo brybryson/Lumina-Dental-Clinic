@@ -27,7 +27,16 @@ app.use(
 
 app.use(express.json());
 
-// Health Check
+// Root & Health Check
+app.get('/', (_req: Request, res: Response) => {
+  res.json({
+    status: 'online',
+    message: 'Welcome to Lumina Dental Studio API',
+    health: '/api/health',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
     status: 'healthy',
