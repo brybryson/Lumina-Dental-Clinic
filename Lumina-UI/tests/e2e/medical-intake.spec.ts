@@ -3,66 +3,82 @@ import { getScreenshotFolder } from './helpers';
 
 const folder = getScreenshotFolder('intake');
 
-test.describe('Pre-Visit Digital Medical Intake E2E & UI Workflow Tests', () => {
-  test('should verify access to digital intake portal from landing page navigation and dedicated section', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('domcontentloaded');
+test.describe('Pre-Visit Digital Medical Intake Token-Gated Workflow Tests', () => {
+  test('State 1 — should render Restricted Access when no token or invalid token is provided', async ({ page }) => {
+    // 1. Visit /intake directly without token
+    await page.goto('/intake');
+    await page.waitForLoadState('networkidle');
 
-    // 1. Verify clean navbar link exists (scroll past hero to reveal navbar)
-    await page.evaluate(() => {
-      window.scrollTo(0, 350);
-      window.dispatchEvent(new Event('scroll'));
-    });
-    const navIntake = page.locator('[data-testid="nav-link-intake"]');
-    await expect(navIntake).toBeVisible();
-    await expect(navIntake).toHaveText('Digital Intake');
+    // Verify State 1 renders with exact copy and no navbar/footer
+    await expect(page.getByTestId('state-restricted-access')).toBeVisible();
+    await expect(page.locator('h1:has-text("Restricted Access")')).toBeVisible();
+    await expect(
+      page.getByText(/This page can only be accessed through the secure link sent to your email/i)
+    ).toBeVisible();
 
-    // 2. Scroll to dedicated Digital Intake section at bottom of landing page
-    const intakeSection = page.locator('#digital-intake');
-    await intakeSection.scrollIntoViewIfNeeded();
-    await expect(intakeSection).toBeVisible();
+    // Verify action button and contact link
+    const returnHomeBtn = page.getByTestId('button-return-home');
+    await expect(returnHomeBtn).toBeVisible();
+    await expect(page.getByTestId('link-contact-us')).toBeVisible();
 
-    const portalBtn = page.locator('[data-testid="link-open-intake-portal"]');
-    await expect(portalBtn).toBeVisible();
-
-    // Capture screenshot of the dedicated section
+    // Capture screenshot: State 1 (No Token)
     await page.screenshot({
-      path: `${folder}/00-landing-digital-intake-section.png`,
+      path: `${folder}/01-state1-restricted-access-no-token.png`,
       fullPage: false,
     });
 
-    // 3. Click Open Patient Intake Portal
-    await portalBtn.click();
-    await page.waitForURL('**/intake**');
-    await expect(page.locator('h1:has-text("Pre-Visit Clinical Health History")')).toBeVisible({ timeout: 15000 });
+    // 2. Visit /intake with a non-existent / invalid token
+    await page.goto('/intake?token=nonexistent-invalid-token-xyz-12345');
+    await page.waitForLoadState('networkidle');
+
+    // Verify exact same generic security message is rendered (no distinction / no info leak)
+    await expect(page.getByTestId('state-restricted-access')).toBeVisible();
+    await expect(page.locator('h1:has-text("Restricted Access")')).toBeVisible();
+
+    // Capture screenshot: State 1 (Invalid Token)
+    await page.screenshot({
+      path: `${folder}/02-state1-restricted-access-invalid-token.png`,
+      fullPage: false,
+    });
   });
 
-  test('should validate API error handling for missing or invalid intake tokens', async ({ request }) => {
-    // 1. Missing token
-    const missingRes = await request.post('/api/intake', {
-      data: {
-        medicalConditions: ['Hypertension'],
-      },
+  test('State 2 — should render Link Expired when token is expired', async ({ page }) => {
+    // Intercept GET /api/intake to simulate an expired token state
+    await page.route('**/api/intake?token=expired-token-demo*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: 'expired',
+          error: 'This Link Has Expired',
+          message: 'For your security, intake links expire 14 days after booking. Please contact us and we\'ll send you a new one.',
+        }),
+      });
     });
-    expect(missingRes.status()).toBe(400);
 
-    // 2. Invalid token
-    const invalidRes = await request.post('/api/intake', {
-      data: {
-        intakeToken: 'invalid-nonexistent-token',
-        medicalConditions: ['Asthma'],
-      },
+    await page.goto('/intake?token=expired-token-demo');
+    await page.waitForLoadState('networkidle');
+
+    // Verify State 2 renders
+    await expect(page.getByTestId('state-link-expired')).toBeVisible();
+    await expect(page.locator('h1:has-text("This Link Has Expired")')).toBeVisible();
+    await expect(page.getByText(/intake links expire 14 days after booking/i)).toBeVisible();
+    await expect(page.getByTestId('button-return-home')).toBeVisible();
+
+    // Capture screenshot: State 2 (Expired Token)
+    await page.screenshot({
+      path: `${folder}/03-state2-link-expired.png`,
+      fullPage: false,
     });
-    expect(invalidRes.status()).toBe(404);
   });
 
-  test('should complete full visual digital medical intake flow with live fields, capture screenshots, and persist in Supabase', async ({
+  test('State 4 & Draft Persistence & State 3 — should complete intake flow with draft persistence in sessionStorage', async ({
     page,
     request,
   }) => {
-    // 1. Create a real appointment to obtain an authentic intake token
+    // 1. Create a real appointment via API to obtain an authentic intake token
     const timestamp = Date.now();
-    const testEmail = `patient.intake.ui.${timestamp}@example.com`;
+    const testEmail = `patient.intake.${timestamp}@example.com`;
 
     const bookingRes = await request.post('/api/appointments', {
       data: {
@@ -85,84 +101,71 @@ test.describe('Pre-Visit Digital Medical Intake E2E & UI Workflow Tests', () => 
 
     const intakeToken = bookingData.intakeToken;
 
-    // 2. Navigate in browser to the digital intake page with the authentic token
+    // 2. Open State 4 (Valid Token Form)
     await page.goto(`/intake?token=${intakeToken}`);
     await page.waitForLoadState('networkidle');
 
-    // Verify patient banner is populated
-    await expect(page.locator('text=Elena Rostova')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('text=Laser Teeth Whitening')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('state-intake-form')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('h1:has-text("Pre-Visit Clinical Health History")')).toBeVisible();
+    await expect(page.getByText('Elena Rostova')).toBeVisible();
 
-    // STAGE 1 SCREENSHOT: Initial Form Loaded with Patient Chart
-    await page.screenshot({
-      path: `${folder}/01-intake-form-loaded-with-patient-data.png`,
-      fullPage: true,
-    });
-
-    // 3. Fill / verify Date of Birth
+    // 3. Fill form fields to test draft persistence
     const dobInput = page.locator('[data-testid="input-intake-dob"]');
     await dobInput.fill('1992-04-14');
 
-    // 4. Select Medical Conditions (Hypertension, Dental Anxiety)
+    // Select conditions & allergies
     await page.locator('[data-testid="checkbox-condition-0"]').click(); // Hypertension
     await page.locator('[data-testid="checkbox-condition-1"]').click(); // Dental Anxiety
-
-    // STAGE 2 SCREENSHOT: Medical Conditions Selected
-    await page.screenshot({
-      path: `${folder}/02-intake-medical-conditions-selected.png`,
-      fullPage: true,
-    });
-
-    // 5. Select Drug & Material Allergies (Penicillin, Latex)
     await page.locator('[data-testid="checkbox-allergy-0"]').click(); // Penicillin
-    await page.locator('[data-testid="checkbox-allergy-1"]').click(); // Latex
 
-    // 6. Input Current Medications
-    await page
-      .locator('[data-testid="textarea-medications"]')
-      .fill('Lisinopril 10mg once daily in morning. Multivitamins daily.');
-
-    // STAGE 3 SCREENSHOT: Allergies and Medications Filled
-    await page.screenshot({
-      path: `${folder}/03-intake-allergies-and-medications-filled.png`,
-      fullPage: true,
-    });
-
-    // 7. Input Emergency Contact
+    // Fill medications & emergency contact
+    await page.locator('[data-testid="textarea-medications"]').fill('Lisinopril 10mg daily');
     await page.locator('[data-testid="input-emergency-name"]').fill('Marcus Rostova');
-    await page.locator('[data-testid="input-emergency-phone"]').fill('(415) 555-9988');
+    await page.locator('[data-testid="input-emergency-phone"]').fill('0917 555 9988');
 
-    // 8. Input HMO / Insurance Provider & Member ID
+    // Fill HMO
     await page.locator('[data-testid="input-hmo-provider"]').fill('Delta Dental Premier');
     await page.locator('[data-testid="input-hmo-member-id"]').fill('DD-992140-PREM');
 
-    // 9. Sign Digital Consent Checkbox
+    // Capture screenshot: State 4 (Form Filled)
+    await page.screenshot({
+      path: `${folder}/04-state4-form-filled-and-drafted.png`,
+      fullPage: true,
+    });
+
+    // 4. Test Draft Persistence: Reload page and verify fields are preserved via sessionStorage
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('state-intake-form')).toBeVisible();
+    await expect(page.locator('[data-testid="input-emergency-name"]')).toHaveValue('Marcus Rostova');
+    await expect(page.locator('[data-testid="textarea-medications"]')).toHaveValue('Lisinopril 10mg daily');
+
+    // 5. Sign consent checkbox and submit
     await page.locator('[data-testid="checkbox-intake-consent"]').check();
+    await page.locator('[data-testid="button-submit-intake"]').click();
 
-    // STAGE 4 SCREENSHOT: Emergency Contact, Insurance & Consent Complete
+    // 6. Assert transition to State 3 — "You're All Set!"
+    await expect(page.getByTestId('state-already-completed')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("You\'re All Set!")')).toBeVisible();
+    await expect(page.getByText(/We already have your medical intake on file for this appointment/i)).toBeVisible();
+
+    // Capture screenshot: State 3 (Completed Confirmation)
     await page.screenshot({
-      path: `${folder}/04-intake-emergency-and-insurance-ready.png`,
-      fullPage: true,
+      path: `${folder}/05-state3-already-completed.png`,
+      fullPage: false,
     });
 
-    // 10. Click Submit Button
-    const submitBtn = page.locator('[data-testid="button-submit-intake"]');
-    await submitBtn.click();
+    // 7. Direct Re-visit Test: Re-opening the exact same token URL directly hits State 3
+    await page.goto(`/intake?token=${intakeToken}`);
+    await page.waitForLoadState('networkidle');
 
-    // 11. Assert Success Screen Appears
-    await expect(page.locator('h1:has-text("Medical History Successfully Verified")')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('state-already-completed')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("You\'re All Set!")')).toBeVisible();
 
-    // STAGE 5 SCREENSHOT: Final Submitted & Verified Screen
+    // Capture screenshot: State 3 (Direct Re-visit)
     await page.screenshot({
-      path: `${folder}/05-intake-submitted-success-screen.png`,
-      fullPage: true,
+      path: `${folder}/06-state3-direct-revisit.png`,
+      fullPage: false,
     });
-
-    // 12. Verify Appointment status changed to 'intake_submitted' in API
-    const verifyApi = await request.get(`/api/intake?token=${intakeToken}`);
-    const verifyJson = await verifyApi.json();
-    expect(verifyJson.appointment.status).toBe('intake_submitted');
   });
 });

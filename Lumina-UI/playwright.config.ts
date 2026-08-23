@@ -17,7 +17,7 @@ export default defineConfig({
     baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'on',
-    video: 'retain-on-failure',
+    video: 'on',
   },
   projects: [
     {

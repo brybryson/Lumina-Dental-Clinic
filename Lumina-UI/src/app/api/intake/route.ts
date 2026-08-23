@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
-// GET: Validate intake token and verify expiry if configured
+// GET: Validate intake token and return state enum without leaking sensitive info
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
 
-  if (!token) {
-    return NextResponse.json({ error: 'Token is required.' }, { status: 400 });
+  // Exact same response for missing vs empty token (Security rule: no distinction)
+  if (!token || token.trim() === '') {
+    return NextResponse.json({
+      status: 'invalid',
+      error: 'Restricted Access',
+      message: 'This page can only be accessed through the secure link sent to your email after booking.',
+    });
   }
 
   try {
@@ -20,6 +25,7 @@ export async function GET(request: Request) {
         service_name,
         status,
         intake_completed_at,
+        intake_token_expires_at,
         patients (
           first_name,
           last_name,
@@ -28,36 +34,62 @@ export async function GET(request: Request) {
           date_of_birth
         )
       `)
-      .eq('intake_token', token)
-      .single();
+      .eq('intake_token', token.trim())
+      .maybeSingle();
 
+    // Exact same response for non-existent token (Security rule: no information leakage)
     if (error || !appointment) {
-      return NextResponse.json({ error: 'Invalid intake token.' }, { status: 404 });
+      return NextResponse.json({
+        status: 'invalid',
+        error: 'Restricted Access',
+        message: 'This page can only be accessed through the secure link sent to your email after booking.',
+      });
     }
 
-    // Check expiry if field is returned
-    if ((appointment as any).intake_token_expires_at) {
-      if (new Date((appointment as any).intake_token_expires_at) < new Date()) {
-        return NextResponse.json(
-          {
-            error: 'This digital medical intake link has expired. Please contact reception at (415) 555-0142.',
-            expired: true,
-          },
-          { status: 410 }
-        );
+    // State 2: Check if link has expired
+    if (appointment.intake_token_expires_at) {
+      if (new Date(appointment.intake_token_expires_at) < new Date()) {
+        return NextResponse.json({
+          status: 'expired',
+          error: 'This Link Has Expired',
+          message: 'For your security, intake links expire 14 days after booking. Please contact us and we\'ll send you a new one.',
+        });
       }
     }
 
-    return NextResponse.json({ success: true, appointment });
+    // State 3: Check if already completed
+    if (appointment.intake_completed_at) {
+      return NextResponse.json({
+        status: 'completed',
+        completed_at: appointment.intake_completed_at,
+        message: 'We already have your medical intake on file for this appointment.',
+      });
+    }
+
+    // State 4: Valid, unexpired, not yet completed -> return necessary form metadata
+    const rawPatient = appointment.patients;
+    const patientObj = Array.isArray(rawPatient) ? rawPatient[0] : rawPatient;
+
+    return NextResponse.json({
+      status: 'valid',
+      appointment: {
+        id: appointment.id,
+        appointment_date: appointment.appointment_date,
+        time_slot: appointment.time_slot,
+        service_name: appointment.service_name,
+        status: appointment.status,
+        patients: patientObj || null,
+      },
+    });
   } catch (err: unknown) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Internal Server Error' },
+      { error: err instanceof Error ? err.message : 'Internal Server Error', status: 'error' },
       { status: 500 }
     );
   }
 }
 
-// POST: Submit Medical Intake Form
+// POST: Submit Medical Intake Form & Sync Status
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -83,13 +115,19 @@ export async function POST(request: Request) {
     // 1. Verify Appointment & Expiry
     const { data: appointment, error: aptError } = await supabaseAdmin
       .from('appointments')
-      .select('id, patient_id')
-      .eq('intake_token', intakeToken)
-      .single();
+      .select('id, patient_id, intake_token_expires_at')
+      .eq('intake_token', intakeToken.trim())
+      .maybeSingle();
 
     if (aptError || !appointment) {
-      return NextResponse.json({ error: 'Invalid intake token.' }, { status: 404 });
+      return NextResponse.json({ error: 'Invalid or missing intake token.', status: 'invalid' }, { status: 404 });
     }
+
+    if (appointment.intake_token_expires_at && new Date(appointment.intake_token_expires_at) < new Date()) {
+      return NextResponse.json({ error: 'This intake token has expired.', status: 'expired' }, { status: 410 });
+    }
+
+    const nowIso = new Date().toISOString();
 
     // 2. Insert Medical Intake Record (with resilient fallback)
     const fullIntakePayload: any = {
@@ -105,8 +143,8 @@ export async function POST(request: Request) {
       consent_signed: Boolean(consentSigned),
       alert_acknowledged: Boolean(alertAcknowledged),
       alert_acknowledged_by: alertAcknowledgedBy || null,
-      alert_acknowledged_at: alertAcknowledged ? new Date().toISOString() : null,
-      submitted_at: new Date().toISOString(),
+      alert_acknowledged_at: alertAcknowledged ? nowIso : null,
+      submitted_at: nowIso,
     };
 
     let { error: intakeError } = await supabaseAdmin
@@ -114,7 +152,7 @@ export async function POST(request: Request) {
       .upsert(fullIntakePayload, { onConflict: 'appointment_id' });
 
     if (intakeError) {
-      // Fallback to base columns if new acknowledgment columns do not exist yet on db
+      // Fallback to base columns if schema differs
       const baseIntakePayload: any = {
         appointment_id: appointment.id,
         date_of_birth: dateOfBirth || null,
@@ -126,7 +164,7 @@ export async function POST(request: Request) {
         hmo_provider: hmoProvider || null,
         hmo_member_id: hmoMemberId || null,
         consent_signed: Boolean(consentSigned),
-        submitted_at: new Date().toISOString(),
+        submitted_at: nowIso,
       };
 
       const fallbackRes = await supabaseAdmin
@@ -137,20 +175,22 @@ export async function POST(request: Request) {
     }
 
     if (intakeError) {
-      console.error('[API/intake] Supabase error:', intakeError);
+      console.error('[API/intake] Supabase upsert error:', intakeError);
     }
 
-    // 3. Update Appointment Status
+    // 3. Mark appointment intake as completed
     await supabaseAdmin
       .from('appointments')
       .update({
         status: 'intake_submitted',
-        intake_completed_at: new Date().toISOString(),
+        intake_completed_at: nowIso,
       })
       .eq('id', appointment.id);
 
     return NextResponse.json({
       success: true,
+      status: 'completed',
+      completed_at: nowIso,
       message: 'Medical intake submitted successfully.',
     });
   } catch (err: unknown) {
