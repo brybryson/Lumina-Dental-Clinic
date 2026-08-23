@@ -157,7 +157,21 @@ appointmentsRouter.get('/', async (_req: Request, res: Response): Promise<void> 
       return;
     }
 
-    res.json({ success: true, appointments: data });
+    // Build schedule dictionary for live calendar lockout
+    const schedule: Record<string, string[]> = {};
+    (data || []).forEach((apt: any) => {
+      if (apt.appointment_date && apt.time_slot && apt.status !== 'cancelled') {
+        const dateKey = apt.appointment_date;
+        if (!schedule[dateKey]) {
+          schedule[dateKey] = [];
+        }
+        if (!schedule[dateKey].includes(apt.time_slot)) {
+          schedule[dateKey].push(apt.time_slot);
+        }
+      }
+    });
+
+    res.json({ success: true, schedule, appointments: data });
   } catch (err: unknown) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Internal server error' });
   }

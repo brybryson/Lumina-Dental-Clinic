@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { format } from 'date-fns';
 import {
   ArrowRight,
   Calendar as CalendarIcon,
@@ -1328,6 +1329,37 @@ function Booking() {
       '04:00 PM – 05:00 PM',
     ], // FULLY BOOKED DAY
   });
+
+  // Fetch live confirmed bookings from Supabase database so calendar reflects real-time lockouts
+  useEffect(() => {
+    async function loadLiveSchedule() {
+      try {
+        const res = await fetch('/api/appointments');
+        const data = await res.json();
+        if (res.ok && data.schedule) {
+          setBookedSchedule((prev) => {
+            const merged = { ...prev };
+            for (const [rawDate, slots] of Object.entries(data.schedule as Record<string, string[]>)) {
+              let dateKey = rawDate;
+              // Normalize ISO YYYY-MM-DD to MMM d, yyyy if necessary
+              if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+                try {
+                  const [y, m, d] = rawDate.split('-').map(Number);
+                  dateKey = format(new Date(y, m - 1, d), 'MMM d, yyyy');
+                } catch {}
+              }
+              const currentSlots = merged[dateKey] || [];
+              merged[dateKey] = Array.from(new Set([...currentSlots, ...slots]));
+            }
+            return merged;
+          });
+        }
+      } catch (err) {
+        console.warn('[Booking] Could not fetch live schedule from database:', err);
+      }
+    }
+    loadLiveSchedule();
+  }, []);
 
   useEffect(() => {
     const onService = (event: Event) => {

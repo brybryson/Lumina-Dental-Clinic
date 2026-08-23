@@ -170,12 +170,46 @@ export async function POST(request: Request) {
       success: true,
       appointmentId: appointment.id,
       intakeToken: appointment.intake_token,
-      intakeExpiresAt: expiresAt,
+      intakeExpiresAt: appointment.intake_token_expires_at,
       intakeUrl,
       message: 'Appointment reserved successfully.',
     });
   } catch (err: unknown) {
-    console.error('[API/appointments] Server error:', err);
+    console.error('[API/appointments] Unexpected error:', err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Internal Server Error' },
+      { status: 500 }
+    );
+  }
+}
+
+// GET: Fetch live booked schedule from Supabase database
+export async function GET() {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('appointments')
+      .select('appointment_date, time_slot, status');
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Build schedule dictionary: { "Aug 13, 2026": ["01:00 PM – 02:00 PM", ...] }
+    const schedule: Record<string, string[]> = {};
+    (data || []).forEach((apt) => {
+      if (apt.appointment_date && apt.time_slot && apt.status !== 'cancelled') {
+        const dateKey = apt.appointment_date;
+        if (!schedule[dateKey]) {
+          schedule[dateKey] = [];
+        }
+        if (!schedule[dateKey].includes(apt.time_slot)) {
+          schedule[dateKey].push(apt.time_slot);
+        }
+      }
+    });
+
+    return NextResponse.json({ success: true, schedule, appointments: data });
+  } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Internal Server Error' },
       { status: 500 }
