@@ -1914,7 +1914,7 @@ function Booking() {
         {/* MODE 2: Integrated Full-Width Direct Booking Form */}
         {mode === 'booking' && (
           <div className="mt-10 max-w-[960px] mx-auto rounded-[28px] border border-white bg-white p-7 sm:p-10 shadow-[0_20px_60px_rgba(15,62,74,0.09)] transition-all duration-300">
-            {step < 4 && (
+            {!isSubmitting && step < 4 && (
               <div className="mb-8 border-b border-slate-100 pb-6">
                 <div className="flex items-center justify-between text-xs font-bold">
                   <div className="flex items-center gap-2.5">
@@ -1939,10 +1939,22 @@ function Booking() {
             )}
 
             {isSubmitting && (
-              <div className="space-y-4 py-16 text-center" aria-label="Submitting booking">
-                <div className="shimmer h-8 w-1/3 rounded-lg mx-auto" />
-                <div className="shimmer h-14 w-full max-w-lg rounded-xl mx-auto" />
-                <div className="shimmer h-14 w-full max-w-lg rounded-xl mx-auto" />
+              <div className="py-16 sm:py-20 text-center animate-in fade-in zoom-in-95 duration-300" aria-label="Submitting booking">
+                <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border-4 border-teal-100 animate-ping opacity-30" />
+                  <div className="h-16 w-16 rounded-full border-4 border-[#0d9488] border-t-transparent animate-spin" />
+                  <Sparkles size={24} className="absolute text-[#0d9488] animate-pulse" />
+                </div>
+                <span className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-3.5 py-1 text-[12px] font-bold text-[#0d9488] border border-teal-200/60">
+                  <span className="h-2 w-2 rounded-full bg-[#0d9488] animate-ping" />
+                  Securing Your Chairside Reservation
+                </span>
+                <h3 className="display mt-3 text-[22px] sm:text-[26px] font-extrabold text-[#0f172a]">
+                  Reserving Your Appointment...
+                </h3>
+                <p className="mt-2 text-[14px] text-slate-500 max-w-md mx-auto">
+                  Syncing with Lumina Dental Studio live calendar and generating your secure pre-visit intake pass.
+                </p>
               </div>
             )}
 
