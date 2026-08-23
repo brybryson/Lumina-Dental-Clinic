@@ -403,22 +403,22 @@ function IntakeContent() {
 
         {/* Patient Appointment Overview */}
         {appointment && (
-          <div className="mt-5 rounded-2xl bg-slate-50 border border-slate-200/80 p-4.5 text-left grid grid-cols-1 sm:grid-cols-3 gap-3 text-[13px]">
+          <div className="mt-5 rounded-2xl bg-slate-50 border border-slate-200/80 p-4.5 text-left grid grid-cols-1 sm:grid-cols-[1fr_1.4fr_1.1fr] gap-4 items-start text-[13px]">
             <div>
-              <span className="text-slate-400 text-[11px] uppercase font-bold tracking-wider block">Patient</span>
-              <strong className="text-[#0f172a] font-bold text-[14px]">
+              <span className="text-slate-400 text-[11px] uppercase font-bold tracking-wider block mb-0.5">Patient</span>
+              <strong className="text-[#0f172a] font-bold text-[14px] leading-snug block">
                 {patient ? `${patient.first_name} ${patient.last_name}` : 'Registered Patient'}
               </strong>
             </div>
             <div>
-              <span className="text-slate-400 text-[11px] uppercase font-bold tracking-wider block">Treatment</span>
-              <strong className="text-[#0f172a] font-bold text-[14px] truncate block">
+              <span className="text-slate-400 text-[11px] uppercase font-bold tracking-wider block mb-0.5">Treatment</span>
+              <strong className="text-[#0f172a] font-bold text-[14px] leading-snug break-words block">
                 {appointment.service_name}
               </strong>
             </div>
             <div>
-              <span className="text-slate-400 text-[11px] uppercase font-bold tracking-wider block">Scheduled Slot</span>
-              <strong className="text-[#0d9488] font-bold text-[14px]">
+              <span className="text-slate-400 text-[11px] uppercase font-bold tracking-wider block mb-0.5">Scheduled Slot</span>
+              <strong className="text-[#0d9488] font-bold text-[14px] leading-snug block">
                 {appointment.appointment_date} &middot; {appointment.time_slot}
               </strong>
             </div>

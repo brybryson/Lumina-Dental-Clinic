@@ -905,7 +905,7 @@ function CustomCalendar({
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const dayNumber = i + 1;
           const isWeekend = (dayNumber + blankDays - 1) % 7 === 0 || (dayNumber + blankDays - 1) % 7 === 6;
-          const isPast = dayNumber < 12;
+          const isPast = dayNumber < 24;
           const dateString = `Aug ${dayNumber < 10 ? '0' : ''}${dayNumber}, 2026`;
           const isSelected = selectedDate === dateString;
 
@@ -1285,7 +1285,7 @@ function Booking() {
   const [sex, setSex] = useState<'Female' | 'Male' | ''>('');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
-  const [selectedDate, setSelectedDate] = useState('Aug 12, 2026');
+  const [selectedDate, setSelectedDate] = useState('Aug 24, 2026');
   const [selectedTime, setSelectedTime] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1617,7 +1617,7 @@ function Booking() {
     setMobile('');
     setDob('');
     setSex('');
-    setSelectedDate('Aug 12, 2026');
+    setSelectedDate('Aug 24, 2026');
     setSelectedTime('');
     setSelectedServices([]);
     setNotes('');
