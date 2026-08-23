@@ -1610,6 +1610,7 @@ function Booking() {
           <div className="mt-7 inline-flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200/80">
             <button
               type="button"
+              data-testid="tab-inquiry"
               onClick={() => {
                 setMode('inquiry');
                 setInquirySubmitted(false);
@@ -1624,6 +1625,7 @@ function Booking() {
             </button>
             <button
               type="button"
+              data-testid="tab-booking"
               onClick={() => setMode('booking')}
               className={`rounded-lg px-5 py-2 text-[13px] font-bold transition-all cursor-pointer ${
                 mode === 'booking'
@@ -1827,6 +1829,7 @@ function Booking() {
                   <button
                     className="button-primary flex w-full sm:w-auto sm:min-w-[280px] mx-auto items-center justify-center gap-2 rounded-xl py-3.5 px-8 text-[14.5px] font-bold shadow-md cursor-pointer"
                     type="submit"
+                    data-testid="button-inquiry-submit"
                     disabled={isInquirySubmitting}
                   >
                     {isInquirySubmitting ? 'Transmitting Inquiry...' : (

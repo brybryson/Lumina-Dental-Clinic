@@ -496,7 +496,7 @@ function IntakeFormContent({
   const searchParams = useSearchParams();
   const token = searchParams.get('token') || '';
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(Boolean(token));
   const [appointment, setAppointment] = useState<AppointmentInfo | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 

@@ -5,17 +5,23 @@ const folder = getScreenshotFolder('inquiry');
 
 test.describe('General & Clinical Inquiries Form E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
+    page.on('console', (msg) => console.log(`[BROWSER CONSOLE] ${msg.type()}: ${msg.text()}`));
+    page.on('pageerror', (err) => console.log(`[PAGE ERROR] ${err.message}`));
+    page.on('response', (res) => {
+      if (res.status() >= 400) console.log(`[HTTP ${res.status()}] ${res.url()}`);
+    });
+
     await page.goto('/#booking-section');
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState('networkidle');
 
     // Ensure we are in "Send an Inquiry" mode
-    const inquiryTabBtn = page.getByRole('button', { name: /Send an Inquiry/i });
+    const inquiryTabBtn = page.getByTestId('tab-inquiry');
     await inquiryTabBtn.click();
   });
 
   test('should validate required fields and display error messages', async ({ page }) => {
     // Attempt to submit empty inquiry form
-    const submitBtn = page.getByRole('button', { name: /Send Inquiry to Studio Concierge/i });
+    const submitBtn = page.getByTestId('button-inquiry-submit');
     await submitBtn.click();
 
     // Check error validations appear
@@ -49,7 +55,7 @@ test.describe('General & Clinical Inquiries Form E2E Tests', () => {
     });
 
     // Submit the form (persists into Supabase database inquiries table)
-    const submitBtn = page.getByRole('button', { name: /Send Inquiry to Studio Concierge/i });
+    const submitBtn = page.getByTestId('button-inquiry-submit');
     await submitBtn.click();
 
     // Verify success confirmation card appears

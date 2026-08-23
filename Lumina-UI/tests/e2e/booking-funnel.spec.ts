@@ -6,10 +6,10 @@ const folder = getScreenshotFolder('booking');
 test.describe('Direct Appointment Booking Funnel E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/#booking-section');
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState('networkidle');
 
     // Switch to "Book an Appointment" mode
-    const bookingTabBtn = page.getByRole('button', { name: /Book an Appointment/i });
+    const bookingTabBtn = page.getByTestId('tab-booking');
     await bookingTabBtn.click();
   });
 
