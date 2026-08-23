@@ -919,6 +919,7 @@ function CustomCalendar({
               type="button"
               disabled={isDisabled}
               onClick={() => onSelectDate(dateString)}
+              data-testid={`calendar-day-${dayNumber}`}
               title={
                 isFullyBooked
                   ? 'Fully booked — All appointment slots occupied for this date'
@@ -1400,11 +1401,18 @@ function Booking() {
   const formatPhoneNumber = (val: string) => {
     // Standard Philippine Mobile Format: 09XX XXX XXXX (11 digits)
     let digits = val.replace(/\D/g, '');
-    if (digits.startsWith('63') && digits.length > 10) {
-      digits = '0' + digits.slice(2);
+    if (digits.length === 0) return '';
+    if (digits === '0') return '09';
+    if (!digits.startsWith('09')) {
+      if (digits.startsWith('9')) {
+        digits = '0' + digits;
+      } else if (digits.startsWith('639')) {
+        digits = '0' + digits.slice(2);
+      } else if (!digits.startsWith('0')) {
+        digits = '09' + digits;
+      }
     }
     digits = digits.slice(0, 11);
-    if (digits.length === 0) return '';
     if (digits.length <= 4) return digits;
     if (digits.length <= 7) return `${digits.slice(0, 4)} ${digits.slice(4)}`;
     return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7, 11)}`;
@@ -1820,6 +1828,12 @@ function Booking() {
                         value={inquiryPhone}
                         placeholder="0917 123 4567"
                         maxLength={13}
+                        onFocus={() => {
+                          if (!inquiryPhone) setInquiryPhone('09');
+                        }}
+                        onBlur={() => {
+                          if (inquiryPhone.trim() === '09') setInquiryPhone('');
+                        }}
                         onChange={(e) => setInquiryPhone(formatPhoneNumber(e.target.value))}
                         className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-3.5 py-3.5 text-[14.5px] text-slate-900 placeholder:text-slate-400 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0f766e] focus:border-[#0f766e]"
                       />
@@ -2039,6 +2053,12 @@ function Booking() {
                         value={mobile}
                         placeholder="0917 123 4567"
                         maxLength={13}
+                        onFocus={() => {
+                          if (!mobile) setMobile('09');
+                        }}
+                        onBlur={() => {
+                          if (mobile.trim() === '09') setMobile('');
+                        }}
                         onChange={(e) => {
                           const formatted = formatPhoneNumber(e.target.value);
                           setMobile(formatted);
