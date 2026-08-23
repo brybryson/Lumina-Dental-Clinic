@@ -156,7 +156,17 @@ test.describe('Direct Appointment Booking Funnel E2E Tests', () => {
     const bookAnotherBtn = page.getByTestId('button-book-another');
     await expect(bookAnotherBtn).toBeVisible();
 
-    // Capture the actual confirmed/success screen
+    // Scroll to perfectly frame the mode switch tabs ("Send an Inquiry" / "Book an Appointment") and full confirmation card
+    await page.evaluate(() => {
+      const section = document.getElementById('booking-section');
+      if (section) {
+        const top = section.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo(0, top + 60);
+      }
+    });
+    await page.waitForTimeout(400);
+
+    // Capture the actual confirmed/success screen with top tabs and buttons visible
     await page.screenshot({
       path: `${folder}/06-booking-step4-confirmed-success.png`,
       fullPage: false,

@@ -2438,7 +2438,7 @@ function Booking() {
                       className="button-primary flex items-center justify-center gap-2 rounded-xl py-3.5 px-6 text-[13.5px] font-bold shadow-md cursor-pointer"
                       data-testid="button-complete-intake-step4"
                     >
-                      <ShieldCheck size={16} /> Complete Pre-Visit Medical Intake <ArrowRight size={14} />
+                      <ShieldCheck size={16} /> Complete Pre-Visit Medical Intake
                     </a>
                   )}
                   <button
