@@ -128,11 +128,13 @@ test.describe('Direct Appointment Booking Funnel E2E Tests', () => {
 
     // Pick an open date (e.g. Day 18)
     const openDay = page.getByRole('button', { name: '18', exact: true });
-    await openDay.click({ force: true });
+    await openDay.scrollIntoViewIfNeeded();
+    await openDay.click();
 
     // Pick an available time slot
     const availableSlot = page.locator('button[data-testid^="radio-time-"]:not([disabled])').first();
-    await availableSlot.click({ force: true });
+    await availableSlot.scrollIntoViewIfNeeded();
+    await availableSlot.click();
 
     // Verify Selection Summary card appears with Patient and both Selected Care pills
     await expect(page.locator('strong:has-text("Michael Chang")')).toBeVisible();

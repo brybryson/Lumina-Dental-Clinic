@@ -2782,13 +2782,6 @@ function Footer({ onOpenLegal }: { onOpenLegal: (tab: LegalTab) => void }) {
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] text-[#7699a0]">
           <p>© {currentYear} Lumina Dental Clinic, LLC. All rights reserved.</p>
           <div className="flex flex-wrap gap-5 text-[#9fbcc1]">
-            <a
-              href="/intake"
-              className="text-[#8ce0db] font-semibold hover:text-white transition-colors"
-              data-testid="link-footer-intake"
-            >
-              Patient Medical Intake
-            </a>
             <button
               type="button"
               onClick={() => onOpenLegal('privacy')}
