@@ -88,6 +88,22 @@ appointmentsRouter.post('/', async (req: Request, res: Response): Promise<void> 
       }
     }
 
+    // 2.5 Double-Booking Prevention: Ensure slot is not already reserved
+    const { data: existingSlot } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('appointment_date', date)
+      .eq('time_slot', time)
+      .neq('status', 'cancelled')
+      .limit(1)
+      .maybeSingle();
+
+    if (existingSlot) {
+      return res.status(409).json({
+        error: `The ${time} slot on ${date} has already been reserved. Please choose another date or time slot.`,
+      });
+    }
+
     // 3. Insert Appointment with 14-day token expiration and foreign key link
     const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
     const { data: appointment, error: aptError } = await supabase

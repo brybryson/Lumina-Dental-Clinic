@@ -89,6 +89,23 @@ export async function POST(request: Request) {
       }
     }
 
+    // 2.5 Double-Booking Prevention: Ensure slot is not already reserved
+    const { data: existingSlot } = await supabaseAdmin
+      .from('appointments')
+      .select('id')
+      .eq('appointment_date', date)
+      .eq('time_slot', time)
+      .neq('status', 'cancelled')
+      .limit(1)
+      .maybeSingle();
+
+    if (existingSlot) {
+      return NextResponse.json(
+        { error: `The ${time} slot on ${date} has already been reserved. Please choose another date or time slot.` },
+        { status: 409 }
+      );
+    }
+
     // 3. Insert Appointment with resilient column handling
     const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
     
