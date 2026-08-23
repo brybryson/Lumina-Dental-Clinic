@@ -3,10 +3,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-  ShieldAlert,
-  Clock,
-  CheckCircle2,
-  Lock,
   Calendar,
   Phone,
   User,
@@ -56,14 +52,16 @@ interface AppointmentInfo {
   } | null;
 }
 
-function LuminaLogomark() {
+function LuminaLogomark({ size = 'large' }: { size?: 'large' | 'small' }) {
   return (
     <div className="flex justify-center mb-6">
-      <a href="/" className="inline-flex items-center gap-2 group" aria-label="Lumina Dental Studio home">
+      <a href="/" className="inline-flex items-center gap-2.5 group" aria-label="Lumina Dental Studio home">
         <img
           src="/images/lumina-logo.png"
           alt="Lumina Dental Studio"
-          className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
+          className={`${
+            size === 'large' ? 'h-16 sm:h-20' : 'h-11 sm:h-12'
+          } w-auto object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-xs`}
         />
       </a>
     </div>
@@ -273,19 +271,16 @@ function IntakeContent() {
   // ----------------------------------------------------
   if (state === 'loading') {
     return (
-      <div className="w-full max-w-[440px] rounded-2xl border border-[#E2E8F0] bg-white p-8 sm:p-10 shadow-sm text-center animate-in fade-in duration-200">
-        <LuminaLogomark />
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-[#64748B] mb-5">
-          <Lock size={28} strokeWidth={1.5} className="animate-pulse" />
-        </div>
-        <h2 className="text-[22px] font-semibold text-[#0F172A] mb-2">Verifying Patient Portal</h2>
-        <p className="text-[15px] leading-relaxed text-[#64748B]">
+      <div className="w-full max-w-[460px] rounded-[28px] border border-white/80 bg-white/95 p-8 sm:p-12 shadow-[0_20px_60px_rgba(15,62,74,0.09)] backdrop-blur-xl text-center animate-in fade-in duration-200">
+        <LuminaLogomark size="large" />
+        <h2 className="display text-[24px] sm:text-[26px] font-extrabold text-[#0f172a] mb-2">Verifying Patient Portal</h2>
+        <p className="text-[14.5px] leading-relaxed text-[#527078]">
           Securely validating session and loading confidential medical intake...
         </p>
-        <div className="mt-6 flex items-center justify-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-[#0891B2] animate-bounce [animation-delay:-0.3s]" />
-          <div className="h-2 w-2 rounded-full bg-[#0891B2] animate-bounce [animation-delay:-0.15s]" />
-          <div className="h-2 w-2 rounded-full bg-[#0891B2] animate-bounce" />
+        <div className="mt-7 flex items-center justify-center gap-2">
+          <div className="h-2.5 w-2.5 rounded-full bg-[#0d9488] animate-bounce [animation-delay:-0.3s]" />
+          <div className="h-2.5 w-2.5 rounded-full bg-[#0d9488] animate-bounce [animation-delay:-0.15s]" />
+          <div className="h-2.5 w-2.5 rounded-full bg-[#0d9488] animate-bounce" />
         </div>
       </div>
     );
@@ -296,21 +291,18 @@ function IntakeContent() {
   // ----------------------------------------------------
   if (state === 'invalid') {
     return (
-      <div className="w-full max-w-[440px] rounded-2xl border border-[#E2E8F0] bg-white p-8 sm:p-10 shadow-sm text-center animate-in fade-in zoom-in-95 duration-200" data-testid="state-restricted-access">
-        <LuminaLogomark />
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-[#64748B] mb-5">
-          <ShieldAlert size={30} strokeWidth={1.5} />
-        </div>
-        <h1 className="text-[22px] sm:text-[24px] font-semibold text-[#0F172A] tracking-tight mb-3">
+      <div className="w-full max-w-[460px] rounded-[28px] border border-white/80 bg-white/95 p-8 sm:p-12 shadow-[0_20px_60px_rgba(15,62,74,0.09)] backdrop-blur-xl text-center animate-in fade-in zoom-in-95 duration-200" data-testid="state-restricted-access">
+        <LuminaLogomark size="large" />
+        <h1 className="display text-[26px] sm:text-[28px] font-extrabold text-[#0f172a] tracking-tight mb-3">
           Restricted Access
         </h1>
-        <p className="text-[15px] leading-relaxed text-[#64748B] mb-8">
+        <p className="text-[14.5px] leading-relaxed text-[#527078] mb-8">
           This page can only be accessed through the secure link sent to your email after booking. If you&apos;ve lost your link, please contact us and we&apos;ll resend it.
         </p>
-        <div className="space-y-3.5">
+        <div className="space-y-4">
           <a
             href="/"
-            className="inline-flex w-full items-center justify-center rounded-xl bg-[#0891B2] px-6 py-3.5 text-[14.5px] font-medium text-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
+            className="button-primary inline-flex w-full items-center justify-center rounded-xl py-3.5 px-6 text-[14.5px] font-bold shadow-md cursor-pointer"
             data-testid="button-return-home"
           >
             Return to Homepage
@@ -318,7 +310,7 @@ function IntakeContent() {
           <div>
             <a
               href="mailto:luminadentalclinic2026@gmail.com"
-              className="text-[13px] font-medium text-[#64748B] hover:text-[#0F172A] transition-colors"
+              className="text-[13px] font-semibold text-slate-500 hover:text-[#0d9488] transition-colors"
               data-testid="link-contact-us"
             >
               Contact Us
@@ -334,21 +326,18 @@ function IntakeContent() {
   // ----------------------------------------------------
   if (state === 'expired') {
     return (
-      <div className="w-full max-w-[440px] rounded-2xl border border-[#E2E8F0] bg-white p-8 sm:p-10 shadow-sm text-center animate-in fade-in zoom-in-95 duration-200" data-testid="state-link-expired">
-        <LuminaLogomark />
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/60 mb-5">
-          <Clock size={30} strokeWidth={1.5} />
-        </div>
-        <h1 className="text-[22px] sm:text-[24px] font-semibold text-[#0F172A] tracking-tight mb-3">
+      <div className="w-full max-w-[460px] rounded-[28px] border border-white/80 bg-white/95 p-8 sm:p-12 shadow-[0_20px_60px_rgba(15,62,74,0.09)] backdrop-blur-xl text-center animate-in fade-in zoom-in-95 duration-200" data-testid="state-link-expired">
+        <LuminaLogomark size="large" />
+        <h1 className="display text-[26px] sm:text-[28px] font-extrabold text-[#0f172a] tracking-tight mb-3">
           This Link Has Expired
         </h1>
-        <p className="text-[15px] leading-relaxed text-[#64748B] mb-8">
+        <p className="text-[14.5px] leading-relaxed text-[#527078] mb-8">
           For your security, intake links expire 14 days after booking. Please contact us and we&apos;ll send you a new one.
         </p>
-        <div className="space-y-3.5">
+        <div className="space-y-4">
           <a
             href="/"
-            className="inline-flex w-full items-center justify-center rounded-xl bg-[#0891B2] px-6 py-3.5 text-[14.5px] font-medium text-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
+            className="button-primary inline-flex w-full items-center justify-center rounded-xl py-3.5 px-6 text-[14.5px] font-bold shadow-md cursor-pointer"
             data-testid="button-return-home"
           >
             Return to Homepage
@@ -356,7 +345,7 @@ function IntakeContent() {
           <div>
             <a
               href="mailto:luminadentalclinic2026@gmail.com"
-              className="text-[13px] font-medium text-[#64748B] hover:text-[#0F172A] transition-colors"
+              className="text-[13px] font-semibold text-slate-500 hover:text-[#0d9488] transition-colors"
               data-testid="link-contact-us"
             >
               Contact Us
@@ -372,20 +361,17 @@ function IntakeContent() {
   // ----------------------------------------------------
   if (state === 'completed') {
     return (
-      <div className="w-full max-w-[440px] rounded-2xl border border-[#E2E8F0] bg-white p-8 sm:p-10 shadow-sm text-center animate-in fade-in zoom-in-95 duration-200" data-testid="state-already-completed">
-        <LuminaLogomark />
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/60 mb-5">
-          <CheckCircle2 size={32} strokeWidth={1.75} />
-        </div>
-        <h1 className="text-[22px] sm:text-[24px] font-semibold text-[#0F172A] tracking-tight mb-3">
+      <div className="w-full max-w-[460px] rounded-[28px] border border-white/80 bg-white/95 p-8 sm:p-12 shadow-[0_20px_60px_rgba(15,62,74,0.09)] backdrop-blur-xl text-center animate-in fade-in zoom-in-95 duration-200" data-testid="state-already-completed">
+        <LuminaLogomark size="large" />
+        <h1 className="display text-[26px] sm:text-[28px] font-extrabold text-[#0f172a] tracking-tight mb-3">
           You&apos;re All Set!
         </h1>
-        <p className="text-[15px] leading-relaxed text-[#64748B] mb-8">
-          We already have your medical intake on file for this appointment, submitted on <strong className="font-semibold text-[#0F172A]">{formatCompletedDate(completedAt)}</strong>. No further action needed — we&apos;ll see you at your visit.
+        <p className="text-[14.5px] leading-relaxed text-[#527078] mb-8">
+          We already have your medical intake on file for this appointment, submitted on <strong className="font-bold text-[#0f172a]">{formatCompletedDate(completedAt)}</strong>. No further action needed — we&apos;ll see you at your visit.
         </p>
         <a
           href="/"
-          className="inline-flex w-full items-center justify-center rounded-xl bg-[#0891B2] px-6 py-3.5 text-[14.5px] font-medium text-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
+          className="button-primary inline-flex w-full items-center justify-center rounded-xl py-3.5 px-6 text-[14.5px] font-bold shadow-md cursor-pointer"
           data-testid="button-return-home"
         >
           Return to Homepage
@@ -400,39 +386,39 @@ function IntakeContent() {
   const patient = appointment?.patients;
 
   return (
-    <div className="w-full max-w-[760px] rounded-2xl border border-[#E2E8F0] bg-white p-6 sm:p-10 shadow-sm animate-in fade-in duration-200" data-testid="state-intake-form">
-      <LuminaLogomark />
+    <div className="w-full max-w-[760px] rounded-[28px] border border-white/80 bg-white p-6 sm:p-10 shadow-[0_20px_60px_rgba(15,62,74,0.09)] animate-in fade-in duration-200" data-testid="state-intake-form">
+      <LuminaLogomark size="small" />
 
       {/* Header Banner */}
       <div className="text-center border-b border-slate-100 pb-7 mb-8">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-3 py-1 text-[12px] font-semibold text-[#0d9488] border border-teal-200/60 mb-3">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-3.5 py-1 text-[12px] font-bold text-[#0d9488] border border-teal-200/60 mb-3">
           <FileCheck2 size={13} /> Pre-Visit Digital Health Intake
         </span>
-        <h1 className="text-[24px] sm:text-[28px] font-bold text-[#0F172A] tracking-tight">
+        <h1 className="display text-[26px] sm:text-[30px] font-extrabold text-[#0f172a] tracking-tight">
           Pre-Visit Clinical Health History
         </h1>
-        <p className="mt-2 text-[14px] leading-relaxed text-[#64748B] max-w-xl mx-auto">
+        <p className="mt-2 text-[14.5px] leading-relaxed text-[#527078] max-w-xl mx-auto">
           Please complete your medical background and consent before arriving so our dentists can prepare your personalized chart.
         </p>
 
         {/* Patient Appointment Overview */}
         {appointment && (
-          <div className="mt-5 rounded-xl bg-slate-50 border border-slate-200/80 p-4 text-left grid grid-cols-1 sm:grid-cols-3 gap-3 text-[13px]">
+          <div className="mt-5 rounded-2xl bg-slate-50 border border-slate-200/80 p-4.5 text-left grid grid-cols-1 sm:grid-cols-3 gap-3 text-[13px]">
             <div>
               <span className="text-slate-400 text-[11px] uppercase font-bold tracking-wider block">Patient</span>
-              <strong className="text-[#0F172A] font-semibold text-[13.5px]">
+              <strong className="text-[#0f172a] font-bold text-[14px]">
                 {patient ? `${patient.first_name} ${patient.last_name}` : 'Registered Patient'}
               </strong>
             </div>
             <div>
               <span className="text-slate-400 text-[11px] uppercase font-bold tracking-wider block">Treatment</span>
-              <strong className="text-[#0F172A] font-semibold text-[13.5px] truncate block">
+              <strong className="text-[#0f172a] font-bold text-[14px] truncate block">
                 {appointment.service_name}
               </strong>
             </div>
             <div>
               <span className="text-slate-400 text-[11px] uppercase font-bold tracking-wider block">Scheduled Slot</span>
-              <strong className="text-[#0891B2] font-semibold text-[13.5px]">
+              <strong className="text-[#0d9488] font-bold text-[14px]">
                 {appointment.appointment_date} &middot; {appointment.time_slot}
               </strong>
             </div>
@@ -451,7 +437,7 @@ function IntakeContent() {
       <form onSubmit={handleSubmit} noValidate className="space-y-8">
         {/* Section 1: Date of Birth */}
         <div>
-          <label htmlFor="intake-dob" className="block text-[13px] font-bold text-[#0F172A] mb-1.5">
+          <label htmlFor="intake-dob" className="block text-[13px] font-bold text-slate-700 mb-1.5">
             Date of Birth <span className="text-rose-500">*</span>
           </label>
           <div className="relative max-w-sm">
@@ -461,7 +447,7 @@ function IntakeContent() {
               type="date"
               value={dateOfBirth}
               onChange={(e) => setDateOfBirth(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-3.5 py-3 text-[14px] text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-[#0891B2]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-3.5 py-3 text-[14px] text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0f766e] focus:border-[#0f766e]"
               data-testid="input-intake-dob"
               required
             />
@@ -471,10 +457,10 @@ function IntakeContent() {
         {/* Section 2: Medical Conditions */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <HeartPulse size={16} className="text-[#0891B2]" />
-            <h3 className="text-[14px] font-bold text-[#0F172A]">Medical Conditions</h3>
+            <HeartPulse size={16} className="text-[#0d9488]" />
+            <h3 className="text-[14px] font-bold text-[#0f172a]">Medical Conditions</h3>
           </div>
-          <p className="text-[12.5px] text-[#64748B] mb-3">
+          <p className="text-[12.5px] text-[#527078] mb-3">
             Select any active or past medical conditions that apply to you:
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -487,7 +473,7 @@ function IntakeContent() {
                   onClick={() => toggleCondition(cond)}
                   className={`flex items-center justify-between rounded-xl border p-3 text-left text-[13px] transition-all cursor-pointer ${
                     checked
-                      ? 'border-[#0891B2] bg-teal-50/70 text-[#0F172A] font-semibold ring-1 ring-[#0891B2]'
+                      ? 'border-[#0d9488] bg-teal-50/70 text-[#0f172a] font-bold ring-1 ring-[#0d9488]'
                       : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100 text-slate-700'
                   }`}
                   data-testid={`checkbox-condition-${idx}`}
@@ -495,7 +481,7 @@ function IntakeContent() {
                   <span>{cond}</span>
                   <span
                     className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md border transition-all ${
-                      checked ? 'border-[#0891B2] bg-[#0891B2] text-white' : 'border-slate-300 bg-white'
+                      checked ? 'border-[#0d9488] bg-[#0d9488] text-white' : 'border-slate-300 bg-white'
                     }`}
                   >
                     {checked && <Check size={11} strokeWidth={3} />}
@@ -509,10 +495,10 @@ function IntakeContent() {
         {/* Section 3: Drug Allergies */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <Pill size={16} className="text-[#0891B2]" />
-            <h3 className="text-[14px] font-bold text-[#0F172A]">Drug & Material Allergies</h3>
+            <Pill size={16} className="text-[#0d9488]" />
+            <h3 className="text-[14px] font-bold text-[#0f172a]">Drug & Material Allergies</h3>
           </div>
-          <p className="text-[12.5px] text-[#64748B] mb-3">
+          <p className="text-[12.5px] text-[#527078] mb-3">
             Please indicate any allergies to medications or dental materials:
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -525,7 +511,7 @@ function IntakeContent() {
                   onClick={() => toggleAllergy(allergy)}
                   className={`flex items-center justify-between rounded-xl border p-3 text-left text-[13px] transition-all cursor-pointer ${
                     checked
-                      ? 'border-[#0891B2] bg-teal-50/70 text-[#0F172A] font-semibold ring-1 ring-[#0891B2]'
+                      ? 'border-[#0d9488] bg-teal-50/70 text-[#0f172a] font-bold ring-1 ring-[#0d9488]'
                       : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100 text-slate-700'
                   }`}
                   data-testid={`checkbox-allergy-${idx}`}
@@ -533,7 +519,7 @@ function IntakeContent() {
                   <span>{allergy}</span>
                   <span
                     className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md border transition-all ${
-                      checked ? 'border-[#0891B2] bg-[#0891B2] text-white' : 'border-slate-300 bg-white'
+                      checked ? 'border-[#0d9488] bg-[#0d9488] text-white' : 'border-slate-300 bg-white'
                     }`}
                   >
                     {checked && <Check size={11} strokeWidth={3} />}
@@ -546,7 +532,7 @@ function IntakeContent() {
 
         {/* Section 4: Current Medications */}
         <div>
-          <label htmlFor="textarea-medications" className="block text-[13px] font-bold text-[#0F172A] mb-1.5">
+          <label htmlFor="textarea-medications" className="block text-[13px] font-bold text-slate-700 mb-1.5">
             Current Prescriptions & Supplements <span className="font-normal text-slate-400">(optional)</span>
           </label>
           <textarea
@@ -555,7 +541,7 @@ function IntakeContent() {
             value={currentMedications}
             onChange={(e) => setCurrentMedications(e.target.value)}
             placeholder="e.g. Blood pressure medication, daily vitamins, aspirin"
-            className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 text-[13.5px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-[#0891B2]"
+            className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 text-[13.5px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0f766e] focus:border-[#0f766e]"
             data-testid="textarea-medications"
           />
         </div>
@@ -563,8 +549,8 @@ function IntakeContent() {
         {/* Section 5: Emergency Contact */}
         <div className="border-t border-slate-100 pt-6">
           <div className="flex items-center gap-2 mb-3">
-            <Phone size={16} className="text-[#0891B2]" />
-            <h3 className="text-[14px] font-bold text-[#0F172A]">Emergency Contact</h3>
+            <Phone size={16} className="text-[#0d9488]" />
+            <h3 className="text-[14px] font-bold text-[#0f172a]">Emergency Contact</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -579,7 +565,7 @@ function IntakeContent() {
                   value={emergencyContactName}
                   onChange={(e) => setEmergencyContactName(e.target.value)}
                   placeholder="e.g. Maria Santos"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-3.5 py-3 text-[14px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-[#0891B2]"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-3.5 py-3 text-[14px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0f766e] focus:border-[#0f766e]"
                   data-testid="input-emergency-name"
                   required
                 />
@@ -604,7 +590,7 @@ function IntakeContent() {
                   onChange={(e) => setEmergencyContactPhone(formatPhPhone(e.target.value))}
                   placeholder="0917 123 4567"
                   maxLength={13}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-3.5 py-3 text-[14px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-[#0891B2]"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-3.5 py-3 text-[14px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0f766e] focus:border-[#0f766e]"
                   data-testid="input-emergency-phone"
                   required
                 />
@@ -616,8 +602,8 @@ function IntakeContent() {
         {/* Section 6: Insurance / HMO Info */}
         <div className="border-t border-slate-100 pt-6">
           <div className="flex items-center gap-2 mb-3">
-            <CreditCard size={16} className="text-[#0891B2]" />
-            <h3 className="text-[14px] font-bold text-[#0F172A]">Dental HMO & Insurance <span className="font-normal text-slate-400 text-[12px]">(optional)</span></h3>
+            <CreditCard size={16} className="text-[#0d9488]" />
+            <h3 className="text-[14px] font-bold text-[#0f172a]">Dental HMO & Insurance <span className="font-normal text-slate-400 text-[12px]">(optional)</span></h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -630,7 +616,7 @@ function IntakeContent() {
                 value={hmoProvider}
                 onChange={(e) => setHmoProvider(e.target.value)}
                 placeholder="e.g. Maxicare, Intellicare, Medicard"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-3 text-[14px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-[#0891B2]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-3 text-[14px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0f766e] focus:border-[#0f766e]"
                 data-testid="input-hmo-provider"
               />
             </div>
@@ -644,7 +630,7 @@ function IntakeContent() {
                 value={hmoMemberId}
                 onChange={(e) => setHmoMemberId(e.target.value)}
                 placeholder="e.g. MC-8829104"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-3 text-[14px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0891B2] focus:border-[#0891B2]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-3 text-[14px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0f766e] focus:border-[#0f766e]"
                 data-testid="input-hmo-member-id"
               />
             </div>
@@ -652,16 +638,16 @@ function IntakeContent() {
         </div>
 
         {/* Section 7: Consent Checkbox */}
-        <div className="rounded-xl border border-teal-200/80 bg-teal-50/50 p-4.5">
+        <div className="rounded-2xl border border-teal-200/80 bg-teal-50/60 p-5">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
               checked={consentSigned}
               onChange={(e) => setConsentSigned(e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-slate-300 text-[#0891B2] focus:ring-[#0891B2] cursor-pointer"
+              className="mt-1 h-4 w-4 rounded border-slate-300 text-[#0d9488] focus:ring-[#0d9488] cursor-pointer"
               data-testid="checkbox-intake-consent"
             />
-            <span className="text-[13px] leading-relaxed text-slate-700">
+            <span className="text-[13px] leading-relaxed text-slate-700 font-medium">
               I certify that the health information provided above is accurate to the best of my knowledge, and I authorize Lumina Dental Studio to review my clinical records for treatment planning and chairside care.
             </span>
           </label>
@@ -672,7 +658,7 @@ function IntakeContent() {
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex w-full items-center justify-center rounded-xl bg-[#0891B2] px-6 py-4 text-[15px] font-medium text-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer disabled:opacity-60"
+            className="button-primary inline-flex w-full items-center justify-center rounded-xl py-4 px-6 text-[15px] font-bold shadow-md cursor-pointer disabled:opacity-60"
             data-testid="button-submit-intake"
           >
             {submitting ? 'Encrypting & Saving Health Chart...' : 'Submit Confidential Medical Intake'}
@@ -685,23 +671,26 @@ function IntakeContent() {
 
 export default function MedicalIntakePage() {
   return (
-    <main className="min-h-[100dvh] w-full bg-[#F8FAFC] flex flex-col items-center justify-center p-4 sm:p-6 sm:py-12">
-      <Suspense
-        fallback={
-          <div className="w-full max-w-[440px] rounded-2xl border border-[#E2E8F0] bg-white p-8 sm:p-10 shadow-sm text-center">
-            <LuminaLogomark />
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-[#64748B] mb-5">
-              <Lock size={28} strokeWidth={1.5} className="animate-pulse" />
+    <main className="relative min-h-[100dvh] w-full bg-gradient-to-b from-[#f8fafc] via-[#f1f7f6] to-[#eaf5f4] flex flex-col items-center justify-center p-4 sm:p-6 sm:py-12 overflow-hidden">
+      {/* Background Ambience & Lighting Blobs */}
+      <div className="absolute top-10 left-10 w-[500px] h-[500px] rounded-full bg-teal-100/30 blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-[450px] h-[450px] rounded-full bg-cyan-100/25 blur-[120px] pointer-events-none" />
+
+      <div className="relative z-10 w-full flex justify-center">
+        <Suspense
+          fallback={
+            <div className="w-full max-w-[460px] rounded-[28px] border border-white/80 bg-white/95 p-8 sm:p-12 shadow-[0_20px_60px_rgba(15,62,74,0.09)] backdrop-blur-xl text-center">
+              <LuminaLogomark size="large" />
+              <h2 className="display text-[24px] sm:text-[26px] font-extrabold text-[#0f172a] mb-2">Verifying Patient Portal</h2>
+              <p className="text-[14.5px] leading-relaxed text-[#527078]">
+                Initializing encrypted session...
+              </p>
             </div>
-            <h2 className="text-[22px] font-semibold text-[#0F172A] mb-2">Verifying Patient Portal</h2>
-            <p className="text-[15px] leading-relaxed text-[#64748B]">
-              Initializing encrypted session...
-            </p>
-          </div>
-        }
-      >
-        <IntakeContent />
-      </Suspense>
+          }
+        >
+          <IntakeContent />
+        </Suspense>
+      </div>
     </main>
   );
 }
