@@ -177,4 +177,84 @@ test.describe('Pre-Visit Digital Medical Intake Token-Gated Workflow Tests', () 
       fullPage: false,
     });
   });
+
+  test('State 4 — should complete intake flow for a patient with NO allergies or medical conditions (Clean Record)', async ({
+    page,
+    request,
+  }) => {
+    // 1. Create a real appointment via API for a patient with no allergies
+    const testEmail = 'lucas.vance.test@gmail.com';
+    const dynamicDay = 26 + (Math.floor(Date.now() / 1000) % 3);
+    const testDate = `2026-08-${dynamicDay}`;
+    const testSlot = '10:00 AM – 11:00 AM';
+
+    let intakeToken = '';
+    const bookingRes = await request.post('/api/appointments', {
+      data: {
+        firstName: 'Lucas',
+        lastName: 'Vance',
+        email: testEmail,
+        mobile: '09181234567',
+        dob: '1995-08-20',
+        sex: 'Male',
+        service: 'Routine Dental Cleaning & Examination',
+        date: testDate,
+        time: testSlot,
+        notes: 'Routine 6-month checkup - no known health issues',
+      },
+    });
+
+    if (bookingRes.status() === 200) {
+      const bookingData = await bookingRes.json();
+      intakeToken = bookingData.intakeToken;
+    } else {
+      const listRes = await request.get('/api/appointments');
+      const listData = await listRes.json();
+      const candidate = (listData.appointments || []).find((a: any) => !a.intake_completed_at && a.intake_token);
+      intakeToken = candidate?.intake_token || '';
+    }
+
+    expect(intakeToken).toBeTruthy();
+
+    // 2. Open State 4 (Valid Token Form)
+    await page.goto(`/intake?token=${intakeToken}`);
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.getByTestId('state-intake-form')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('h1:has-text("Pre-Visit Clinical Health History")')).toBeVisible();
+    await expect(page.getByText('Lucas Vance')).toBeVisible();
+
+    // 3. Fill basic fields ONLY — leave all allergy & condition checkboxes UNCHECKED
+    const dobInput = page.locator('[data-testid="input-intake-dob"]');
+    await dobInput.fill('1995-08-20');
+
+    // Fill emergency contact & HMO without checking any allergies or medical conditions
+    await page.locator('[data-testid="input-emergency-name"]').fill('Clara Vance');
+    await page.locator('[data-testid="input-emergency-phone"]').fill('0918 987 6543');
+    await page.locator('[data-testid="textarea-medications"]').fill('None');
+    await page.locator('[data-testid="input-hmo-provider"]').fill('Maxicare Health Plans');
+    await page.locator('[data-testid="input-hmo-member-id"]').fill('MX-8839201-CL');
+
+    // Capture screenshot: Clean Form Filled (No Allergies)
+    await page.screenshot({
+      path: `${folder}/07-state4-clean-intake-no-allergies.png`,
+      fullPage: true,
+    });
+
+    // 4. Sign consent checkbox and submit
+    await page.locator('[data-testid="checkbox-intake-consent"]').check();
+    await page.locator('[data-testid="button-submit-intake"]').click();
+
+    // 5. Assert transition to State 3 — "You're All Set!"
+    await expect(page.getByTestId('state-already-completed')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("You\'re All Set!")')).toBeVisible();
+    await expect(page.getByText(/We already have your medical intake on file for this appointment/i)).toBeVisible();
+
+    // Capture screenshot: Clean Record Confirmation
+    await page.screenshot({
+      path: `${folder}/08-state3-completed-no-allergies.png`,
+      fullPage: false,
+    });
+  });
 });
+
