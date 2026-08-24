@@ -294,13 +294,31 @@ or requires a human-in-the-loop checkpoint.
 
 ### Workflow 1: Pre-Appointment Digital Intake Dispatch
 
+> **[AS-BUILT NOTE]** This workflow is live in n8n and diverges from the
+> original design below in three ways, based on real build/testing decisions:
+> **(1)** email sending uses **Gmail (OAuth2)** instead of Resend, since the
+> project has no verified sending domain — see the trade-off note at the end of
+> this section; **(2)** the debounce Wait node is **15 seconds**, not 1–2
+> minutes — 90s was tried first during testing and found unnecessarily long,
+> since real duplicate submits fire within a few seconds; **(3)** the intake
+> link points at the actual deployed frontend
+> (`https://luminadentalcarestudio.vercel.app/intake`), not the placeholder
+> `luminaclinic.com` domain used elsewhere in this doc. Error handling is
+> centralized — see **Section 3.2** below — rather than duplicated per workflow.
+
 - **Objective:** Save 15 minutes of clinic waiting room time by delivering the
   digital medical intake link immediately upon booking confirmation.
-- **Trigger:** Supabase Database Webhook on `appointments` table (`INSERT` where
-  `status = 'confirmed'`), or n8n Polling Node.
-- **[NEW]** Add a 1–2 minute **Wait Node** before sending, to absorb accidental
-  double-submits from the booking form.
-- **SQL Fetch Query:**
+- **Trigger:** Supabase Database Webhook on `appointments` table (`INSERT`),
+  calling n8n's Webhook node. **Known gap:** Supabase's webhook UI has no
+  column-value filter, so it currently fires on every insert, not just
+  `status = 'confirmed'`. Planned fix: add an IF node immediately after the
+  trigger checking `{{$json.body.record.status === 'confirmed'}}` before
+  continuing — not yet implemented as of this build.
+- 15-second **Wait Node** before sending, to absorb accidental double-submits
+  from the booking form.
+- **SQL Fetch Query** (run via a Postgres node connected through Supabase's
+  **Session Pooler**, not the direct/IPv6 host — n8n Cloud cannot reach the
+  direct connection host):
   ```sql
   SELECT
     a.id AS appointment_id,
@@ -315,37 +333,75 @@ or requires a human-in-the-loop checkpoint.
     p.mobile
   FROM appointments a
   JOIN patients p ON a.patient_id = p.id
-  WHERE a.id = '{{$json.appointment_id}}';
+  WHERE a.id = '{{ $json.body.record.id }}';
   ```
-- **Execution Flow:**
-  1. **Webhook Trigger / Supabase Node**: Receive new appointment ID.
-  2. **Wait Node (1–2 min)**: Absorb accidental duplicate submissions.
-  3. **Execute SQL Node**: Fetch patient details, `intake_token`, and
-     `intake_token_expires_at`.
-  4. **Format Email Node**: Generate link
-     `https://luminaclinic.com/intake?token={{$json.intake_token}}`.
-  5. **Send Official Clinic Email (from `care@luminaclinic.com` via Resend /
-     SendGrid / SMTP)**:
-     - **Subject:**
-       `Confirming your visit + Pre-visit digital health history (Lumina Dental Clinic)`
-     - **Body:**
-       > _Hi {{first_name}},_
-       >
-       > _Your appointment for **{{service_name}}** is confirmed for
-       > **{{appointment_date}} at {{time_slot}}**._
-       >
-       > _To save you 15 minutes in our lounge, please complete your secure
-       > pre-visit medical intake form prior to arriving (link expires
-       > {{intake_token_expires_at}}):_
-       >
-       > 👉
-       > **[Complete Digital Intake Form](https://luminaclinic.com/intake?token={{intake_token}})**
-       >
-       > _Warm regards,_ _Dr. Lumina & Patient Care Team_ _Lumina Dental Clinic
-       > | care@luminaclinic.com_
-  6. **Internal Slack Notification (#new-appointments)**:
-     > 📅 _New Booking Confirmed: {{first_name}} {{last_name}} for
-     > {{service_name}} on {{appointment_date}} ({{time_slot}})._
+- **Execution Flow (as built):**
+  1. **Webhook Trigger**: Receives the new appointment row from Supabase's
+     Database Webhook.
+  2. **Wait Node (15s)**: Absorb accidental duplicate submissions.
+  3. **Postgres Node**: Fetch patient + appointment details via the query above.
+     Requires `includeOtherFields: true` on the following Set node — without
+     this, the Set node drops every field it didn't explicitly define, which
+     caused a real bug during testing (Gmail's `To` field resolved empty because
+     `email` was silently dropped).
+  4. **Set Node ("Build Intake Link")**: Generates `intake_link` (pointing at
+     `luminadentalcarestudio.vercel.app/intake?token=...`) and `expires_display`
+     (human-readable expiry date).
+  5. **Gmail Node ("Send Confirmation Email")**: Sends a styled HTML
+     confirmation email from `luminadentalclinic2026@gmail.com` via Gmail OAuth2
+     — includes appointment summary (service/date/time), a branded "Complete
+     Digital Intake Form" button, and support contact info.
+  6. **Slack Node ("Notify #new-appointments")**: Posts a formatted, multi-line
+     booking summary (patient, service, date, time, booked-on timestamp — all in
+     `Asia/Manila` timezone) using Slack's bot-token (`Slack API` credential)
+     authentication, not OAuth2.
+  7. **Error path**: Any node failure in steps 1–6 is caught by the workflow's
+     assigned **Error Workflow** (Section 3.2), not handled inline.
+
+- **Trade-off — Gmail vs. Resend (documented decision):** Resend was the
+  original design choice for proper transactional-email deliverability
+  (dedicated IPs, SPF/DKIM, no daily cap), but requires a verified sending
+  domain. Since this project has no domain, the choice was between Resend's
+  sandbox sender (`onboarding@resend.dev`, which can only deliver to the Resend
+  account's own signup email — unusable for real patient addresses) and Gmail
+  via OAuth2 (real inboxes, ~500 sends/day cap, not built for transactional
+  volume). Gmail was chosen for functional correctness in this context. **If a
+  domain is added later, reverting to Resend is the recommended production
+  path.**
+
+---
+
+## 3.2 Centralized Error Handling (Error Workflow Pattern)
+
+Rather than duplicating error-catching logic inside every workflow, all
+workflows report failures into **one shared workflow**:
+`Lumina - Central Error Handler`.
+
+**Structure of the handler workflow (2 nodes):**
+
+1. **Error Trigger node** — n8n's built-in trigger that fires whenever any
+   workflow _pointing at this one_ throws an unhandled error. Provides
+   `$json.workflow.name`, `$json.workflow.id`, `$json.execution.id`,
+   `$json.execution.error.message`, `$json.execution.lastNodeExecuted`.
+2. **Slack node** — posts to **`#error-logs`** using the `LUMINA AUTOMATIONS`
+   bot credential:
+   ```
+   🚨 *{{ $json.workflow.name }}* failed at *{{ $now.toFormat('hh:mm:ss a') }}*
+   Error: {{ $json.execution.error.message }}
+   ```
+
+**How each workflow connects to it:** in every workflow's Settings panel →
+**Error Workflow** dropdown → select `Lumina - Central Error Handler`. This must
+be set individually per workflow (there's no global default), and both the
+handler and the workflow pointing at it must each be independently
+**activated**.
+
+**Rollout status:** Workflow 1 currently has the Error Trigger + Slack nodes
+built _inline_ within its own canvas rather than extracted into the shared
+handler — this is a known interim state, planned to be refactored into the
+shared pattern above before Workflow 6 is built, so every subsequent workflow
+can point at one handler from the start rather than duplicating these two nodes
+each time.
 
 ---
 
@@ -718,61 +774,80 @@ or requires a human-in-the-loop checkpoint.
 
 ## 4. Environment Variables Reference for n8n & Backend
 
+> **[AS-BUILT NOTE]** The credentials actually in use differ from the original
+> plan below: **Postgres connects via Supabase's Session Pooler** (not the
+> direct/IPv6 host — n8n Cloud can't reach it), and **email sends via Gmail
+> OAuth2** (not Resend — see Workflow 1's trade-off note). Reference values
+> below are updated to match.
+
 When configuring n8n credentials, use the following variables:
 
 ```bash
-# Supabase PostgreSQL Direct Connection
-POSTGRES_HOST=db.xxxxxxxxxxxxxxxxxxxx.supabase.co
+# Supabase PostgreSQL — Session Pooler (n8n Cloud cannot reach the direct/IPv6 host)
+POSTGRES_HOST=aws-0-<region>.pooler.supabase.com
 POSTGRES_PORT=5432
 POSTGRES_DATABASE=postgres
-POSTGRES_USER=postgres
+POSTGRES_USER=postgres.<project-ref>
 POSTGRES_PASSWORD=your-super-secret-db-password
 
 # Supabase REST API & Service Role (for Webhook triggers)
 SUPABASE_URL=https://xxxxxxxxxxxxxxxxxxxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJh......
 
-# AI & Embeddings (for RAG / Vector Store)
+# AI & Embeddings (for RAG / Vector Store — Workflows 7 & 8, not yet built)
 OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxx
 EMBEDDING_MODEL=text-embedding-3-small
 LLM_MODEL=gpt-4o-mini
 
-# Official Clinic Email Delivery (Resend / SendGrid / SMTP)
-RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
-CLINIC_SENDER_EMAIL=care@luminaclinic.com
+# Official Clinic Email Delivery — Gmail OAuth2 (credential stored in n8n, not env vars)
+# Google Cloud project → Gmail API enabled → OAuth consent screen → OAuth client
+GMAIL_SENDER_ADDRESS=luminadentalclinic2026@gmail.com
 
-# Internal Staff Alerts (Slack)
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T00/B00/XXXXX
-SLACK_CLINICAL_ALERTS_CHANNEL=#clinical-alerts
+# Internal Staff Alerts (Slack — bot token / "Slack API" credential, not OAuth2)
+SLACK_BOT_TOKEN=xoxb-xxxxxxxxxxxxx-xxxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx
 SLACK_NEW_APPOINTMENTS_CHANNEL=#new-appointments
+SLACK_CLINICAL_ALERTS_CHANNEL=#clinical-alerts
 SLACK_KNOWLEDGE_UPDATES_CHANNEL=#knowledge-updates
+SLACK_ERROR_LOGS_CHANNEL=#error-logs
 
 # Google Integrations
-GOOGLE_CALENDAR_ID=care@luminaclinic.com
+GOOGLE_CALENDAR_ID=luminadentalclinic2026@gmail.com
 ```
+
+**Credential rotation note:** during development, a database password, a Slack
+bot token, and a Resend API key were each briefly exposed in plaintext (chat
+logs / screenshots) and subsequently rotated. Standard practice going forward:
+any credential that touches a chat log, screenshot, or committed file should be
+treated as compromised and rotated, regardless of whether misuse is suspected.
 
 ---
 
 ## 5. Deployment & Testing Checklist
 
-- [ ] **Supabase Tables & RLS**: Ensure `schema.sql` (including `pgvector`,
-      `clinic_knowledge_docs`, and all `[NEW]`/`[CHANGED]` columns above) is run
-      in the Supabase SQL Editor.
-- [ ] **Supabase Webhooks**: Enable Database Webhooks in Supabase Dashboard →
-      Database → Webhooks pointing to your n8n Webhook URLs.
-- [ ] **`consent_signed` default verified** as `FALSE`, and the intake form
-      explicitly sets it `TRUE` on submit.
+- [x] **Supabase Tables & RLS**: `schema.sql` (including `pgvector`,
+      `clinic_knowledge_docs`, `concierge_conversations`, and all
+      `[NEW]`/`[CHANGED]` columns) run in the Supabase SQL Editor.
+- [x] **Supabase Webhooks**: Database Webhook created in Supabase Dashboard →
+      Database → Webhooks, pointing at Workflow 1's n8n production URL.
+      **Note:** currently fires on all `appointments` inserts, not filtered to
+      `status = 'confirmed'` — see Workflow 1's "Known gap" note above.
+- [x] **`consent_signed` default verified** as `FALSE`.
 - [ ] **`intake_token_expires_at`** checked server-side on every intake-link
-      access, not just set and ignored.
-- [ ] **pgvector RLS policy** scoped to `service_role` only — confirmed no
-      anon/authenticated key can read or write `clinic_knowledge_docs`.
+      access — not yet confirmed in the frontend/backend intake page logic.
+- [x] **pgvector RLS policy** scoped to `service_role` only.
 - [ ] **Booking funnel Step 1** confirmed to insert into `inquiries` with
-      `source = 'booking_funnel_step1'` and `status = 'lead_captured'`.
-- [ ] **Slack channels created**: `#new-appointments`, `#clinical-alerts`,
-      `#knowledge-updates`, plus an alerting path for the
-      `care@luminaclinic.com` reply-to inbox.
-- [ ] **Lumina-UI Hosting**: Deploy to Vercel / Netlify / Cloudflare Pages.
-- [ ] **Lumina-API Hosting**: Deploy to Render / Railway / Fly.io with the
-      appropriate `PORT`, `CORS_ORIGIN`, and Supabase env vars.
-- [ ] **E2E Validation**: Run `npx playwright test` to verify zero UI
-      regressions.
+      `source = 'booking_funnel_step1'` and `status = 'lead_captured'` —
+      pending, relevant once Workflow 5 is built.
+- [x] **Slack channels created**: `#new-appointments`, `#clinical-alerts`,
+      `#knowledge-updates`, `#error-logs`. Bot (`Lumina Automations`) invited to
+      all four via `/invite`.
+- [x] **Lumina-UI Hosting**: Deployed to Vercel —
+      `https://luminadentalcarestudio.vercel.app`.
+- [x] **Lumina-API Hosting**: Deployed to Render (free tier) —
+      `https://lumina-api-kv2k.onrender.com`, kept awake via UptimeRobot pinging
+      `/api/health` every 10 minutes.
+- [ ] **E2E Validation**: `npx playwright test` — not yet run against the live
+      deployment.
+- [ ] **Centralized Error Workflow**: `Lumina - Central Error Handler` —
+      planned, not yet extracted from Workflow 1's inline Error Trigger (see
+      Section 3.2).

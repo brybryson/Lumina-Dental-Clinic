@@ -99,9 +99,10 @@ appointmentsRouter.post('/', async (req: Request, res: Response): Promise<void> 
       .maybeSingle();
 
     if (existingSlot) {
-      return res.status(409).json({
+      res.status(409).json({
         error: `The ${time} slot on ${date} has already been reserved. Please choose another date or time slot.`,
       });
+      return;
     }
 
     // 3. Insert Appointment with 14-day token expiration and foreign key link
