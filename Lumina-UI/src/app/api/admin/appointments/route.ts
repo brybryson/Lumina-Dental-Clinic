@@ -14,6 +14,18 @@ function getSlotEndTime24(timeSlot: string): string | null {
   return `${hours.toString().padStart(2, '0')}:${mins}`;
 }
 
+// Helper to add 1 hour buffer after slot end time
+function isSlotExpiredByOneHour(timeSlot: string, manilaTimeStr: string): boolean {
+  const endTime = getSlotEndTime24(timeSlot);
+  if (!endTime) return false;
+  const [endHour, endMin] = endTime.split(':').map(Number);
+  const [currHour, currMin] = manilaTimeStr.split(':').map(Number);
+  
+  const endTotalMins = (endHour * 60) + endMin + 60; // 1 hour grace period
+  const currTotalMins = (currHour * 60) + currMin;
+  return currTotalMins >= endTotalMins;
+}
+
 // GET: Fetch appointments with joined patient details and medical intake records
 // Automatically auto-tags past unattended time slots to 'no_show' in Supabase
 export async function GET(request: Request) {
@@ -25,17 +37,7 @@ export async function GET(request: Request) {
     let query = supabaseAdmin
       .from('appointments')
       .select(`
-        id,
-        service_name,
-        appointment_date,
-        time_slot,
-        patient_notes,
-        status,
-        google_calendar_event_id,
-        intake_token,
-        intake_completed_at,
-        flag_for_manual_followup,
-        created_at,
+        *,
         patients (
           id,
           first_name,
@@ -97,12 +99,11 @@ export async function GET(request: Request) {
       if (apt.status === 'confirmed' || apt.status === 'intake_submitted' || apt.status === 'pending') {
         const isPastDay = apt.appointment_date < manilaDateStr;
         const isSameDay = apt.appointment_date === manilaDateStr;
-        const endTime = getSlotEndTime24(apt.time_slot);
-        const isPastTime = isSameDay && endTime && manilaTimeStr >= endTime;
+        const isExpiredToday = isSameDay && isSlotExpiredByOneHour(apt.time_slot, manilaTimeStr);
 
-        if (isPastDay || isPastTime) {
+        if (isPastDay || isExpiredToday) {
           pastDueIds.push(apt.id);
-          return { ...apt, status: 'no_show' };
+          return { ...apt, status: 'no_show', no_show_at: now.toISOString() };
         }
       }
       return apt;
@@ -112,10 +113,19 @@ export async function GET(request: Request) {
       try {
         await supabaseAdmin
           .from('appointments')
-          .update({ status: 'no_show' })
+          .update({
+            status: 'no_show',
+            no_show_at: now.toISOString(),
+          })
           .in('id', pastDueIds);
-      } catch (patchErr) {
-        console.warn('Auto no-show update warning:', patchErr);
+      } catch {
+        // Fallback without timestamp column if not yet migrated
+        try {
+          await supabaseAdmin
+            .from('appointments')
+            .update({ status: 'no_show' })
+            .in('id', pastDueIds);
+        } catch {}
       }
     }
 
@@ -147,10 +157,15 @@ export async function PATCH(request: Request) {
       );
     }
 
+    const nowIso = new Date().toISOString();
     const updatePayload: Record<string, any> = {};
 
     if (status) {
       updatePayload.status = status;
+      if (status === 'checked_in') updatePayload.checked_in_at = nowIso;
+      if (status === 'completed') updatePayload.completed_at = nowIso;
+      if (status === 'no_show') updatePayload.no_show_at = nowIso;
+      if (status === 'cancelled') updatePayload.cancelled_at = nowIso;
     }
 
     if (typeof flagForManualFollowup === 'boolean') {
@@ -161,12 +176,31 @@ export async function PATCH(request: Request) {
       updatePayload.patient_notes = patientNotes;
     }
 
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from('appointments')
       .update(updatePayload)
       .eq('id', appointmentId)
       .select()
       .single();
+
+    // If update failed due to missing timestamp columns or enum, fallback cleanly
+    if (error) {
+      console.warn('[API/admin/appointments] Retrying minimal update without timestamp columns...', error);
+      const fallbackPayload: Record<string, any> = {};
+      if (status) fallbackPayload.status = status;
+      if (typeof flagForManualFollowup === 'boolean') fallbackPayload.flag_for_manual_followup = flagForManualFollowup;
+      if (typeof patientNotes === 'string') fallbackPayload.patient_notes = patientNotes;
+
+      const fallbackRes = await supabaseAdmin
+        .from('appointments')
+        .update(fallbackPayload)
+        .eq('id', appointmentId)
+        .select()
+        .single();
+
+      data = fallbackRes.data;
+      error = fallbackRes.error;
+    }
 
     if (error) {
       console.error('[API/admin/appointments] Supabase update error:', error);

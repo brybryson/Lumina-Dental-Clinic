@@ -925,8 +925,10 @@ export default function AdminDashboardPage() {
                 >
                   <option value="all">All Statuses</option>
                   <option value="confirmed">Confirmed</option>
+                  <option value="intake_submitted">Intake Submitted</option>
                   <option value="checked_in">Checked In</option>
                   <option value="completed">Completed</option>
+                  <option value="no_show">No Show (Unattended)</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
@@ -1095,7 +1097,8 @@ export default function AdminDashboardPage() {
                       {/* Right: Actions */}
                       <div className="flex flex-wrap items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0">
                         {isNoShow ? (
-                          <span className="text-[12px] font-semibold text-slate-400 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                          <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3.5 py-1.5 rounded-xl shadow-2xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                             Unattended
                           </span>
                         ) : isCompleted ? (
@@ -1110,32 +1113,37 @@ export default function AdminDashboardPage() {
                           >
                             Edit Outcome
                           </button>
+                        ) : isCheckedIn ? (
+                          /* Patient arrived in lobby: Doctor can now mark treatment completed */
+                          <button
+                            onClick={() => {
+                              setCompletingApt(apt);
+                              setCompletionOutcome('standard');
+                              setCompletionNotes('');
+                              setReturnToCalendarDay(null);
+                            }}
+                            className="button-primary py-2 px-4 rounded-xl text-white font-bold text-[12.5px] cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            Complete Visit
+                          </button>
                         ) : apt.status !== 'cancelled' ? (
-                          <>
-                            {!isCheckedIn && apt.appointment_date >= todayManilaKey && (
-                              <button
-                                onClick={() => handleUpdateAppointmentStatus(apt.id, 'checked_in')}
-                                className="py-2 px-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-[12.5px] cursor-pointer flex items-center gap-1 shadow-2xs"
-                                title="Mark patient as arrived at the dental clinic"
-                              >
-                                <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                                Check In
-                              </button>
-                            )}
-
+                          /* Patient has not checked in yet: Show only Check In button */
+                          apt.appointment_date >= todayManilaKey ? (
                             <button
-                              onClick={() => {
-                                setCompletingApt(apt);
-                                setCompletionOutcome('standard');
-                                setCompletionNotes('');
-                                setReturnToCalendarDay(null);
-                              }}
-                              className="button-primary py-2 px-4 rounded-xl text-white font-bold text-[12.5px] cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                              onClick={() => handleUpdateAppointmentStatus(apt.id, 'checked_in')}
+                              className="py-2 px-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-[12.5px] cursor-pointer flex items-center gap-1.5 shadow-2xs transition-all hover:scale-[1.02]"
+                              title="Mark patient as arrived at the dental clinic"
                             >
-                              <CheckCircle2 className="w-4 h-4" />
-                              Complete Visit
+                              <UserCheck className="w-4 h-4 text-emerald-600" />
+                              Check In
                             </button>
-                          </>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3.5 py-1.5 rounded-xl shadow-2xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                              Unattended
+                            </span>
+                          )
                         ) : (
                           <span className="text-[12px] font-semibold text-slate-400 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
                             Cancelled
@@ -1671,33 +1679,38 @@ export default function AdminDashboardPage() {
                             >
                               Edit Outcome
                             </button>
+                          ) : isCheckedIn ? (
+                            /* Patient checked in: Doctor can perform treatment */
+                            <button
+                              onClick={() => {
+                                const currentDay = selectedCalendarDay;
+                                setSelectedCalendarDay(null);
+                                setReturnToCalendarDay(currentDay);
+                                setCompletingApt(apt);
+                                setCompletionOutcome(apt.flag_for_manual_followup ? 'complication' : 'standard');
+                                setCompletionNotes(apt.patient_notes || '');
+                              }}
+                              className="button-primary py-2 px-4 rounded-xl text-white text-[12.5px] sm:text-[13px] font-bold shadow-xs cursor-pointer shrink-0"
+                            >
+                              Action
+                            </button>
                           ) : apt.status !== 'cancelled' ? (
-                            <>
-                              {!isCheckedIn && apt.appointment_date >= todayManilaKey && (
-                                <button
-                                  onClick={() => handleUpdateAppointmentStatus(apt.id, 'checked_in')}
-                                  className="py-2 px-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-[12px] cursor-pointer flex items-center gap-1 shadow-2xs"
-                                  title="Mark patient as arrived in lobby"
-                                >
-                                  <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                                  Check In
-                                </button>
-                              )}
-
+                            /* Patient not checked in yet: Show only Check In button */
+                            apt.appointment_date >= todayManilaKey ? (
                               <button
-                                onClick={() => {
-                                  const currentDay = selectedCalendarDay;
-                                  setSelectedCalendarDay(null);
-                                  setReturnToCalendarDay(currentDay);
-                                  setCompletingApt(apt);
-                                  setCompletionOutcome(apt.flag_for_manual_followup ? 'complication' : 'standard');
-                                  setCompletionNotes(apt.patient_notes || '');
-                                }}
-                                className="button-primary py-2 px-4 rounded-xl text-white text-[12.5px] sm:text-[13px] font-bold shadow-xs cursor-pointer shrink-0"
+                                onClick={() => handleUpdateAppointmentStatus(apt.id, 'checked_in')}
+                                className="py-2 px-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-[12px] cursor-pointer flex items-center gap-1 shadow-2xs"
+                                title="Mark patient as arrived in lobby"
                               >
-                                Action
+                                <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                Check In
                               </button>
-                            </>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl shadow-2xs">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                Unattended
+                              </span>
+                            )
                           ) : (
                             <span className="text-[12px] font-semibold text-slate-400 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
                               Cancelled
