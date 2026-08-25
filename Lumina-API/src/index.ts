@@ -5,6 +5,7 @@ import { inquiriesRouter } from './routes/inquiries.js';
 import { appointmentsRouter } from './routes/appointments.js';
 import { intakeRouter } from './routes/intake.js';
 import { unsubscribeRouter } from './routes/unsubscribe.js';
+import { adminRouter } from './routes/admin.js';
 
 dotenv.config();
 
@@ -51,6 +52,7 @@ app.use('/api/inquiries', inquiriesRouter);
 app.use('/api/appointments', appointmentsRouter);
 app.use('/api/intake', intakeRouter);
 app.use('/api/unsubscribe', unsubscribeRouter);
+app.use('/api/admin', adminRouter);
 
 app.listen(PORT, () => {
   console.log(`🚀 [Lumina-API] Server active and listening on http://localhost:${PORT}`);
