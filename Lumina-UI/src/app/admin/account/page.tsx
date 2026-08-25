@@ -353,8 +353,8 @@ export default function AdminAccountPage() {
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="max-w-[1000px] w-full mx-auto px-4 sm:px-8 py-7 sm:py-9 space-y-6">
+      {/* Main Container — Extra Wide matching /admin */}
+      <main className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 py-5 sm:py-7 space-y-6">
         {/* Back Link */}
         <div>
           <button
