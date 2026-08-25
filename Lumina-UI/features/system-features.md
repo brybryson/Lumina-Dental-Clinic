@@ -3,37 +3,39 @@
 **Product Edition:** Lumina Clinical Operations Hub & Patient Funnel v2.0  
 **Target Environment:** Production Next.js 15 App Router + Supabase PostgreSQL  
 **Primary Clinic Location:** Bonifacio Global City (BGC), Taguig, Metro Manila  
-**Branch Locations:** Ortigas Center (Pasig City), Alabang Town Center (Muntinlupa City)
+**Branch Locations:** Ortigas Center (Pasig City), Alabang Town Center (Muntinlupa City)  
+**Live Production URL:** [https://luminadentalcarestudio.vercel.app](https://luminadentalcarestudio.vercel.app)
 
 ---
 
 ## Table of Contents
-1. [System Architecture Overview](#1-system-architecture-overview)
+1. [System Architecture & Flow Overview](#1-system-architecture--flow-overview)
 2. [Public Patient Funnel & Booking Engine (`/`)](#2-public-patient-funnel--booking-engine-)
 3. [Digital Medical Intake & HMO Triage Engine (`/intake`)](#3-digital-medical-intake--hmo-triage-engine-intake)
 4. [Clinical Operations & Doctor Portal (`/admin`)](#4-clinical-operations--doctor-portal-admin)
-   - [Tab 1: Chairside Treatment & Daily Schedule](#tab-1-chairside-treatment--daily-schedule)
+   - [Tab 1: Chairside Treatment & Daily Clinical Schedule](#tab-1-chairside-treatment--daily-clinical-schedule)
    - [Tab 2: Lumina Interactive Calendar & Holiday Hub](#tab-2-lumina-interactive-calendar--holiday-hub)
    - [Tab 3: Clinical Inquiries & Abandoned Lead Recovery](#tab-3-clinical-inquiries--abandoned-lead-recovery)
    - [Tab 4: Staff & Clinicians Access Directory](#tab-4-staff--clinicians-access-directory)
 5. [Staff Account Security & Profile Settings (`/admin/account` & `/admin/login`)](#5-staff-account-security--profile-settings-adminaccount--adminlogin)
 6. [Automated Triage & State Lifecycle](#6-automated-triage--state-lifecycle)
 7. [Database Schema & Timestamp Lifecycle](#7-database-schema--timestamp-lifecycle)
+8. [Automated Playwright E2E Test Suite & Test Accounts](#8-automated-playwright-e2e-test-suite--test-accounts)
 
 ---
 
-## 1. System Architecture Overview
+## 1. System Architecture & Flow Overview
 
 ```mermaid
 graph TD
     A[Public Landing Page /] -->|Step 1: Contact Capture| B[(Supabase inquiries)]
     A -->|Step 2: Slot Reservation| C[(Supabase appointments)]
-    C -->|Generate Intake Token| D[Digital Intake Engine /intake]
-    D -->|Submit Verified History| E[(Supabase medical_intakes)]
-    C -->|Auto-tag No-Show / Triage| F[Admin Clinical Portal /admin]
-    B -->|Workflow 5 Recovery / Triage| F
-    F -->|Reception Check-In| G[In Lobby: checked_in]
-    G -->|Chairside Treatment Mark-off| H[Completed: completed]
+    C -->|Generate Tokenized URL| D[Digital Medical Intake /intake]
+    D -->|Submit Verified Health History| E[(Supabase medical_intakes)]
+    C -->|1-Hour Grace Auto No-Show| F[Clinical Operations Hub /admin]
+    B -->|Workflow 5 Lead Recovery| F
+    F -->|Receptionist Check-In| G[In Clinic Lobby: checked_in]
+    G -->|Chairside Treatment Mark-off| H[Completed Visit: completed]
     F -->|Super Admin Staff Management| I[(Supabase staff_users)]
 ```
 
@@ -45,11 +47,11 @@ graph TD
 * **Step 1 Lead Capture (Anti-Abandonment Gate)**:
   * Collects patient first name, last name, email address, mobile number, and service of interest.
   * Writes directly to the `inquiries` table with `source = 'booking_funnel_step1'`.
-  * If the patient leaves without selecting a date, **Workflow 5 (Lead Recovery)** triggers personalized re-engagement.
+  * If the patient abandons before completing Step 2 slot reservation, **Workflow 5 (Abandoned Lead Recovery)** triggers personalized SMS/Email re-engagement.
 * **Step 2 Calendar Slot Reservation**:
-  * **Sunday Rest Day Disablement**: Sundays are automatically disabled and non-bookable (`closed`).
+  * **Sunday Rest Day Disablement**: Sundays are strictly disabled and non-bookable (`closed`).
   * **Interactive Slot Picker**: Real-time morning and afternoon slots (10:00 AM to 5:00 PM).
-  * **Duplicate Prevention**: Booked slots are cross-checked and rendered disabled.
+  * **Duplicate Prevention**: Booked slots are cross-checked against Supabase and rendered disabled.
 * **Emergency Hotlines & Contact Modal**:
   * Organic inquiries captured via contact modal write to `inquiries` with `source = 'contact_modal'`.
 
@@ -71,23 +73,23 @@ graph TD
 
 ## 4. Clinical Operations & Doctor Portal (`/admin`)
 
-### Tab 1: Chairside Treatment & Daily Schedule
+### Tab 1: Chairside Treatment & Daily Clinical Schedule
 * **Executive Header Banner**: Real-time patient intake, check-in status, clinical notes, and post-op care triage.
 * **Date Segment Control**:
   * **Today** (Default): Displays visits scheduled for today (PST Manila date).
   * **This Week**: Filters visits occurring between Monday and Saturday of the active week.
   * **This Month**: Displays all visits for the active month.
   * **All**: Displays complete historical and upcoming schedule.
-  * Styled with active Lumina Teal (`#0d9488`) segmented pills (no black buttons).
-* **Multi-Attribute Real-Time Search**: Instant search filtering by patient name, email, mobile phone, clinical service, chairside notes, medical conditions, and allergies.
+  * Styled with active Lumina Teal (`#0d9488`) segmented pills (no generic black buttons).
+* **Multi-Attribute Real-Time Search**: Instant search filtering across **Patient Name**, **Email Address**, **Mobile Phone**, **Clinical Service**, **Doctor Notes**, **Medical Conditions**, and **Allergies**.
 * **Card Structure**:
-  * Removed initials box for an open, executive multi-row card format.
-  * **Top Badges**: Time slot, long appointment date, visit status, intake verification pill (`✓ Verified Intake • HMO Provider` / `Intake Pending`), allergy alerts, and complication flags.
+  * Removed initials avatar box for an open, executive multi-row card format matching the Inquiries tab.
+  * **Top Badges**: Time slot, formatted date, visit status, intake verification pill (`✓ Verified Intake • HMO Provider` / `Intake Pending`), red allergy alert tag, and complication follow-up flag.
   * **Clinical Details**: Patient name, clinical service, quoted patient notes, and clickable contact links (`mailto:` / `tel:`).
 * **4-Step Clinical Lifecycle Buttons**:
   1. **Date-Gated Check-In**:
      * *Today's Visits*: Active emerald **`[ Check In ]`** button marks patient arrived in lobby (`checked_in`).
-     * *Future Visits*: Disabled button with date badge (`Check In (Aug 26, 2026)`). When clicked, displays inline alert: *"Patient check-in is only available on the scheduled date."*
+     * *Future Visits*: Disabled button with scheduled date badge (`Check In (Aug 26, 2026)`). When clicked, displays inline alert: *"Patient check-in is only available on the scheduled date."*
   2. **Chairside Action Gate**: Doctor's **`[ Action ]` / `[ Complete Visit ]`** button appears **only after** patient has checked in.
   3. **Chairside Mark-Off Modal**: Select Standard Recovery vs Complication (dispatches care sequence vs staff follow-up alert), logs doctor notes, and records `completed_at`.
   4. **Outcome Editing**: Allows attending doctor to modify notes or follow-up flags via **`[ Edit Outcome ]`**.
@@ -157,4 +159,40 @@ ADD COLUMN IF NOT EXISTS no_show_at TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_appointments_status_date ON appointments(status, appointment_date);
+```
+
+---
+
+## 8. Automated Playwright E2E Test Suite & Test Accounts
+
+The end-to-end testing suite is located in [`tests/e2e/admin-dashboard.spec.ts`](file:///Users/macbookpro/Downloads/Lumina-Dental-Studio-main/Lumina-UI/tests/e2e/admin-dashboard.spec.ts) and executes with 100% pass rate:
+
+### Test Accounts Configured:
+1. **Super Admin Account**:
+   * Email: `bryantiversonmelliza03@gmail.com`
+   * Password: `LuminaStudio2026!`
+   * Permissions: Full system management, staff creation, removal, and account security.
+2. **Attending Dentist Account**:
+   * Email: `brybry.melliza@gmail.com`
+   * Password: `LuminaMeow123`
+   * Permissions: Chairside schedule, clinical intake viewing, and treatment mark-off (Staff Directory hidden).
+3. **Dynamic Test User (Staff Lifecycle Testing)**:
+   * Name: **Zenux Iverson Melliza**
+   * Birthday: `2003-11-27`
+   * Branch: `Bonifacio Global City, Taguig`
+   * Specialization: `Cosmetic & Restorative Dentist`
+   * License: `PRC-112703`
+   * Email: `bryantmelliza03@gmail.com`
+   * Password: `ZenuxSecurePass2026!`
+   * Lifecycle: Created in Test 05 $\rightarrow$ verified in staff search $\rightarrow$ revoked and deleted from database cleanly.
+
+### Running the Test Suite:
+```bash
+# Run against live production deployment:
+PLAYWRIGHT_TEST_BASE_URL=https://luminadentalcarestudio.vercel.app npx playwright test tests/e2e/admin-dashboard.spec.ts
+
+# Run against local development server:
+npm run build
+npm run start
+npx playwright test tests/e2e/admin-dashboard.spec.ts
 ```
