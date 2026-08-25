@@ -34,7 +34,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
-    // Try fetching from Supabase
+    // 1. Try fetching from Supabase
     try {
       const { data, error } = await supabaseAdmin
         .from('staff_users')
@@ -43,10 +43,11 @@ export async function GET() {
         .single();
 
       if (!error && data) {
-        return NextResponse.json({ success: true, profile: data });
+        return NextResponse.json({ success: true, profile: data, source: 'supabase' });
       }
     } catch {}
 
+    // 2. Fallback to local store
     const staffList = getStaffUsers();
     const staff = staffList.find((s) => s.email.toLowerCase() === session.email.toLowerCase());
     if (!staff) {
@@ -54,7 +55,7 @@ export async function GET() {
     }
 
     const { password_hash: _, ...safeStaff } = staff;
-    return NextResponse.json({ success: true, profile: safeStaff });
+    return NextResponse.json({ success: true, profile: safeStaff, source: 'local_store' });
   } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Internal Server Error' },
@@ -63,7 +64,7 @@ export async function GET() {
   }
 }
 
-// PATCH: Update current user's profile and password
+// PATCH: Update current user's profile and password (synced with Supabase)
 export async function PATCH(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -146,7 +147,7 @@ export async function PATCH(request: Request) {
       birthdate: birthdate || null,
       sex: sex || null,
       age: age ? Number(age) : null,
-      location: location?.trim() || null,
+      location: location?.trim() || 'Bonifacio Global City, Taguig (Flagship Studio)',
       profile_completed: isCompleted,
       updated_at: new Date().toISOString(),
     };
@@ -155,12 +156,23 @@ export async function PATCH(request: Request) {
     if (license_number !== undefined) updatePayload.license_number = license_number?.trim() || null;
     if (newPasswordHash) updatePayload.password_hash = newPasswordHash;
 
-    // Update in Supabase
+    // Upsert directly into Supabase staff_users table
     try {
-      await supabaseAdmin
+      const { error: dbError } = await supabaseAdmin
         .from('staff_users')
-        .update(updatePayload)
-        .eq('email', cleanEmail);
+        .upsert(
+          {
+            email: cleanEmail,
+            role: session.role,
+            status: 'active',
+            ...updatePayload,
+          },
+          { onConflict: 'email' }
+        );
+
+      if (dbError) {
+        console.warn('Supabase upsert warning:', dbError.message);
+      }
     } catch (err) {
       console.warn('Supabase profile update fallback:', err);
     }
