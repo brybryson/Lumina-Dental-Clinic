@@ -245,8 +245,8 @@ export default function AdminDashboardPage() {
   const [showNewStaffPassword, setShowNewStaffPassword] = useState(false);
   const [isSavingStaff, setIsSavingStaff] = useState(false);
 
-  // Schedule Filters
-  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'tomorrow' | string>('all');
+  // Schedule Filters (Default: 'today')
+  const [dateFilter, setDateFilter] = useState<'today' | 'this_week' | 'this_month' | 'all'>('today');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -612,15 +612,28 @@ export default function AdminDashboardPage() {
     );
   }
 
-  // Filter Appointments for Schedule Tab
+  // Filter Appointments for Schedule Tab (Default: 'today')
   const filteredAppointments = appointments.filter((apt) => {
     const todayStr = '2026-08-25';
     const tomorrowStr = '2026-08-26';
 
-    if (dateFilter === 'today' && apt.appointment_date !== todayStr) return false;
-    if (dateFilter === 'tomorrow' && apt.appointment_date !== tomorrowStr) return false;
-    if (dateFilter !== 'all' && dateFilter !== 'today' && dateFilter !== 'tomorrow' && apt.appointment_date !== dateFilter) {
-      return false;
+    if (dateFilter === 'today') {
+      if (apt.appointment_date !== todayStr) return false;
+    } else if (dateFilter === 'this_week') {
+      const [tYear, tMonth, tDay] = todayStr.split('-').map(Number);
+      const targetDate = new Date(tYear, tMonth - 1, tDay);
+      const dayOfWeek = targetDate.getDay();
+      const startOfWeek = new Date(targetDate);
+      startOfWeek.setDate(targetDate.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 5);
+
+      const [aYear, aMonth, aDay] = apt.appointment_date.split('-').map(Number);
+      const aptDate = new Date(aYear, aMonth - 1, aDay);
+      if (aptDate < startOfWeek || aptDate > endOfWeek) return false;
+    } else if (dateFilter === 'this_month') {
+      const currMonthPrefix = todayStr.substring(0, 7);
+      if (!apt.appointment_date.startsWith(currMonthPrefix)) return false;
     }
 
     if (statusFilter !== 'all' && apt.status !== statusFilter) return false;
@@ -919,62 +932,90 @@ export default function AdminDashboardPage() {
         {/* ========================================================================= */}
         {activeTab === 'schedule' && (
           <div className="space-y-4">
+            {/* Header Banner */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina">
+              <h2 className="display text-[18px] sm:text-[20px] font-bold text-[#0f172a] tracking-tight">
+                Chairside Treatment &amp; Daily Clinical Schedule
+              </h2>
+              <p className="text-[13px] sm:text-[14px] text-[#527078] mt-1">
+                Real-time patient intake, check-in status, clinical notes, and post-op care triage.
+              </p>
+            </div>
+
             {/* Filter and Search Bar */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 sm:p-4 bg-white rounded-2xl border border-slate-200/90 shadow-lumina">
-              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
-                <button
-                  onClick={() => setDateFilter('all')}
-                  className={`py-1.5 px-3 rounded-xl text-[12.5px] sm:text-[13px] font-semibold border transition-all shrink-0 cursor-pointer ${
-                    dateFilter === 'all'
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  All Visits
-                </button>
-                <button
-                  onClick={() => setDateFilter('today')}
-                  className={`py-1.5 px-3 rounded-xl text-[12.5px] sm:text-[13px] font-semibold border transition-all shrink-0 cursor-pointer ${
-                    dateFilter === 'today'
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  Aug 25
-                </button>
-                <button
-                  onClick={() => setDateFilter('tomorrow')}
-                  className={`py-1.5 px-3 rounded-xl text-[12.5px] sm:text-[13px] font-semibold border transition-all shrink-0 cursor-pointer ${
-                    dateFilter === 'tomorrow'
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  Aug 26
-                </button>
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Date Segments (Teal active state, no black buttons) */}
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/60">
+                  <button
+                    onClick={() => setDateFilter('today')}
+                    className={`py-1.5 px-3 rounded-lg text-[12.5px] sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      dateFilter === 'today'
+                        ? 'bg-[#0d9488] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Today
+                  </button>
+                  <button
+                    onClick={() => setDateFilter('this_week')}
+                    className={`py-1.5 px-3 rounded-lg text-[12.5px] sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      dateFilter === 'this_week'
+                        ? 'bg-[#0d9488] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    This Week
+                  </button>
+                  <button
+                    onClick={() => setDateFilter('this_month')}
+                    className={`py-1.5 px-3 rounded-lg text-[12.5px] sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      dateFilter === 'this_month'
+                        ? 'bg-[#0d9488] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    This Month
+                  </button>
+                  <button
+                    onClick={() => setDateFilter('all')}
+                    className={`py-1.5 px-3 rounded-lg text-[12.5px] sm:text-[13px] font-bold transition-all cursor-pointer ${
+                      dateFilter === 'all'
+                        ? 'bg-[#0d9488] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    All
+                  </button>
+                </div>
+
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="py-1.5 px-3 rounded-xl text-[12.5px] sm:text-[13px] font-semibold border border-slate-200 bg-white text-slate-700 cursor-pointer focus:outline-none shrink-0"
+                  className="py-1.5 px-3 rounded-xl text-[12.5px] sm:text-[13px] font-semibold border border-slate-200 bg-white text-slate-700 cursor-pointer focus:outline-none"
                 >
                   <option value="all">All Statuses</option>
                   <option value="confirmed">Confirmed</option>
                   <option value="intake_submitted">Intake Submitted</option>
-                  <option value="checked_in">Checked In</option>
+                  <option value="checked_in">In Lobby (Checked In)</option>
                   <option value="completed">Completed</option>
                   <option value="no_show">No Show (Unattended)</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
+
+                <span className="text-[12px] text-slate-400 font-semibold">
+                  Showing {filteredAppointments.length} of {appointments.length} visits
+                </span>
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="relative flex-1 md:w-64">
+                <div className="relative flex-1 md:w-80">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search patient, service..."
+                    placeholder="Search patient, service, notes, allergy..."
                     className="w-full pl-9 pr-3 py-1.5 text-[12.5px] sm:text-[13px] rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30"
                   />
                 </div>
@@ -989,13 +1030,13 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Schedule Cards */}
+            {/* Schedule Cards List (Restructured Clean Layout - No Initials Box) */}
             {filteredAppointments.length === 0 ? (
               <div className="p-10 sm:p-12 text-center bg-white rounded-3xl border border-slate-200/90 shadow-lumina text-slate-500">
                 <CalendarIcon className="w-10 h-10 mx-auto mb-3 text-slate-300" />
                 <p className="text-[16px] font-bold text-[#0f172a]">No appointments found</p>
                 <p className="text-[13px] text-slate-400 mt-1">
-                  Try adjusting the date filter or search query above.
+                  Try adjusting the date segment filter, status selector, or search term above.
                 </p>
               </div>
             ) : (
@@ -1008,128 +1049,129 @@ export default function AdminDashboardPage() {
                   const isCheckedIn = apt.status === 'checked_in';
                   const isNoShow = apt.status === 'no_show';
                   const isComplicated = apt.flag_for_manual_followup;
-
-                  const initials = `${patient.first_name?.[0] || ''}${patient.last_name?.[0] || ''}`.toUpperCase() || 'PT';
+                  const isTodayApt = apt.appointment_date === todayManilaKey;
+                  const isFutureApt = apt.appointment_date > todayManilaKey;
 
                   return (
                     <div
                       key={apt.id}
-                      className={`p-4 sm:p-6 rounded-2xl sm:rounded-[22px] bg-white border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-5 shadow-lumina ${
+                      className={`p-5 sm:p-6 rounded-3xl bg-white border shadow-lumina flex flex-col md:flex-row md:items-start justify-between gap-5 transition-all ${
                         isComplicated
                           ? 'border-red-300 bg-red-50/20'
                           : isCompleted
-                          ? 'border-teal-200 bg-teal-50/10'
+                          ? 'border-teal-200/80 bg-teal-50/15'
                           : isCheckedIn
                           ? 'border-emerald-300 bg-emerald-50/20'
                           : isNoShow
-                          ? 'border-slate-200 bg-slate-50/40 opacity-80'
+                          ? 'border-slate-200/80 bg-slate-50/50 opacity-75'
                           : 'border-slate-200/90 hover:border-[#0d9488]/40'
                       }`}
                     >
-                      {/* Left: Patient Avatar & Key Details */}
-                      <div className="flex items-start gap-3 sm:gap-4 flex-1">
-                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-teal-50 text-[#0d9488] border border-[#0d9488]/20 flex items-center justify-center font-extrabold text-[14px] sm:text-[15px] shrink-0">
-                          {initials}
+                      <div className="space-y-2.5 flex-1">
+                        {/* Top Badges */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[12px] font-semibold text-teal-800 bg-teal-50 px-2.5 py-0.5 rounded-md border border-[#0d9488]/20 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-[#0d9488]" />
+                            {apt.time_slot}
+                          </span>
+
+                          <span className="text-[12px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md">
+                            {formatLongDate(apt.appointment_date)}
+                          </span>
+
+                          {isCompleted ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-[#0f766e] border border-[#0d9488]/20">
+                              <Check className="w-3 h-3" /> COMPLETED
+                            </span>
+                          ) : isCheckedIn ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300">
+                              <UserCheck className="w-3 h-3 text-emerald-600" /> IN CLINIC LOBBY
+                            </span>
+                          ) : isNoShow ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                              NO SHOW
+                            </span>
+                          ) : apt.status === 'cancelled' ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                              CANCELLED
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                              {formatStatusText(apt.status).toUpperCase()}
+                            </span>
+                          )}
+
+                          {/* Medical Intake Verified / Pending Pill */}
+                          {intake ? (
+                            <button
+                              onClick={() => setViewingIntakeApt(apt)}
+                              className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200 hover:bg-teal-100/80 transition-colors cursor-pointer"
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5 text-[#0d9488]" />
+                              Verified Intake {intake.hmo_provider ? `• ${intake.hmo_provider}` : ''}
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200/70">
+                              <Clock className="w-3.5 h-3.5 text-amber-600" />
+                              Intake Pending
+                            </span>
+                          )}
+
+                          {/* Allergy Alert */}
+                          {hasAllergies && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200">
+                              <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                              Allergy: {intake?.allergies?.join(', ')}
+                            </span>
+                          )}
+
+                          {isComplicated && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
+                              Complication Follow-Up Flagged
+                            </span>
+                          )}
                         </div>
 
-                        <div className="space-y-1 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="display text-[17px] sm:text-[18px] font-extrabold text-[#0f172a] leading-snug tracking-tight">
-                              {patient.first_name} {patient.last_name}
-                            </h3>
+                        {/* Patient Name & Clinical Service */}
+                        <div>
+                          <h4 className="display text-[17.5px] sm:text-[19px] font-extrabold text-[#0f172a] tracking-tight">
+                            {patient.first_name} {patient.last_name}
                             {patient.sex_assigned_at_birth && (
-                              <span className="text-[12px] text-slate-400 font-medium">
+                              <span className="text-[13px] font-normal text-slate-400 ml-2">
                                 ({patient.sex_assigned_at_birth})
                               </span>
                             )}
+                          </h4>
+                          <p className="text-[13px] sm:text-[13.5px] font-semibold text-[#0d9488] mt-0.5">
+                            {apt.service_name}
+                          </p>
+                        </div>
 
-                            {isCompleted ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] sm:text-[11.5px] font-bold bg-teal-100/80 text-[#0f766e] px-2.5 py-0.5 rounded-full">
-                                <Check className="w-3 h-3" /> Completed
-                              </span>
-                            ) : isCheckedIn ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] sm:text-[11.5px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
-                                <UserCheck className="w-3 h-3 text-emerald-600" /> In Clinic Lobby
-                              </span>
-                            ) : isNoShow ? (
-                              <span className="inline-flex items-center text-[11px] sm:text-[11.5px] font-bold bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full border border-slate-200">
-                                Unattended Visit
-                              </span>
-                            ) : apt.status === 'cancelled' ? (
-                              <span className="inline-flex items-center text-[11px] sm:text-[11.5px] font-semibold bg-slate-100 text-slate-500 px-2.5 py-0.5 rounded-full">
-                                Cancelled
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center text-[11px] sm:text-[11.5px] font-bold bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full">
-                                {formatStatusText(apt.status)}
-                              </span>
-                            )}
-
-                            {isComplicated && (
-                              <span className="inline-flex items-center gap-1 text-[11px] sm:text-[11.5px] font-bold bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full">
-                                <AlertTriangle className="w-3 h-3" /> Staff Check-in Needed
-                              </span>
-                            )}
+                        {/* Patient Notes */}
+                        {apt.patient_notes && (
+                          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-[13px] text-slate-600 italic leading-relaxed">
+                            &ldquo;{apt.patient_notes}&rdquo;
                           </div>
+                        )}
 
-                          <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                            <span className="inline-flex items-center gap-1.5 text-[12px] sm:text-[12.5px] font-semibold text-[#0f766e] bg-teal-50/90 px-2.5 py-1 rounded-lg border border-[#0d9488]/20">
-                              <Clock className="w-3.5 h-3.5 text-[#0d9488]" />
-                              {formatLongDate(apt.appointment_date)} &bull; {apt.time_slot}
+                        {/* Contact Channels */}
+                        <div className="flex flex-wrap items-center gap-4 text-[12.5px] text-slate-600 pt-0.5">
+                          <span className="inline-flex items-center gap-1.5">
+                            <Mail className="w-3.5 h-3.5 text-slate-400" />
+                            <a href={`mailto:${patient.email}`} className="hover:text-[#0d9488] font-medium">{patient.email}</a>
+                          </span>
+                          {patient.mobile && (
+                            <span className="inline-flex items-center gap-1.5">
+                              <Phone className="w-3.5 h-3.5 text-slate-400" />
+                              <a href={`tel:${patient.mobile}`} className="hover:text-[#0d9488] font-medium">{patient.mobile}</a>
                             </span>
-                            <span className="inline-flex items-center text-[12px] sm:text-[12.5px] font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
-                              {apt.service_name}
-                            </span>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[12px] sm:text-[12.5px] text-slate-500 pt-1">
-                            <span className="inline-flex items-center gap-1">
-                              <Phone className="w-3.5 h-3.5 text-slate-400" /> {patient.mobile}
-                            </span>
-                            <span className="inline-flex items-center gap-1">
-                              <Mail className="w-3.5 h-3.5 text-slate-400" /> {patient.email}
-                            </span>
-                            {apt.patient_notes && (
-                              <span className="text-slate-600 italic bg-slate-50 px-2 py-0.5 rounded">
-                                &ldquo;{apt.patient_notes}&rdquo;
-                              </span>
-                            )}
-                          </div>
+                          )}
                         </div>
                       </div>
 
-                      {/* Middle: Medical Health History Pill */}
-                      <div className="flex flex-col gap-1.5 md:min-w-[180px]">
-                        {intake ? (
-                          <button
-                            onClick={() => setViewingIntakeApt(apt)}
-                            className="p-2 px-3 rounded-xl bg-teal-50 border border-teal-200/90 text-left hover:bg-teal-100/70 transition-all flex items-center justify-between group cursor-pointer"
-                          >
-                            <span className="text-[12px] sm:text-[12.5px] font-bold text-[#0f766e] flex items-center gap-1.5">
-                              <FileText className="w-3.5 h-3.5" />
-                              Intake Form
-                            </span>
-                            <span className="text-[11px] sm:text-[11.5px] text-[#0d9488] font-bold group-hover:translate-x-0.5 transition-transform">
-                              View &rarr;
-                            </span>
-                          </button>
-                        ) : (
-                          <div className="p-2 px-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-[11.5px] sm:text-[12px] font-medium text-amber-800 flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5 text-amber-600" />
-                            Intake Pending
-                          </div>
-                        )}
-
-                        {hasAllergies && (
-                          <div className="px-2.5 py-1 rounded-lg bg-red-100/80 border border-red-200 text-red-800 text-[11px] sm:text-[11.5px] font-bold flex items-center gap-1.5">
-                            <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-                            Allergy: {intake?.allergies?.join(', ')}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Right: Actions */}
-                      <div className="flex flex-wrap items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0">
+                      {/* Actions */}
+                      <div className="flex flex-wrap md:flex-col items-center md:items-end gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
                         {isNoShow ? (
                           <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3.5 py-1.5 rounded-xl shadow-2xs">
                             <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
@@ -1162,8 +1204,8 @@ export default function AdminDashboardPage() {
                             Complete Visit
                           </button>
                         ) : apt.status !== 'cancelled' ? (
-                          /* Patient has not checked in yet: Show only Check In button */
-                          apt.appointment_date >= todayManilaKey ? (
+                          /* Date-Gated Check-In */
+                          isTodayApt ? (
                             <button
                               onClick={() => handleUpdateAppointmentStatus(apt.id, 'checked_in')}
                               className="py-2 px-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-[12.5px] cursor-pointer flex items-center gap-1.5 shadow-2xs transition-all hover:scale-[1.02]"
@@ -1171,6 +1213,15 @@ export default function AdminDashboardPage() {
                             >
                               <UserCheck className="w-4 h-4 text-emerald-600" />
                               Check In
+                            </button>
+                          ) : isFutureApt ? (
+                            <button
+                              onClick={() => setActionSuccessMsg(`Patient check-in is only available on the scheduled date: ${formatLongDate(apt.appointment_date)}.`)}
+                              className="py-2 px-3.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 font-semibold text-[12px] cursor-not-allowed flex items-center gap-1.5 transition-colors"
+                              title={`Check-in opens on ${apt.appointment_date}`}
+                            >
+                              <UserCheck className="w-3.5 h-3.5 text-slate-400" />
+                              Check In ({apt.appointment_date})
                             </button>
                           ) : (
                             <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3.5 py-1.5 rounded-xl shadow-2xs">
@@ -1891,15 +1942,24 @@ export default function AdminDashboardPage() {
                               Action
                             </button>
                           ) : apt.status !== 'cancelled' ? (
-                            /* Patient not checked in yet: Show only Check In button */
-                            apt.appointment_date >= todayManilaKey ? (
+                            /* Date-Gated Check-In */
+                            apt.appointment_date === todayManilaKey ? (
                               <button
                                 onClick={() => handleUpdateAppointmentStatus(apt.id, 'checked_in')}
-                                className="py-2 px-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-[12px] cursor-pointer flex items-center gap-1 shadow-2xs"
+                                className="py-2 px-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-[12px] cursor-pointer flex items-center gap-1 shadow-2xs transition-all hover:scale-[1.02]"
                                 title="Mark patient as arrived in lobby"
                               >
                                 <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
                                 Check In
+                              </button>
+                            ) : apt.appointment_date > todayManilaKey ? (
+                              <button
+                                onClick={() => setActionSuccessMsg(`Patient check-in is only available on the scheduled date: ${formatLongDate(apt.appointment_date)}.`)}
+                                className="py-2 px-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 font-semibold text-[12px] cursor-not-allowed flex items-center gap-1.5 transition-colors"
+                                title={`Check-in opens on ${apt.appointment_date}`}
+                              >
+                                <UserCheck className="w-3.5 h-3.5 text-slate-400" />
+                                Check In ({apt.appointment_date})
                               </button>
                             ) : (
                               <span className="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl shadow-2xs">
