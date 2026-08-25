@@ -112,26 +112,13 @@ function UnsubscribeContent() {
               Direct appointment confirmations, intake documents, and urgent chairside notices for actively scheduled visits will continue to reach your inbox for medical record safety.
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="pt-2">
               <a
                 href="/"
-                className="button-primary w-full sm:flex-1 py-3.5 px-6 rounded-xl text-white text-center font-bold text-[14.5px] cursor-pointer"
+                className="button-primary w-full py-4 px-6 rounded-xl text-white text-center font-bold text-[15px] cursor-pointer block"
               >
-                Return to Lumina Home
+                Return to Home
               </a>
-              <a
-                href="/#booking"
-                className="w-full sm:flex-1 py-3.5 px-6 rounded-xl border border-[#0d9488]/30 bg-teal-50/50 hover:bg-teal-100/70 text-[#0f766e] text-center font-bold text-[14.5px] transition-colors cursor-pointer"
-              >
-                Book an Appointment
-              </a>
-            </div>
-
-            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between text-[12px] text-slate-400">
-              <a href="/" className="hover:text-slate-700 transition-colors flex items-center gap-1">
-                <ArrowLeft className="w-3.5 h-3.5" /> Back to Lumina Home
-              </a>
-              <span>Lumina Dental Studio &copy; 2026</span>
             </div>
           </div>
         ) : (

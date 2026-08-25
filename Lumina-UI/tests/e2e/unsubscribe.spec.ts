@@ -59,7 +59,7 @@ test.describe('Unsubscribe & Email Preference Management E2E Tests', () => {
     // Verify reassurance message and buttons
     await expect(page.getByText(testEmail)).toBeVisible();
     await expect(page.getByText(/Clinical Safety Guarantee/i)).toBeVisible();
-    await expect(page.getByRole('link', { name: /Return to Lumina Home/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Return to Home/i })).toBeVisible();
 
     await page.screenshot({
       path: `${folder}/03-unsubscribe-success-confirmation.png`,
