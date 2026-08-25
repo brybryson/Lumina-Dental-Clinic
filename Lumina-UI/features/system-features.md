@@ -94,13 +94,13 @@ Standardized metric cards with soft teal borders and modern Lucide icons:
   * **Complication Encountered:** Bypasses automated emails, sets `flag_for_manual_followup = true`, and dispatches an urgent alert for personalized care team phone outreach.
 * **Doctor / Staff Clinical Notes:** Textarea to log prescriptions (e.g. *Amoxicillin 500mg*), sutures, and next appointment recommendations.
 
-### E. Interactive Lumina Calendar & 2026 Philippine Holidays
+### E. Interactive Lumina Calendar
 * **Header Controls:** Month dropdown (January–December), Year dropdown (2025–2030), `<` / `>` step buttons, and **`Today`** quick-jump button.
 * **Accurate Dynamic Today Indicator:** Computes current Manila PST date (`2026-08-26`) and highlights the active date cell.
 * **Full Month Matrix (35/42 Grid):** Displays full calendar month with trailing previous and next month days in muted styling.
 * **Philippine Official Holidays:** Visual badges for all official 2026 PH holidays (*New Year's, Chinese New Year, EDSA Day, Holy Week, Labor Day, Independence Day, Ninoy Aquino Day, National Heroes Day, Bonifacio Day, Christmas, Rizal Day*).
 * **Google Calendar-Style Event Chips:** Stacked top-to-bottom appointment chips with compact time formatting (`10am`, `1pm`), service name, and patient name.
-* **Daily Clinical Schedule Modal:** Clicking any day cell opens a clean, scrollable schedule modal showing all visits for that date with quick check-in and treatment mark-off buttons.
+* **Daily Clinical Schedule Modal:** Clicking any day cell opens a clean, scrollable schedule modal showing all visits for that date with quick check-in (for today/upcoming visits) and chairside treatment mark-off buttons.
 
 ### F. Clinical Inquiries & Abandoned Lead Recovery Manager
 * Lists all captured leads from website modals and Step 1 booking abandonments.

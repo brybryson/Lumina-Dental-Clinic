@@ -1087,7 +1087,7 @@ export default function AdminDashboardPage() {
 
                       {/* Right: Actions */}
                       <div className="flex flex-wrap items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0">
-                        {!isCompleted && !isCheckedIn && apt.status !== 'cancelled' && (
+                        {!isCompleted && !isCheckedIn && apt.status !== 'cancelled' && apt.appointment_date >= todayManilaKey && (
                           <button
                             onClick={() => handleUpdateAppointmentStatus(apt.id, 'checked_in')}
                             className="py-2 px-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-[12.5px] cursor-pointer flex items-center gap-1 shadow-2xs"
@@ -1142,10 +1142,10 @@ export default function AdminDashboardPage() {
           <div className="space-y-4 sm:space-y-6">
             <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina">
               <h2 className="display text-[18px] sm:text-[20px] font-bold text-[#0f172a] tracking-tight">
-                Lumina Calendar &amp; Philippine Holidays
+                Lumina Calendar
               </h2>
               <p className="text-[13px] sm:text-[14px] text-[#527078] mt-1">
-                Monthly clinical schedule, holiday tracking, and chairside reservations.
+                Monthly clinical schedule, Philippine holiday tracking, and chairside reservations.
               </p>
             </div>
 
@@ -1596,7 +1596,7 @@ export default function AdminDashboardPage() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
-                          {!isCompleted && !isCheckedIn && apt.status !== 'cancelled' && (
+                          {!isCompleted && !isCheckedIn && apt.status !== 'cancelled' && apt.appointment_date >= todayManilaKey && (
                             <button
                               onClick={() => handleUpdateAppointmentStatus(apt.id, 'checked_in')}
                               className="py-2 px-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-[12px] cursor-pointer flex items-center gap-1 shadow-2xs"
