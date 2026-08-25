@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock, Mail, Eye, EyeOff, ShieldCheck, AlertCircle, Sparkles } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, ShieldCheck, AlertCircle } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('bryantiversonmelliza03@gmail.com');
-  const [password, setPassword] = useState('LuminaStudio2026!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -38,18 +38,12 @@ export default function AdminLoginPage() {
     }
   };
 
-  const setPreset = (presetEmail: string) => {
-    setEmail(presetEmail);
-    setPassword('LuminaStudio2026!');
-    setErrorMsg('');
-  };
-
   return (
     <main className="min-h-screen hero-wash py-12 px-4 sm:px-6 flex items-center justify-center">
-      <div className="w-full max-w-[480px] mx-auto">
+      <div className="w-full max-w-[460px] mx-auto">
         {/* Header Logomark */}
         <div className="flex justify-center mb-8">
-          <a href="/" className="inline-flex items-center gap-3 group" aria-label="Lumina Dental Studio home">
+          <a href="/admin" className="inline-flex items-center gap-3 group" aria-label="Lumina Dental Studio home">
             <img
               src="/images/lumina-logo.png"
               alt="Lumina Dental Studio Logo"
@@ -91,7 +85,7 @@ export default function AdminLoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-[13px] font-semibold text-[#0f172a] mb-1.5" htmlFor="admin-email">
-                Staff Email Address
+                Email Address
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -101,7 +95,7 @@ export default function AdminLoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="doctor@luminaclinic.com"
+                  placeholder="Enter your email address"
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-[14px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30 focus:border-[#0d9488] transition-all"
                 />
               </div>
@@ -109,7 +103,7 @@ export default function AdminLoginPage() {
 
             <div>
               <label className="block text-[13px] font-semibold text-[#0f172a] mb-1.5" htmlFor="admin-password">
-                Practice Password
+                Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -119,13 +113,13 @@ export default function AdminLoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
+                  placeholder="Enter your password"
                   className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 text-[14px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30 focus:border-[#0d9488] transition-all font-mono"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -133,49 +127,7 @@ export default function AdminLoginPage() {
               </div>
             </div>
 
-            {/* Quick Demo Credentials Selector */}
-            <div className="pt-1">
-              <p className="text-[11.5px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                Quick Role Presets:
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPreset('bryantiversonmelliza03@gmail.com')}
-                  className={`py-1.5 px-2 rounded-lg text-[11.5px] font-semibold border transition-all text-center ${
-                    email === 'bryantiversonmelliza03@gmail.com'
-                      ? 'bg-teal-50 border-[#0d9488] text-[#0f766e] font-bold ring-1 ring-[#0d9488]'
-                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  Bryant (Owner)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreset('doctor@luminaclinic.com')}
-                  className={`py-1.5 px-2 rounded-lg text-[11.5px] font-semibold border transition-all text-center ${
-                    email === 'doctor@luminaclinic.com'
-                      ? 'bg-teal-50 border-[#0d9488] text-[#0f766e] font-bold ring-1 ring-[#0d9488]'
-                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  Dr. Lumina
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreset('admin@luminaclinic.com')}
-                  className={`py-1.5 px-2 rounded-lg text-[11.5px] font-semibold border transition-all text-center ${
-                    email === 'admin@luminaclinic.com'
-                      ? 'bg-teal-50 border-[#0d9488] text-[#0f766e] font-bold ring-1 ring-[#0d9488]'
-                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  Front Desk
-                </button>
-              </div>
-            </div>
-
-            <div className="pt-3">
+            <div className="pt-2">
               <button
                 type="submit"
                 disabled={isLoading}
@@ -184,24 +136,14 @@ export default function AdminLoginPage() {
                 {isLoading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Signing into Clinical Hub...
+                    Signing In...
                   </>
                 ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    Sign In to Lumina Portal
-                  </>
+                  'Sign In'
                 )}
               </button>
             </div>
           </form>
-
-          <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between text-[12px] text-slate-400">
-            <span>Lumina Dental Studio &copy; 2026</span>
-            <a href="/" className="hover:text-[#0d9488] transition-colors font-medium">
-              Return to Public Site &rarr;
-            </a>
-          </div>
         </div>
       </div>
     </main>
