@@ -905,13 +905,13 @@ function CustomCalendar({
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const dayNumber = i + 1;
           const isWeekend = (dayNumber + blankDays - 1) % 7 === 0 || (dayNumber + blankDays - 1) % 7 === 6;
-          const isPast = dayNumber < 25;
+          const isPastOrToday = dayNumber <= 25;
           const dateString = `Aug ${dayNumber < 10 ? '0' : ''}${dayNumber}, 2026`;
           const isSelected = selectedDate === dateString;
 
           const bookedSlotsForDay = bookedSchedule[dateString] || [];
           const isFullyBooked = bookedSlotsForDay.length >= allSlots.length;
-          const isDisabled = isPast || isWeekend || isFullyBooked;
+          const isDisabled = isPastOrToday || isWeekend || isFullyBooked;
 
           return (
             <button
@@ -925,8 +925,10 @@ function CustomCalendar({
                   ? 'Fully booked — All appointment slots occupied for this date'
                   : isWeekend
                   ? 'Closed on Weekends'
-                  : isPast
-                  ? 'Past Date'
+                  : isPastOrToday
+                  ? dayNumber === 25
+                    ? 'Same-day online booking unavailable (Please call clinic for emergency slots)'
+                    : 'Past Date'
                   : 'Available for Booking'
               }
               className={`relative h-9 w-full rounded-xl text-[13px] font-bold transition-all flex items-center justify-center ${

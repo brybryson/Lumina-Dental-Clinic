@@ -26,6 +26,14 @@ appointmentsRouter.post('/', async (req: Request, res: Response): Promise<void> 
       return;
     }
 
+    // Guard: Online reservations must be for tomorrow or future dates (e.g. >= August 26, 2026)
+    if (date <= '2026-08-25') {
+      res.status(400).json({
+        error: 'Online appointments can only be booked for tomorrow and future dates. For same-day clinical emergencies, please call the clinic directly.',
+      });
+      return;
+    }
+
     const cleanEmail = email.trim().toLowerCase();
 
     // 1. Upsert Patient in Supabase
