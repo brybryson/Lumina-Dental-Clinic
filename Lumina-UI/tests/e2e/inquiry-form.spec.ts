@@ -39,8 +39,8 @@ test.describe('General & Clinical Inquiries Form E2E Tests', () => {
 
   test('should successfully submit clinical inquiry with treatment of interest and record in database', async ({ page }) => {
     // Fill in valid inquiry details
-    await page.locator('#first-name').fill('Sarah');
-    await page.locator('#last-name').fill('Connor');
+    await page.locator('#first-name').fill('Iverson');
+    await page.locator('#last-name').fill('Melliza');
     await page.locator('#inquiry-email').fill('vrsnmllz03@gmail.com');
     await page.locator('#inquiry-phone').fill('09175559876');
     await page.locator('#inquiry-service').selectOption({ label: 'Laser Teeth Whitening' });
@@ -59,7 +59,7 @@ test.describe('General & Clinical Inquiries Form E2E Tests', () => {
     await submitBtn.click();
 
     // Verify success confirmation card appears
-    await expect(page.locator('h3:has-text("Thank you, Sarah!")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h3:has-text("Thank you, Iverson!")')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText('vrsnmllz03@gmail.com')).toBeVisible();
 
     // Capture the actual confirmed/success screen

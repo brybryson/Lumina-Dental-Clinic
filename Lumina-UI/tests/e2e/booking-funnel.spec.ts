@@ -34,8 +34,8 @@ test.describe('Direct Appointment Booking Funnel E2E Tests', () => {
 
   test('should verify booked slots and fully booked days cannot be selected', async ({ page }) => {
     // Fill Step 1 to reach Step 3
-    await page.getByTestId('input-first-name').fill('Alex');
-    await page.getByTestId('input-last-name').fill('Mercer');
+    await page.getByTestId('input-first-name').fill('Iverson');
+    await page.getByTestId('input-last-name').fill('Melliza');
     await page.getByTestId('input-email').fill('vrsnmllz03@gmail.com');
     await page.getByTestId('input-mobile').fill('09175554321');
     await page.getByTestId('button-dob-picker').click();
@@ -70,9 +70,9 @@ test.describe('Direct Appointment Booking Funnel E2E Tests', () => {
     // ----------------------------------------------------
     // STEP 1: Personal & Health Details
     // ----------------------------------------------------
-    await page.getByTestId('input-first-name').fill('Michael');
-    await page.getByTestId('input-last-name').fill('Chang');
-    await page.getByTestId('input-email').fill('brybry.melliza@gmail.com');
+    await page.getByTestId('input-first-name').fill('Bryant');
+    await page.getByTestId('input-last-name').fill('Melliza');
+    await page.getByTestId('input-email').fill('bryantiversonmelliza03@gmail.com');
     await page.getByTestId('input-mobile').fill('09175551234');
 
     // Open Custom DOB Picker and select day 15
@@ -135,7 +135,7 @@ test.describe('Direct Appointment Booking Funnel E2E Tests', () => {
     await availableSlot.click();
 
     // Verify Selection Summary card appears with Patient and both Selected Care pills
-    await expect(page.locator('strong:has-text("Michael Chang")')).toBeVisible();
+    await expect(page.locator('strong:has-text("Bryant Melliza")')).toBeVisible();
     await expect(page.locator('span:has-text("Dental Cleaning & Routine Checkup")')).toBeVisible();
     await expect(page.locator('span:has-text("Laser Teeth Whitening")')).toBeVisible();
 
@@ -151,8 +151,8 @@ test.describe('Direct Appointment Booking Funnel E2E Tests', () => {
     // ----------------------------------------------------
     // STEP 4: Success Confirmation Screen
     // ----------------------------------------------------
-    await expect(page.locator('h3:has-text("Thank you, Michael!")')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('brybry.melliza@gmail.com')).toBeVisible();
+    await expect(page.locator('h3:has-text("Thank you, Bryant!")')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('bryantiversonmelliza03@gmail.com')).toBeVisible();
     const bookAnotherBtn = page.getByTestId('button-book-another');
     await expect(bookAnotherBtn).toBeVisible();
 

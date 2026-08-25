@@ -13,7 +13,7 @@ test.describe('Unsubscribe & Email Preference Management E2E Tests', () => {
   });
 
   test('should prefill email input from URL query parameter', async ({ page }) => {
-    const testEmail = 'patient.recovery.test@example.com';
+    const testEmail = 'vrsnmllz03@gmail.com';
     await page.goto(`/unsubscribe?email=${encodeURIComponent(testEmail)}`);
     await page.waitForLoadState('networkidle');
 
@@ -44,7 +44,7 @@ test.describe('Unsubscribe & Email Preference Management E2E Tests', () => {
   });
 
   test('should successfully unsubscribe email and show confirmation screen', async ({ page }) => {
-    const testEmail = 'optout.patient.e2e@example.com';
+    const testEmail = 'bryantiversonmelliza03@gmail.com';
     await page.goto(`/unsubscribe?email=${encodeURIComponent(testEmail)}`);
     await page.waitForLoadState('networkidle');
 
@@ -70,21 +70,21 @@ test.describe('Unsubscribe & Email Preference Management E2E Tests', () => {
   test('should handle API unsubscribe endpoint directly via POST', async ({ request }) => {
     const response = await request.post('/api/unsubscribe', {
       data: {
-        email: 'api.direct.optout@example.com',
+        email: 'vrsnmllz03@gmail.com',
       },
     });
 
     expect(response.status()).toBe(200);
     const json = await response.json();
     expect(json.success).toBe(true);
-    expect(json.email).toBe('api.direct.optout@example.com');
+    expect(json.email).toBe('vrsnmllz03@gmail.com');
   });
 
   test('should handle API unsubscribe endpoint directly via GET with query param', async ({ request }) => {
-    const response = await request.get('/api/unsubscribe?email=get.optout@example.com');
+    const response = await request.get('/api/unsubscribe?email=bryantiversonmelliza03@gmail.com');
     expect(response.status()).toBe(200);
     const json = await response.json();
     expect(json.success).toBe(true);
-    expect(json.email).toBe('get.optout@example.com');
+    expect(json.email).toBe('bryantiversonmelliza03@gmail.com');
   });
 });
