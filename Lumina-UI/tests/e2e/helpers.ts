@@ -6,7 +6,7 @@
  *   >> inquiry
  *   >> intake
  */
-export function getScreenshotFolder(suiteName: 'inquiry' | 'booking' | 'intake'): string {
+export function getScreenshotFolder(suiteName: 'inquiry' | 'booking' | 'intake' | 'unsubscribe'): string {
   const now = new Date();
   const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
   const month = months[now.getMonth()];
