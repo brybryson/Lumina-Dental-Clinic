@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { inquiriesRouter } from './routes/inquiries.js';
 import { appointmentsRouter } from './routes/appointments.js';
 import { intakeRouter } from './routes/intake.js';
+import { unsubscribeRouter } from './routes/unsubscribe.js';
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
 app.use('/api/inquiries', inquiriesRouter);
 app.use('/api/appointments', appointmentsRouter);
 app.use('/api/intake', intakeRouter);
+app.use('/api/unsubscribe', unsubscribeRouter);
 
 app.listen(PORT, () => {
   console.log(`🚀 [Lumina-API] Server active and listening on http://localhost:${PORT}`);
