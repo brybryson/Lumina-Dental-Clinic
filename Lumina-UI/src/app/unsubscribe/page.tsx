@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Mail, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Mail, AlertCircle, ArrowRight } from 'lucide-react';
 
 function LuminaLogomark() {
   return (
@@ -112,13 +112,13 @@ function UnsubscribeContent() {
               Direct appointment confirmations, intake documents, and urgent chairside notices for actively scheduled visits will continue to reach your inbox for medical record safety.
             </div>
 
-            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between text-[13px] text-slate-500">
+            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between text-[13.5px] text-slate-500">
               <span>Lumina Dental Clinic &copy; 2026</span>
               <a
                 href="/"
-                className="text-[13.5px] font-semibold text-[#0f172a] hover:text-[#0d9488] transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="text-[14.5px] font-medium text-slate-600 hover:text-[#0d9488] transition-colors flex items-center gap-1.5 cursor-pointer"
               >
-                <ArrowLeft className="w-4 h-4" /> Back to Lumina Home
+                Back to Lumina Home <ArrowRight className="w-4.5 h-4.5" />
               </a>
             </div>
           </div>
@@ -254,13 +254,13 @@ function UnsubscribeContent() {
               </div>
             </form>
 
-            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between text-[13px] text-slate-500">
+            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between text-[13.5px] text-slate-500">
               <span>Lumina Dental Clinic &copy; 2026</span>
               <a
                 href="/"
-                className="text-[13.5px] font-semibold text-[#0f172a] hover:text-[#0d9488] transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="text-[14.5px] font-medium text-slate-600 hover:text-[#0d9488] transition-colors flex items-center gap-1.5 cursor-pointer"
               >
-                <ArrowLeft className="w-4 h-4" /> Back to Lumina Home
+                Back to Lumina Home <ArrowRight className="w-4.5 h-4.5" />
               </a>
             </div>
           </div>
