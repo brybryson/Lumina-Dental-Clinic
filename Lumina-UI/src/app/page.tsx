@@ -2687,69 +2687,165 @@ function LegalDialog({
         </div>
 
         {/* Content Body */}
-        <div className="p-6 sm:p-8 overflow-y-auto space-y-4 text-[14px] leading-relaxed text-slate-600">
+        <div className="p-6 sm:p-8 overflow-y-auto space-y-5 text-[14px] leading-relaxed text-slate-600">
           {tab === 'privacy' && (
-            <div className="space-y-3">
-              <h4 className="font-extrabold text-[#0f172a] text-[16px]">Patient Privacy Notice</h4>
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-extrabold text-[#0f172a] text-[16.5px]">Patient Privacy Notice &amp; Data Governance</h4>
+                <p className="text-[13px] text-[#527078] mt-0.5">Last updated: August 2026 • Policy Version 2.4</p>
+              </div>
+
               <p>
-                Lumina Dental Studio is committed to safeguarding your personal and medical information. All digital intake forms, contact details, and appointment inquiries submitted through this platform are encrypted in transit using 256-bit SSL encryption.
+                Lumina Dental Studio LLC is committed to uncompromising privacy standards. All digital intake submissions, personal contact details, and appointment inquiries submitted through this platform are protected under end-to-end TLS 1.3 encryption in transit and AES-256 encryption at rest.
               </p>
-              <h5 className="font-bold text-[#0f172a] text-[14.5px] pt-1">Information We Collect</h5>
-              <p>
-                We collect your name, email, phone number, date of birth, and treatment preferences exclusively to schedule appointments, verify dental insurance benefits, and maintain your electronic patient chart. We never sell, rent, or trade patient data to third parties.
-              </p>
-              <p>
-                For inquiries regarding data deletion or records transfer, contact us directly at <strong className="text-slate-800">luminadentalclinic2026@gmail.com</strong>.
-              </p>
+
+              <div>
+                <h5 className="font-bold text-[#0f172a] text-[14.5px] mb-1">1. Information We Collect</h5>
+                <p>
+                  To provide clinical dental care, verify insurance eligibility, and maintain accurate health records, we collect:
+                </p>
+                <ul className="list-disc pl-5 mt-1.5 space-y-1 text-[13.5px]">
+                  <li><strong>Personal Identification:</strong> Legal name, date of birth, contact phone number, residential address, and email.</li>
+                  <li><strong>Clinical &amp; Health History:</strong> Medical conditions, active medications, allergy profiles, and previous dental history submitted via pre-visit digital intake.</li>
+                  <li><strong>Payment &amp; Insurance:</strong> HMO/PPO plan names, policy member IDs, group numbers, and billing details.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-[#0f172a] text-[14.5px] mb-1">2. Purpose of Processing &amp; Zero-Sale Guarantee</h5>
+                <p>
+                  Your information is processed exclusively for clinical scheduling, insurance verification, electronic chart maintenance, and direct appointment notifications. <strong>We do not sell, rent, or monetize patient information under any circumstances.</strong>
+                </p>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-[#0f172a] text-[14.5px] mb-1">3. Authorized Third-Party Disclosures</h5>
+                <p>
+                  Disclosures are strictly limited to HIPAA-covered clinical laboratory partners (custom crown and aligner fabrication), diagnostic imaging specialists, electronic prescription networks, and your designated insurance carrier for direct claims adjudication.
+                </p>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-[#0f172a] text-[14.5px] mb-1">4. Your Rights &amp; Preference Controls</h5>
+                <p>
+                  You have the right to request copies of your health chart, amend inaccuracies, or manage reminder subscriptions via our <a href="/unsubscribe" className="text-[#0d9488] underline font-medium">Email Preferences</a> portal. For record transfer or privacy inquiries, contact our Privacy Officer at <strong className="text-slate-900">luminadentalclinic2026@gmail.com</strong>.
+                </p>
+              </div>
             </div>
           )}
 
           {tab === 'terms' && (
-            <div className="space-y-3">
-              <h4 className="font-extrabold text-[#0f172a] text-[16px]">Terms of Clinical Service</h4>
-              <p>
-                By scheduling an appointment or sending an inquiry through this site, you acknowledge that provisional reservations are holds subject to clinical concierge confirmation.
-              </p>
-              <h5 className="font-bold text-[#0f172a] text-[14.5px] pt-1">Cancellation & Rescheduling</h5>
-              <p>
-                We kindly request at least 24 hours advance notice for rescheduling or cancellations to allow emergency triage patients access to reserved chairside times.
-              </p>
-              <h5 className="font-bold text-[#0f172a] text-[14.5px] pt-1">Emergency Care Disclaimer</h5>
-              <p>
-                Online triage requests do not constitute emergency medical response. If you are experiencing life-threatening dental trauma or swelling affecting your airway, please call 911 or visit the nearest emergency hospital immediately.
-              </p>
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-extrabold text-[#0f172a] text-[16.5px]">Terms of Clinical Service &amp; Studio Policies</h4>
+                <p className="text-[13px] text-[#527078] mt-0.5">Clinical Practice Guidelines • Patient Agreement</p>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-[#0f172a] text-[14.5px] mb-1">1. Provisional Reservations &amp; Scheduling</h5>
+                <p>
+                  Online booking selections reserve a provisional chairside time slot. Appointments are confirmed upon concierge intake review and verification of insurance or payment method.
+                </p>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-[#0f172a] text-[14.5px] mb-1">2. 24-Hour Rescheduling &amp; Cancellation Policy</h5>
+                <p>
+                  Because chairside time and custom sterilization suites are reserved exclusively for each patient, we request at least <strong>24 hours advance notice</strong> for cancellations or rescheduling. This allows urgent triage and emergency patients access to available openings.
+                </p>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-[#0f172a] text-[14.5px] mb-1">3. Clinical Estimates &amp; Financial Responsibility</h5>
+                <p>
+                  Treatment fees displayed online or provided during inquiry triage represent initial clinical estimates. Final treatment plans, necessary radiographs, and out-of-pocket copayments are finalized following an in-person comprehensive diagnostic evaluation by your treating dentist. Patients remain responsible for any balances not covered by insurance.
+                </p>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-[#0f172a] text-[14.5px] mb-1">4. Doctor-Patient Relationship Scope</h5>
+                <p>
+                  Submitting an online form or utilizing our digital intake triage does not establish a formal doctor-patient relationship until an in-person clinical examination has been conducted by a licensed Lumina Dental clinician.
+                </p>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-[#0f172a] text-[14.5px] mb-1">5. Acute Emergency Protocol</h5>
+                <p>
+                  Online triage forms and booking tools are not monitored for real-time emergency dispatch. If you are experiencing severe oral-facial trauma, uncontrollable hemorrhaging, or swelling that impairs swallowing or respiration, call <strong>911</strong> or visit the nearest emergency medical facility immediately.
+                </p>
+              </div>
             </div>
           )}
 
           {tab === 'hipaa' && (
-            <div className="space-y-3">
-              <h4 className="font-extrabold text-[#0f172a] text-[16px]">HIPAA Health Information Privacy</h4>
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-extrabold text-[#0f172a] text-[16.5px]">HIPAA Health Information Privacy Notice</h4>
+                <p className="text-[13px] text-[#527078] mt-0.5">45 CFR § 164.520 Compliance Notice</p>
+              </div>
+
               <p>
-                Lumina Dental Studio strictly adheres to the Health Insurance Portability and Accountability Act (HIPAA) standards for Protected Health Information (PHI).
+                Lumina Dental Studio strictly adheres to the Health Insurance Portability and Accountability Act (HIPAA) of 1996 and the Health Information Technology for Economic and Clinical Health (HITECH) Act standards for Protected Health Information (PHI).
               </p>
-              <h5 className="font-bold text-[#0f172a] text-[14.5px] pt-1">Protected Health Information (PHI) Security</h5>
-              <p>
-                Your clinical records, diagnostic digital radiographs (CBCT/2D), and medical histories are stored in HIPAA-compliant, SOC-2 certified cloud dental infrastructure with role-based access control.
-              </p>
-              <p>
-                Authorized disclosures are limited to your treating clinical providers, referring specialists, and designated insurance payers for direct claims reimbursement.
-              </p>
+
+              <div>
+                <h5 className="font-bold text-[#0f172a] text-[14.5px] mb-1">1. Electronic PHI (ePHI) Safeguards</h5>
+                <p>
+                  All clinical records, intraoral diagnostic radiographs (2D panoramic &amp; 3D CBCT scans), periodontal charts, and medical histories are stored in SOC-2 Type II certified cloud electronic health record (EHR) infrastructure with multi-factor authentication and role-based staff permissions.
+                </p>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-[#0f172a] text-[14.5px] mb-1">2. Business Associate Agreements (BAAs)</h5>
+                <p>
+                  Every third-party technology provider, cloud backup system, and dental laboratory operating within our workflow is bound by signed, enforceable Business Associate Agreements to guarantee statutory data protections.
+                </p>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-[#0f172a] text-[14.5px] mb-1">3. Right to Inspect &amp; Request Records</h5>
+                <p>
+                  Under 45 CFR § 164.524, patients have the legal right to inspect and obtain certified electronic copies of their complete dental chart, radiographs, and billing records within 30 days of written submission to <strong className="text-slate-900">luminadentalclinic2026@gmail.com</strong>.
+                </p>
+              </div>
             </div>
           )}
 
           {tab === 'accessibility' && (
-            <div className="space-y-3">
-              <h4 className="font-extrabold text-[#0f172a] text-[16px]">Digital Accessibility Standards</h4>
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-extrabold text-[#0f172a] text-[16.5px]">Digital Accessibility Standards</h4>
+                <p className="text-[13px] text-[#527078] mt-0.5">WCAG 2.1 Level AA &amp; ADA Title III Compliance</p>
+              </div>
+
               <p>
-                We believe healthcare should be accessible to everyone. Lumina Dental Studio is designed in compliance with the Web Content Accessibility Guidelines (WCAG) 2.1 Level AA and Section 508 standards.
+                Lumina Dental Studio is committed to providing an inclusive, barrier-free digital healthcare experience for all patients, including those with visual, auditory, cognitive, and motor impairments.
               </p>
-              <h5 className="font-bold text-[#0f172a] text-[14.5px] pt-1">Features & Assistive Technologies</h5>
-              <p>
-                Our digital studio interface features semantic HTML5 navigation, high-contrast typography, full screen-reader ARIA labeling, and complete keyboard navigability.
-              </p>
-              <p>
-                If you encounter any accessibility barrier, please email us at <strong className="text-slate-800">luminadentalclinic2026@gmail.com</strong> for assistance.
-              </p>
+
+              <div>
+                <h5 className="font-bold text-[#0f172a] text-[14.5px] mb-1">1. Technical Accessibility Features</h5>
+                <ul className="list-disc pl-5 space-y-1 text-[13.5px]">
+                  <li>Semantic HTML5 landmarks and structured heading hierarchy for assistive screen-reader devices.</li>
+                  <li>Full keyboard navigability for appointment funnels, date pickers, and intake questionnaires.</li>
+                  <li>High-contrast color ratios exceeding 4.5:1 for enhanced visual readability.</li>
+                  <li>Dynamic text scaling and full responsiveness across mobile, tablet, and desktop viewports.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-[#0f172a] text-[14.5px] mb-1">2. Facility Accessibility</h5>
+                <p>
+                  Our Northbridge dental studio features step-free ground entrance access, wide operatory corridors, ADA-compliant patient restrooms, and ergonomic dental treatment chairs designed for transfer accessibility.
+                </p>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-[#0f172a] text-[14.5px] mb-1">3. Feedback &amp; Assistance</h5>
+                <p>
+                  If you encounter any accessibility difficulty while navigating our website or scheduling an appointment, contact our patient accessibility team directly at <strong className="text-slate-900">(415) 555-0142</strong> or email <strong className="text-slate-900">luminadentalclinic2026@gmail.com</strong>. We will promptly provide personalized support.
+                </p>
+              </div>
             </div>
           )}
         </div>

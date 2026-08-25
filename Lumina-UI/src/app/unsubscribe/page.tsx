@@ -11,13 +11,13 @@ function LuminaLogomark() {
         <img
           src="/images/lumina-logo.png"
           alt="Lumina Dental Studio Logo"
-          className="h-9 w-auto object-contain transition-transform group-hover:scale-105"
+          className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
         />
         <div className="text-left">
-          <span className="block font-bold text-slate-900 text-lg leading-tight tracking-tight">
+          <span className="block display font-extrabold text-[#0f172a] text-[19px] leading-tight tracking-tight">
             Lumina Dental Studio
           </span>
-          <span className="block text-[10.5px] text-teal-800 font-semibold tracking-wider uppercase">
+          <span className="block text-[11px] text-[#0d9488] font-bold tracking-[0.14em] uppercase">
             Clinical &amp; Aesthetic Dentistry
           </span>
         </div>
@@ -53,7 +53,7 @@ function UnsubscribeContent() {
 
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
-      setErrorMsg('Please provide a valid email address.');
+      setErrorMsg('Please enter a valid email address.');
       return;
     }
 
@@ -88,42 +88,42 @@ function UnsubscribeContent() {
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto">
+    <div className="w-full max-w-[580px] mx-auto">
       <LuminaLogomark />
 
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-lg shadow-slate-900/4 p-7 sm:p-9 transition-all">
+      <div className="rounded-[28px] bg-white border border-slate-200/90 shadow-[0_24px_70px_rgba(15,62,74,0.08)] p-7 sm:p-10 transition-all">
         {isSuccess ? (
           <div className="text-left">
-            <div className="inline-block px-3 py-1 rounded-full bg-teal-50 border border-teal-200/80 text-teal-800 text-xs font-semibold tracking-wide mb-4">
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-teal-50 border border-teal-200/90 text-[#0d9488] text-[12px] font-bold tracking-wide uppercase mb-4">
               Preferences Updated
             </div>
 
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2 tracking-tight">
+            <h1 className="display text-[26px] sm:text-[28px] font-extrabold text-[#0f172a] mb-2 leading-tight">
               You Have Been Unsubscribed
             </h1>
 
-            <p className="text-slate-600 text-sm leading-relaxed mb-6">
+            <p className="text-[#527078] text-[15px] leading-relaxed mb-6">
               Automated reminders and promotional communications for{' '}
-              <strong className="text-slate-900 font-semibold">{email}</strong> have been turned off.
+              <strong className="text-[#0f172a] font-semibold">{email}</strong> have been turned off.
             </p>
 
-            <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-4 mb-7 text-xs text-slate-600 leading-relaxed">
-              <span className="font-semibold text-slate-800 block mb-1">
+            <div className="rounded-2xl bg-slate-50/90 border border-slate-200/90 p-5 mb-8 text-[13.5px] leading-relaxed text-[#527078]">
+              <span className="font-bold text-[#0f172a] block mb-1">
                 Clinical Safety Guarantee
               </span>
-              Direct notifications, time-sensitive confirmations, and intake forms for actively confirmed chairside visits will continue to reach your inbox.
+              Direct appointment confirmations, intake documents, and urgent chairside notices for actively scheduled visits will continue to reach your inbox for medical record safety.
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-3">
               <a
                 href="/"
-                className="w-full sm:flex-1 py-3 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-black text-white text-center font-medium text-sm transition-colors cursor-pointer shadow-sm"
+                className="w-full sm:flex-1 py-3.5 px-6 rounded-xl bg-[#0f172a] hover:bg-[#1e293b] active:bg-black text-white text-center font-bold text-[14.5px] transition-colors cursor-pointer shadow-sm"
               >
                 Return to Lumina Home
               </a>
               <a
                 href="/#booking"
-                className="w-full sm:flex-1 py-3 px-5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-center font-medium text-sm transition-colors cursor-pointer"
+                className="w-full sm:flex-1 py-3.5 px-6 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-[#0f172a] text-center font-bold text-[14.5px] transition-colors cursor-pointer"
               >
                 Book an Appointment
               </a>
@@ -132,16 +132,17 @@ function UnsubscribeContent() {
         ) : (
           <div>
             <div className="mb-6">
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+              <p className="eyebrow mb-2">COMMUNICATION SETTINGS</p>
+              <h1 className="display text-[24px] sm:text-[28px] font-extrabold text-[#0f172a] leading-tight">
                 Email Preferences &amp; Opt-Out
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                Manage your clinical communication and reminder settings
+              <p className="mt-2 text-[14.5px] leading-relaxed text-[#527078]">
+                Manage your clinical reminders, preventive hygiene notices, and studio updates.
               </p>
             </div>
 
             {errorMsg && (
-              <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-2.5">
+              <div className="mb-5 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-[13.5px] flex items-start gap-2.5">
                 <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
                 <span>{errorMsg}</span>
               </div>
@@ -149,19 +150,12 @@ function UnsubscribeContent() {
 
             <form onSubmit={handleUnsubscribe} className="space-y-5">
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label
-                    htmlFor="email-input"
-                    className="text-xs font-semibold text-slate-700 uppercase tracking-wider"
-                  >
-                    Email Address
-                  </label>
-                  {isLockedFromUrl && (
-                    <span className="text-[11px] font-medium text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200/60">
-                      Auto-detected
-                    </span>
-                  )}
-                </div>
+                <label
+                  htmlFor="email-input"
+                  className="block text-[12px] font-bold text-slate-700 uppercase tracking-wider mb-2"
+                >
+                  Email Address
+                </label>
 
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -175,74 +169,74 @@ function UnsubscribeContent() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border transition-all ${
+                    className={`w-full pl-10 pr-4 py-3 rounded-xl text-[14.5px] border transition-all ${
                       isLockedFromUrl
-                        ? 'bg-slate-100/80 border-slate-200 text-slate-700 cursor-not-allowed font-medium'
-                        : 'bg-white border-slate-200 text-slate-900 focus:border-teal-700 focus:ring-2 focus:ring-teal-700/15'
+                        ? 'bg-slate-100/90 border-slate-200 text-[#0f172a] font-medium cursor-not-allowed select-all'
+                        : 'bg-white border-slate-200 text-[#0f172a] focus:border-[#0d9488] focus:ring-2 focus:ring-[#0d9488]/20'
                     }`}
                   />
                 </div>
                 {isLockedFromUrl && (
-                  <p className="text-[11.5px] text-slate-400 mt-1.5">
-                    This address was automatically loaded from your email notification.
+                  <p className="text-[12px] text-slate-400 mt-1.5">
+                    This email is locked to match the link from your message.
                   </p>
                 )}
               </div>
 
               <div className="space-y-2.5 pt-1">
-                <span className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                <span className="block text-[12px] font-bold text-slate-700 uppercase tracking-wider mb-2">
                   Select communications to opt out from:
                 </span>
 
                 {/* Option 1 */}
-                <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50/80 cursor-pointer transition-colors">
+                <label className="flex items-start gap-3.5 p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/60 hover:bg-slate-50/90 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={optOutBookingReminders}
                     onChange={(e) => setOptOutBookingReminders(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600 cursor-pointer"
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-[#0d9488] focus:ring-[#0d9488] cursor-pointer"
                   />
-                  <div className="text-xs">
-                    <span className="font-semibold text-slate-900 block">
+                  <div className="text-[13.5px]">
+                    <span className="font-bold text-[#0f172a] block">
                       Incomplete Booking &amp; Inquiry Follow-ups
                     </span>
-                    <span className="text-slate-500 leading-normal block mt-0.5">
-                      Prompts to finish selecting a slot when reserving online.
+                    <span className="text-[#527078] text-[12.5px] leading-relaxed block mt-0.5">
+                      Prompts to complete selecting a chairside slot when reserving online.
                     </span>
                   </div>
                 </label>
 
                 {/* Option 2 */}
-                <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50/80 cursor-pointer transition-colors">
+                <label className="flex items-start gap-3.5 p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/60 hover:bg-slate-50/90 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={optOutRecallReminders}
                     onChange={(e) => setOptOutRecallReminders(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600 cursor-pointer"
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-[#0d9488] focus:ring-[#0d9488] cursor-pointer"
                   />
-                  <div className="text-xs">
-                    <span className="font-semibold text-slate-900 block">
+                  <div className="text-[13.5px]">
+                    <span className="font-bold text-[#0f172a] block">
                       6-Month Hygiene &amp; Preventive Recalls
                     </span>
-                    <span className="text-slate-500 leading-normal block mt-0.5">
-                      Semi-annual routine dental checkup and cleaning reminders.
+                    <span className="text-[#527078] text-[12.5px] leading-relaxed block mt-0.5">
+                      Semi-annual routine dental exam and professional prophylaxis reminders.
                     </span>
                   </div>
                 </label>
 
                 {/* Option 3 */}
-                <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50/80 cursor-pointer transition-colors">
+                <label className="flex items-start gap-3.5 p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/60 hover:bg-slate-50/90 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={optOutNewsletters}
                     onChange={(e) => setOptOutNewsletters(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600 cursor-pointer"
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-[#0d9488] focus:ring-[#0d9488] cursor-pointer"
                   />
-                  <div className="text-xs">
-                    <span className="font-semibold text-slate-900 block">
+                  <div className="text-[13.5px]">
+                    <span className="font-bold text-[#0f172a] block">
                       Studio Updates &amp; Announcements
                     </span>
-                    <span className="text-slate-500 leading-normal block mt-0.5">
+                    <span className="text-[#527078] text-[12.5px] leading-relaxed block mt-0.5">
                       Aesthetic dentistry news and seasonal clinical announcements.
                     </span>
                   </div>
@@ -253,7 +247,7 @@ function UnsubscribeContent() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-3.5 px-6 rounded-xl bg-teal-800 hover:bg-teal-900 active:bg-teal-950 disabled:opacity-60 text-white font-semibold text-sm shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-4 px-6 rounded-xl bg-[#0f172a] hover:bg-[#1e293b] active:bg-black disabled:opacity-60 text-white font-bold text-[15px] shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
                     <>
@@ -267,11 +261,11 @@ function UnsubscribeContent() {
               </div>
             </form>
 
-            <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between text-[12px] text-slate-400">
               <a href="/" className="hover:text-slate-700 transition-colors flex items-center gap-1">
-                <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Lumina Home
               </a>
-              <span>Lumina Dental Studio</span>
+              <span>Lumina Dental Studio &copy; 2026</span>
             </div>
           </div>
         )}
@@ -282,11 +276,11 @@ function UnsubscribeContent() {
 
 export default function UnsubscribePage() {
   return (
-    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 flex items-center justify-center">
+    <main className="min-h-screen hero-wash py-12 px-4 sm:px-6 flex items-center justify-center">
       <Suspense
         fallback={
           <div className="p-8 text-center text-slate-500 text-sm">
-            <div className="w-6 h-6 border-2 border-teal-700/20 border-t-teal-700 rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-6 h-6 border-2 border-[#0d9488]/20 border-t-[#0d9488] rounded-full animate-spin mx-auto mb-3" />
             Loading preferences...
           </div>
         }
