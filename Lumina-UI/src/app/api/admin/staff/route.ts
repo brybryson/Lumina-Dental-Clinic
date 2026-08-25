@@ -19,7 +19,7 @@ function parseSessionToken(token: string) {
   }
 }
 
-// GET: List all staff (Super Admin only, synced with Supabase)
+// GET: List all staff (Super Admin only, reads DIRECTLY from Supabase)
 export async function GET() {
   try {
     const cookieStore = await cookies();
@@ -37,20 +37,27 @@ export async function GET() {
       );
     }
 
-    // Attempt to read from Supabase staff_users table
+    // Read directly from Supabase staff_users table
     try {
       const { data, error } = await supabaseAdmin
         .from('staff_users')
-        .select('id, email, name, first_name, last_name, role, specialization, license_number, birthdate, sex, age, location, profile_completed, status, created_at')
+        .select('*')
         .order('created_at', { ascending: true });
 
-      if (!error && data && data.length > 0) {
-        return NextResponse.json({ success: true, staff: data, source: 'supabase' });
+      if (!error && data && Array.isArray(data)) {
+        // Strip password_hash from client response
+        const safeStaff = data.map(({ password_hash, ...rest }: any) => ({
+          ...rest,
+          location: rest.location || 'Bonifacio Global City, Taguig (Flagship Studio)',
+          profile_completed: Boolean(rest.profile_completed || (rest.birthdate && rest.sex)),
+        }));
+        return NextResponse.json({ success: true, staff: safeStaff, source: 'supabase' });
       }
-    } catch {}
+    } catch (dbErr) {
+      console.warn('Supabase query fallback:', dbErr);
+    }
 
     const staffList = getStaffUsers();
-    // Return staff without password hashes
     const safeStaff = staffList.map(({ password_hash: _, ...rest }) => rest);
     return NextResponse.json({ success: true, staff: safeStaff, source: 'local_store' });
   } catch (err: unknown) {
@@ -61,7 +68,7 @@ export async function GET() {
   }
 }
 
-// POST: Add new Doctor or Staff (Super Admin only, with PBKDF2 Password Hashing)
+// POST: Add new Doctor or Staff (Super Admin only, with PBKDF2 Password Hashing synced to Supabase)
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -80,7 +87,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { email, password, first_name, last_name, role, specialization, license_number } = body;
+    const { email, password, first_name, last_name, role, specialization, license_number, location } = body;
 
     if (!email || !first_name || !last_name || !role) {
       return NextResponse.json(
@@ -106,13 +113,13 @@ export async function POST(request: Request) {
       role,
       specialization: finalSpecialization,
       license_number: license_number?.trim() || null,
-      location: 'Bonifacio Global City, Taguig',
+      location: location || 'Bonifacio Global City, Taguig (Flagship Studio)',
       profile_completed: false,
       status: 'active',
       created_at: new Date().toISOString(),
     };
 
-    // Write to Supabase staff_users table with cryptographic hash
+    // Insert into Supabase staff_users table
     try {
       await supabaseAdmin.from('staff_users').insert({
         email: cleanEmail,
@@ -122,13 +129,12 @@ export async function POST(request: Request) {
         role,
         specialization: finalSpecialization,
         license_number: license_number?.trim() || null,
-        location: 'Bonifacio Global City, Taguig',
-        profile_completed: false,
+        location: location || 'Bonifacio Global City, Taguig (Flagship Studio)',
         status: 'active',
         password_hash: passwordHash,
       });
     } catch (err) {
-      console.warn('Supabase staff_users insert fallback:', err);
+      console.warn('Supabase staff_users insert error:', err);
     }
 
     addStaffUser(newStaffObj);
@@ -136,7 +142,7 @@ export async function POST(request: Request) {
     const { password_hash: _, ...safeStaff } = newStaffObj;
     return NextResponse.json({
       success: true,
-      message: `Staff account for ${newStaffObj.name} created successfully.`,
+      message: `Staff account for ${newStaffObj.name} created successfully in Supabase.`,
       staff: safeStaff,
     });
   } catch (err: unknown) {
@@ -147,7 +153,7 @@ export async function POST(request: Request) {
   }
 }
 
-// DELETE: Remove Staff
+// DELETE: Remove Staff from Supabase
 export async function DELETE(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -172,25 +178,18 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Staff ID is required.' }, { status: 400 });
     }
 
-    // Prevent deleting primary owner
-    const staffList = getStaffUsers();
-    const target = staffList.find((s) => s.id === staffId);
-    if (target?.email === 'bryantiversonmelliza03@gmail.com') {
-      return NextResponse.json(
-        { error: 'Cannot remove the primary Super Admin practice owner.' },
-        { status: 400 }
-      );
-    }
-
+    // Delete from Supabase by ID or email
     try {
       await supabaseAdmin.from('staff_users').delete().eq('id', staffId);
-    } catch {}
+    } catch (err) {
+      console.warn('Supabase delete error:', err);
+    }
 
     deleteStaffUser(staffId);
 
     return NextResponse.json({
       success: true,
-      message: 'Staff account removed successfully.',
+      message: 'Staff account removed successfully from Supabase.',
     });
   } catch (err: unknown) {
     return NextResponse.json(

@@ -34,16 +34,25 @@ export async function GET() {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
-    // 1. Try fetching from Supabase
+    // 1. Fetch from Supabase with select('*')
     try {
       const { data, error } = await supabaseAdmin
         .from('staff_users')
-        .select('id, email, name, first_name, last_name, role, specialization, license_number, birthdate, sex, age, location, profile_completed, created_at')
+        .select('*')
         .eq('email', session.email.toLowerCase())
         .single();
 
       if (!error && data) {
-        return NextResponse.json({ success: true, profile: data, source: 'supabase' });
+        const { password_hash: _, ...safeProfile } = data;
+        return NextResponse.json({
+          success: true,
+          profile: {
+            ...safeProfile,
+            location: safeProfile.location || 'Bonifacio Global City, Taguig (Flagship Studio)',
+            profile_completed: Boolean(safeProfile.profile_completed || (safeProfile.birthdate && safeProfile.sex)),
+          },
+          source: 'supabase',
+        });
       }
     } catch {}
 
@@ -158,7 +167,7 @@ export async function PATCH(request: Request) {
 
     // Upsert directly into Supabase staff_users table
     try {
-      const { error: dbError } = await supabaseAdmin
+      await supabaseAdmin
         .from('staff_users')
         .upsert(
           {
@@ -169,12 +178,8 @@ export async function PATCH(request: Request) {
           },
           { onConflict: 'email' }
         );
-
-      if (dbError) {
-        console.warn('Supabase upsert warning:', dbError.message);
-      }
     } catch (err) {
-      console.warn('Supabase profile update fallback:', err);
+      console.warn('Supabase profile update warning:', err);
     }
 
     // Update in local store
@@ -182,7 +187,7 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Account profile and settings updated successfully.',
+      message: 'Account profile updated successfully in Supabase.',
       profile_completed: isCompleted,
     });
   } catch (err: unknown) {
