@@ -644,16 +644,34 @@ export default function AdminAccountPage() {
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="Minimum 8 characters"
-                        className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 text-[13.5px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30 font-mono"
+                        className={`w-full pl-10 pr-11 py-3 rounded-xl border text-[13.5px] text-[#0f172a] focus:outline-none focus:ring-2 font-mono transition-colors ${
+                          newPassword && newPassword.length < 8
+                            ? 'border-red-300 focus:ring-red-400/30'
+                            : newPassword && newPassword.length >= 8
+                            ? 'border-emerald-400 focus:ring-emerald-400/30'
+                            : 'border-slate-200 focus:ring-[#0d9488]/30'
+                        }`}
                       />
                       <button
                         type="button"
                         onClick={() => setShowNewPw(!showNewPw)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                       >
                         {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+                    {newPassword && newPassword.length < 8 && (
+                      <p className="text-[12px] font-semibold text-red-600 mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        Password must be at least 8 characters long
+                      </p>
+                    )}
+                    {newPassword && newPassword.length >= 8 && (
+                      <p className="text-[12px] font-semibold text-emerald-600 mt-1 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                        Valid length
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -667,16 +685,34 @@ export default function AdminAccountPage() {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="Re-type new password"
-                        className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 text-[13.5px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30 font-mono"
+                        className={`w-full pl-10 pr-11 py-3 rounded-xl border text-[13.5px] text-[#0f172a] focus:outline-none focus:ring-2 font-mono transition-colors ${
+                          confirmPassword && newPassword !== confirmPassword
+                            ? 'border-red-300 focus:ring-red-400/30'
+                            : confirmPassword && newPassword === confirmPassword && newPassword.length >= 8
+                            ? 'border-emerald-400 focus:ring-emerald-400/30'
+                            : 'border-slate-200 focus:ring-[#0d9488]/30'
+                        }`}
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPw(!showConfirmPw)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                       >
                         {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+                    {confirmPassword && newPassword !== confirmPassword && (
+                      <p className="text-[12px] font-semibold text-red-600 mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        New password and confirmation password do not match
+                      </p>
+                    )}
+                    {confirmPassword && newPassword === confirmPassword && newPassword.length >= 8 && (
+                      <p className="text-[12px] font-semibold text-emerald-600 mt-1 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                        Passwords match
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

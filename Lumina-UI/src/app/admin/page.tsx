@@ -33,6 +33,7 @@ import {
   Settings,
   Eye,
   EyeOff,
+  MapPin,
 } from 'lucide-react';
 
 function toTitleCase(str: string): string {
@@ -849,7 +850,7 @@ export default function AdminDashboardPage() {
             }`}
           >
             <CalendarDays className="w-4 h-4" />
-            Studio Calendar &amp; PH Holidays
+            Lumina Calendar
           </button>
           <button
             onClick={() => setActiveTab('inquiries')}
@@ -1139,6 +1140,15 @@ export default function AdminDashboardPage() {
         {/* ========================================================================= */}
         {activeTab === 'calendar' && (
           <div className="space-y-4 sm:space-y-6">
+            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina">
+              <h2 className="display text-[18px] sm:text-[20px] font-bold text-[#0f172a] tracking-tight">
+                Lumina Calendar &amp; Philippine Holidays
+              </h2>
+              <p className="text-[13px] sm:text-[14px] text-[#527078] mt-1">
+                Monthly clinical schedule, holiday tracking, and chairside reservations.
+              </p>
+            </div>
+
             <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <button
@@ -1383,19 +1393,16 @@ export default function AdminDashboardPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: SUPER ADMIN STAFF & DOCTOR DIRECTORY (UNIFORM LUMINA CARDS)        */}
+        {/* TAB 4: SUPER ADMIN STAFF & DOCTOR DIRECTORY (CLEAN 3-COLUMN CARDS)        */}
         {/* ========================================================================= */}
         {activeTab === 'staff' && currentUser?.role === 'super_admin' && (
           <div className="space-y-4">
             {/* Staff Header & Actions */}
             <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-[#0d9488]" />
-                  <h2 className="display text-[18px] sm:text-[20px] font-bold text-[#0f172a] tracking-tight">
-                    Staff &amp; Clinicians Access Directory
-                  </h2>
-                </div>
+                <h2 className="display text-[18px] sm:text-[20px] font-bold text-[#0f172a] tracking-tight">
+                  Staff &amp; Clinicians Access Directory
+                </h2>
                 <p className="text-[13px] sm:text-[14px] text-[#527078] mt-1">
                   Manage login accounts, assigned clinical specializations, and portal permissions for doctors and front desk staff.
                 </p>
@@ -1441,85 +1448,92 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Staff Accounts Grid with Uniform Lumina Styling */}
-            <div className="grid gap-3 sm:gap-3.5">
+            {/* Staff Multi-Column Cards Grid (Clean Layout - No Initials) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
               {filteredStaffList.map((staff) => {
-                const initials = `${staff.first_name?.[0] || ''}${staff.last_name?.[0] || ''}`.toUpperCase() || 'ST';
+                const isPrimaryOwner = staff.email === 'bryantiversonmelliza03@gmail.com';
 
                 return (
                   <div
                     key={staff.id}
-                    className="p-5 sm:p-6 rounded-[22px] bg-white border border-slate-200/90 shadow-lumina flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-[#0d9488]/40 transition-all"
+                    className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina flex flex-col justify-between gap-4 hover:border-[#0d9488]/40 transition-all group"
                   >
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="w-12 h-12 rounded-2xl bg-teal-50 text-[#0d9488] border border-[#0d9488]/20 flex items-center justify-center font-extrabold text-[15px] shrink-0">
-                        {initials}
+                    <div className="space-y-3">
+                      {/* Top Badges */}
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[11px] sm:text-[11.5px] font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-[#0f766e] border border-[#0d9488]/20">
+                          {staff.role === 'super_admin'
+                            ? 'Super Admin'
+                            : staff.role === 'doctor'
+                            ? 'Attending Doctor'
+                            : 'Front Desk & Staff'}
+                        </span>
+
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                          <Check className="w-3 h-3 text-emerald-600" /> Active
+                        </span>
                       </div>
 
-                      <div className="space-y-1.5 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[11px] sm:text-[11.5px] font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-[#0f766e] border border-[#0d9488]/20">
-                            {staff.role === 'super_admin'
-                              ? 'Super Admin (Practice Owner)'
-                              : staff.role === 'doctor'
-                              ? 'Attending Doctor / Dentist'
-                              : 'Front Desk & Reception'}
-                          </span>
-
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-200">
-                            <Check className="w-3 h-3 text-emerald-600" /> Active
-                          </span>
-
-                          {staff.profile_completed ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-                              Profile Verified
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
-                              Profile Incomplete
-                            </span>
-                          )}
-                        </div>
-
-                        <h3 className="display text-[17.5px] sm:text-[18.5px] font-extrabold text-[#0f172a] tracking-tight">
+                      {/* Name & Specialization */}
+                      <div>
+                        <h3 className="display text-[18px] sm:text-[19px] font-extrabold text-[#0f172a] tracking-tight">
                           {staff.name}
                         </h3>
+                        <p className="text-[13px] sm:text-[13.5px] font-semibold text-[#0d9488] mt-0.5">
+                          {staff.specialization || 'Clinical Operations'}
+                        </p>
+                      </div>
 
-                        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[12.5px] text-slate-600">
-                          <span className="font-semibold text-[#0d9488]">
-                            Specialization: {staff.specialization || 'Clinical Operations'}
-                          </span>
-                          <span>&bull;</span>
-                          <span className="inline-flex items-center gap-1">
-                            <Mail className="w-3.5 h-3.5 text-slate-400" /> {staff.email}
-                          </span>
-                          {staff.license_number && (
-                            <>
-                              <span>&bull;</span>
-                              <span className="font-mono text-slate-700">License: {staff.license_number}</span>
-                            </>
-                          )}
-                          {staff.location && (
-                            <>
-                              <span>&bull;</span>
-                              <span className="text-slate-500">Branch: {staff.location}</span>
-                            </>
-                          )}
+                      <hr className="border-slate-100" />
+
+                      {/* Details List with Clean Icons */}
+                      <div className="space-y-2 text-[12.5px] text-slate-600">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                          <span className="truncate">{staff.email}</span>
                         </div>
+
+                        {staff.location && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-[#0d9488] shrink-0" />
+                            <span className="truncate">{staff.location}</span>
+                          </div>
+                        )}
+
+                        {staff.license_number && (
+                          <div className="flex items-center gap-2 font-mono text-slate-700">
+                            <ShieldCheck className="w-4 h-4 text-slate-400 shrink-0" />
+                            <span>License: {staff.license_number}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* Super admin cannot delete the primary owner */}
-                    {staff.email !== 'bryantiversonmelliza03@gmail.com' && (
-                      <button
-                        onClick={() => setStaffToDelete(staff)}
-                        className="py-2 px-3.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-[12.5px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer self-start md:self-center"
-                        title="Revoke portal access"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Remove Access
-                      </button>
-                    )}
+                    {/* Bottom Actions & Profile Status */}
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                      {staff.profile_completed ? (
+                        <span className="text-[11.5px] font-semibold text-slate-400">Profile Verified</span>
+                      ) : (
+                        <span className="text-[11.5px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                          Profile Incomplete
+                        </span>
+                      )}
+
+                      {!isPrimaryOwner ? (
+                        <button
+                          onClick={() => setStaffToDelete(staff)}
+                          className="py-1.5 px-3 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-[12px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                          title="Revoke portal access"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Remove Access
+                        </button>
+                      ) : (
+                        <span className="text-[11.5px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded">
+                          Owner Account
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}
