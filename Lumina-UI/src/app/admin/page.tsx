@@ -24,6 +24,12 @@ import {
   ClipboardList,
   BellRing,
   AlertTriangle,
+  Users,
+  UserPlus,
+  Trash2,
+  Lock,
+  UserCheck,
+  UserX,
 } from 'lucide-react';
 
 interface Patient {
@@ -76,6 +82,19 @@ interface Inquiry {
   message?: string;
   source: string;
   status: string;
+  created_at: string;
+}
+
+interface StaffUser {
+  id: string;
+  email: string;
+  name: string;
+  first_name: string;
+  last_name: string;
+  role: 'super_admin' | 'doctor' | 'front_desk';
+  specialization?: string;
+  license_number?: string | null;
+  status: 'active' | 'suspended';
   created_at: string;
 }
 
@@ -135,6 +154,8 @@ function formatLongDate(dateStr?: string): string {
 function formatStatusText(status?: string): string {
   if (!status) return 'Confirmed';
   switch (status.toLowerCase()) {
+    case 'checked_in':
+      return 'Checked In / In Lobby';
     case 'intake_submitted':
       return 'Intake Submitted';
     case 'lead_captured':
@@ -174,10 +195,24 @@ export default function AdminDashboardPage() {
   const logoutRef = useRef<HTMLDivElement>(null);
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<'schedule' | 'calendar' | 'inquiries'>('schedule');
+  const [activeTab, setActiveTab] = useState<'schedule' | 'calendar' | 'inquiries' | 'staff'>('schedule');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [staffList, setStaffList] = useState<StaffUser[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
+
+  // Super Admin Staff Creation Modal State
+  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+  const [newStaffForm, setNewStaffForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    role: 'doctor' as 'doctor' | 'front_desk' | 'super_admin',
+    specialization: '',
+    license_number: '',
+    password: '',
+  });
+  const [isSavingStaff, setIsSavingStaff] = useState(false);
 
   // Schedule Filters
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'tomorrow' | string>('all');
@@ -203,13 +238,12 @@ export default function AdminDashboardPage() {
   const [todayManilaKey, setTodayManilaKey] = useState('2026-08-26');
   const [currentDateTimePST, setCurrentDateTimePST] = useState<{ date: string; time: string }>({
     date: 'Wednesday, Aug 26, 2026',
-    time: '01:36:00 AM',
+    time: '01:40:00 AM',
   });
 
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      // Year-Month-Day formatted as YYYY-MM-DD in Manila Time
       try {
         const manilaDateStr = new Intl.DateTimeFormat('en-CA', {
           timeZone: 'Asia/Manila',
@@ -300,9 +334,26 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // Fetch Staff List (Super Admin only)
+  const loadStaffData = async () => {
+    if (currentUser?.role !== 'super_admin') return;
+    try {
+      const res = await fetch('/api/admin/staff');
+      const data = await res.json();
+      if (data.success) {
+        setStaffList(data.staff || []);
+      }
+    } catch (err) {
+      console.error('Error fetching staff list:', err);
+    }
+  };
+
   useEffect(() => {
     if (currentUser) {
       loadDashboardData();
+      if (currentUser.role === 'super_admin') {
+        loadStaffData();
+      }
     }
   }, [currentUser]);
 
@@ -313,6 +364,72 @@ export default function AdminDashboardPage() {
       router.push('/admin/login');
     } catch {
       router.push('/admin/login');
+    }
+  };
+
+  // Fast Appointment Status Updater (Check-in, No-Show, etc.)
+  const handleUpdateAppointmentStatus = async (appointmentId: string, newStatus: string) => {
+    try {
+      const res = await fetch('/api/admin/appointments', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointmentId, status: newStatus }),
+      });
+      if (res.ok) {
+        setActionSuccessMsg(`Appointment status updated to "${formatStatusText(newStatus)}".`);
+        loadDashboardData();
+        setTimeout(() => setActionSuccessMsg(''), 5000);
+      }
+    } catch (err) {
+      console.error('Error updating appointment status:', err);
+    }
+  };
+
+  // Super Admin: Create Staff / Doctor Account
+  const handleCreateStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingStaff(true);
+    try {
+      const res = await fetch('/api/admin/staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newStaffForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create staff account');
+
+      setActionSuccessMsg(data.message || 'Staff account created successfully.');
+      setShowAddStaffModal(false);
+      setNewStaffForm({
+        first_name: '',
+        last_name: '',
+        email: '',
+        role: 'doctor',
+        specialization: '',
+        license_number: '',
+        password: '',
+      });
+      loadStaffData();
+      setTimeout(() => setActionSuccessMsg(''), 6000);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Error creating staff account');
+    } finally {
+      setIsSavingStaff(false);
+    }
+  };
+
+  // Super Admin: Delete Staff Account
+  const handleDeleteStaff = async (staffId: string, staffName: string) => {
+    if (!confirm(`Are you sure you want to remove access for ${staffName}?`)) return;
+    try {
+      const res = await fetch(`/api/admin/staff?id=${staffId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to remove staff');
+      setActionSuccessMsg(data.message || 'Staff access removed.');
+      loadStaffData();
+      setTimeout(() => setActionSuccessMsg(''), 5000);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Error removing staff');
     }
   };
 
@@ -570,7 +687,7 @@ export default function AdminDashboardPage() {
 
       {/* Main Container — Extra Wide & Responsive */}
       <main className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 py-5 sm:py-7 space-y-6">
-        {/* Clean Executive Greeting Header (No sync button, no operations portal badge) */}
+        {/* Clean Executive Greeting Header */}
         <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-teal-900 via-[#0f766e] to-[#0d9488] text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="display text-2xl sm:text-3xl font-extrabold tracking-tight">
@@ -640,7 +757,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Navigation Tabs */}
+        {/* Navigation Tabs (Including Super Admin Exclusive Staff Directory Tab) */}
         <div className="flex items-center gap-1.5 sm:gap-2 border-b border-slate-200/80 pb-2.5 overflow-x-auto flex-nowrap no-scrollbar">
           <button
             onClick={() => setActiveTab('schedule')}
@@ -675,6 +792,21 @@ export default function AdminDashboardPage() {
             <Inbox className="w-4 h-4" />
             Inquiries &amp; Leads ({inquiries.length})
           </button>
+
+          {/* Super Admin Exclusive Tab */}
+          {currentUser?.role === 'super_admin' && (
+            <button
+              onClick={() => setActiveTab('staff')}
+              className={`py-2 px-3.5 sm:px-4 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                activeTab === 'staff'
+                  ? 'bg-[#0d9488] text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Staff &amp; Doctor Directory ({staffList.length})
+            </button>
+          )}
         </div>
 
         {/* ========================================================================= */}
@@ -722,6 +854,7 @@ export default function AdminDashboardPage() {
                 >
                   <option value="all">All Statuses</option>
                   <option value="confirmed">Confirmed</option>
+                  <option value="checked_in">Checked In</option>
                   <option value="completed">Completed</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
@@ -765,6 +898,7 @@ export default function AdminDashboardPage() {
                   const intake = (apt.medical_intakes && apt.medical_intakes[0]) || null;
                   const hasAllergies = intake?.allergies && intake.allergies.length > 0;
                   const isCompleted = apt.status === 'completed';
+                  const isCheckedIn = apt.status === 'checked_in';
                   const isComplicated = apt.flag_for_manual_followup;
 
                   const initials = `${patient.first_name?.[0] || ''}${patient.last_name?.[0] || ''}`.toUpperCase() || 'PT';
@@ -777,6 +911,8 @@ export default function AdminDashboardPage() {
                           ? 'border-red-300 bg-red-50/20'
                           : isCompleted
                           ? 'border-teal-200 bg-teal-50/10'
+                          : isCheckedIn
+                          ? 'border-emerald-300 bg-emerald-50/20'
                           : 'border-slate-200/90 hover:border-[#0d9488]/40'
                       }`}
                     >
@@ -800,6 +936,10 @@ export default function AdminDashboardPage() {
                             {isCompleted ? (
                               <span className="inline-flex items-center gap-1 text-[11px] sm:text-[11.5px] font-bold bg-teal-100/80 text-[#0f766e] px-2.5 py-0.5 rounded-full">
                                 <Check className="w-3 h-3" /> Completed
+                              </span>
+                            ) : isCheckedIn ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] sm:text-[11.5px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
+                                <UserCheck className="w-3 h-3 text-emerald-600" /> In Clinic Lobby
                               </span>
                             ) : apt.status === 'cancelled' ? (
                               <span className="inline-flex items-center text-[11px] sm:text-[11.5px] font-semibold bg-slate-100 text-slate-500 px-2.5 py-0.5 rounded-full">
@@ -874,9 +1014,20 @@ export default function AdminDashboardPage() {
                         )}
                       </div>
 
-                      {/* Right: Actions */}
-                      <div className="flex items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0">
-                        {!isCompleted && apt.status !== 'cancelled' ? (
+                      {/* Right: Actions (Check In or Complete Procedure) */}
+                      <div className="flex flex-wrap items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0">
+                        {!isCompleted && !isCheckedIn && apt.status !== 'cancelled' && (
+                          <button
+                            onClick={() => handleUpdateAppointmentStatus(apt.id, 'checked_in')}
+                            className="py-2 px-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-[12.5px] cursor-pointer flex items-center gap-1 shadow-2xs"
+                            title="Mark patient as arrived at the dental clinic"
+                          >
+                            <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                            Check In
+                          </button>
+                        )}
+
+                        {!isCompleted && apt.status !== 'cancelled' && (
                           <button
                             onClick={() => {
                               setCompletingApt(apt);
@@ -884,12 +1035,14 @@ export default function AdminDashboardPage() {
                               setCompletionNotes('');
                               setReturnToCalendarDay(null);
                             }}
-                            className="button-primary w-full md:w-auto py-2.5 px-4 rounded-xl text-white font-bold text-[13px] cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                            className="button-primary py-2 px-4 rounded-xl text-white font-bold text-[12.5px] cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
                           >
                             <CheckCircle2 className="w-4 h-4" />
                             Complete Visit
                           </button>
-                        ) : isCompleted ? (
+                        )}
+
+                        {isCompleted && (
                           <button
                             onClick={() => {
                               setCompletingApt(apt);
@@ -897,11 +1050,11 @@ export default function AdminDashboardPage() {
                               setCompletionNotes(apt.patient_notes || '');
                               setReturnToCalendarDay(null);
                             }}
-                            className="w-full md:w-auto py-2 px-3.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-[12.5px] font-semibold cursor-pointer text-center"
+                            className="py-2 px-3.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-[12.5px] font-semibold cursor-pointer text-center"
                           >
                             Edit Outcome
                           </button>
-                        ) : null}
+                        )}
                       </div>
                     </div>
                   );
@@ -974,7 +1127,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Studio Month Grid (Full 35/42 days including Trailing Months, Clean cells without Past text) */}
+            {/* Studio Month Grid (Full 35/42 days including Trailing Months) */}
             <div className="p-4 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina overflow-x-auto thin-scrollbar">
               <div className="min-w-[800px] xl:min-w-0 space-y-3">
                 {/* Weekday Header */}
@@ -1167,6 +1320,101 @@ export default function AdminDashboardPage() {
             )}
           </div>
         )}
+
+        {/* ========================================================================= */}
+        {/* TAB 4: SUPER ADMIN STAFF & DOCTOR DIRECTORY (RBAC MANAGEMENT)             */}
+        {/* ========================================================================= */}
+        {activeTab === 'staff' && currentUser?.role === 'super_admin' && (
+          <div className="space-y-4">
+            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-[#0d9488]" />
+                  <h2 className="display text-[18px] sm:text-[20px] font-bold text-[#0f172a] tracking-tight">
+                    Staff &amp; Clinicians Access Directory
+                  </h2>
+                </div>
+                <p className="text-[13px] sm:text-[14px] text-[#527078] mt-1">
+                  Manage login accounts, assigned clinical specializations, and portal permissions for doctors and front desk staff.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowAddStaffModal(true)}
+                className="button-primary py-2.5 px-4.5 rounded-xl text-white text-[13px] font-bold flex items-center gap-2 shadow-xs cursor-pointer shrink-0"
+              >
+                <UserPlus className="w-4 h-4" />
+                Add New Doctor / Staff
+              </button>
+            </div>
+
+            {/* Staff Accounts Grid */}
+            <div className="grid gap-3 sm:gap-3.5">
+              {staffList.map((staff) => (
+                <div
+                  key={staff.id}
+                  className="p-5 sm:p-6 rounded-[22px] bg-white border border-slate-200/90 shadow-lumina flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-slate-300 transition-all"
+                >
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-[11px] sm:text-[11.5px] font-bold px-2.5 py-0.5 rounded-full ${
+                          staff.role === 'super_admin'
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300/80'
+                            : staff.role === 'doctor'
+                            ? 'bg-teal-100 text-[#0f766e] border border-teal-200'
+                            : 'bg-blue-100 text-blue-800 border border-blue-200'
+                        }`}
+                      >
+                        {staff.role === 'super_admin'
+                          ? 'Super Admin (Practice Owner)'
+                          : staff.role === 'doctor'
+                          ? 'Attending Doctor / Dentist'
+                          : 'Front Desk & Reception'}
+                      </span>
+
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md">
+                        <Check className="w-3 h-3 text-emerald-600" /> Active
+                      </span>
+                    </div>
+
+                    <h3 className="display text-[17px] sm:text-[18px] font-extrabold text-[#0f172a] tracking-tight">
+                      {staff.name}
+                    </h3>
+
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[12.5px] text-slate-600">
+                      <span className="font-semibold text-[#0d9488]">
+                        Specialization: {staff.specialization || 'Clinical Operations'}
+                      </span>
+                      <span>&bull;</span>
+                      <span className="inline-flex items-center gap-1">
+                        <Mail className="w-3.5 h-3.5 text-slate-400" /> {staff.email}
+                      </span>
+                      {staff.license_number && (
+                        <>
+                          <span>&bull;</span>
+                          <span className="font-mono text-slate-700">License: {staff.license_number}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Super admin cannot delete the primary owner */}
+                  {staff.email !== 'bryantiversonmelliza03@gmail.com' && (
+                    <button
+                      onClick={() => handleDeleteStaff(staff.id, staff.name)}
+                      className="py-2 px-3.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-[12.5px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      title="Revoke portal access"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* ========================================================================= */}
@@ -1202,6 +1450,7 @@ export default function AdminDashboardPage() {
                   .filter((a) => a.appointment_date === selectedCalendarDay)
                   .map((apt) => {
                     const isCompleted = apt.status === 'completed';
+                    const isCheckedIn = apt.status === 'checked_in';
 
                     return (
                       <div
@@ -1223,35 +1472,48 @@ export default function AdminDashboardPage() {
                           <p className="text-[13px] sm:text-[13.5px] text-[#0d9488] font-semibold">{apt.service_name}</p>
                         </div>
 
-                        {!isCompleted && apt.status !== 'cancelled' ? (
-                          <button
-                            onClick={() => {
-                              const currentDay = selectedCalendarDay;
-                              setSelectedCalendarDay(null);
-                              setReturnToCalendarDay(currentDay);
-                              setCompletingApt(apt);
-                              setCompletionOutcome(apt.flag_for_manual_followup ? 'complication' : 'standard');
-                              setCompletionNotes(apt.patient_notes || '');
-                            }}
-                            className="button-primary w-full sm:w-auto py-2 px-4 rounded-xl text-white text-[12.5px] sm:text-[13px] font-bold shadow-xs cursor-pointer shrink-0 self-start sm:self-center"
-                          >
-                            Action
-                          </button>
-                        ) : isCompleted ? (
-                          <button
-                            onClick={() => {
-                              const currentDay = selectedCalendarDay;
-                              setSelectedCalendarDay(null);
-                              setReturnToCalendarDay(currentDay);
-                              setCompletingApt(apt);
-                              setCompletionOutcome(apt.flag_for_manual_followup ? 'complication' : 'standard');
-                              setCompletionNotes(apt.patient_notes || '');
-                            }}
-                            className="w-full sm:w-auto py-2 px-3.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-[12.5px] font-semibold cursor-pointer text-center shrink-0"
-                          >
-                            Edit Outcome
-                          </button>
-                        ) : null}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {!isCompleted && !isCheckedIn && apt.status !== 'cancelled' && (
+                            <button
+                              onClick={() => handleUpdateAppointmentStatus(apt.id, 'checked_in')}
+                              className="py-2 px-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-[12px] cursor-pointer flex items-center gap-1 shadow-2xs"
+                              title="Mark patient as arrived in lobby"
+                            >
+                              <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                              Check In
+                            </button>
+                          )}
+
+                          {!isCompleted && apt.status !== 'cancelled' ? (
+                            <button
+                              onClick={() => {
+                                const currentDay = selectedCalendarDay;
+                                setSelectedCalendarDay(null);
+                                setReturnToCalendarDay(currentDay);
+                                setCompletingApt(apt);
+                                setCompletionOutcome(apt.flag_for_manual_followup ? 'complication' : 'standard');
+                                setCompletionNotes(apt.patient_notes || '');
+                              }}
+                              className="button-primary py-2 px-4 rounded-xl text-white text-[12.5px] sm:text-[13px] font-bold shadow-xs cursor-pointer shrink-0"
+                            >
+                              Action
+                            </button>
+                          ) : isCompleted ? (
+                            <button
+                              onClick={() => {
+                                const currentDay = selectedCalendarDay;
+                                setSelectedCalendarDay(null);
+                                setReturnToCalendarDay(currentDay);
+                                setCompletingApt(apt);
+                                setCompletionOutcome(apt.flag_for_manual_followup ? 'complication' : 'standard');
+                                setCompletionNotes(apt.patient_notes || '');
+                              }}
+                              className="py-2 px-3.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-[12.5px] font-semibold cursor-pointer text-center shrink-0"
+                            >
+                              Edit Outcome
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
                     );
                   })
@@ -1541,6 +1803,150 @@ export default function AdminDashboardPage() {
                 Close Record
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 4: SUPER ADMIN - ADD NEW DOCTOR / STAFF ACCESS                      */}
+      {/* ========================================================================= */}
+      {showAddStaffModal && currentUser?.role === 'super_admin' && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-3xl max-w-[540px] w-full p-6 sm:p-7 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 space-y-4">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-[#0d9488]" />
+                <h3 className="display text-[19px] sm:text-[20px] font-extrabold text-[#0f172a] tracking-tight">
+                  Add Doctor or Staff Account
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowAddStaffModal(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateStaff} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[12.5px] font-semibold text-[#0f172a] mb-1">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newStaffForm.first_name}
+                    onChange={(e) => setNewStaffForm({ ...newStaffForm, first_name: e.target.value })}
+                    placeholder="e.g. Maria"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12.5px] font-semibold text-[#0f172a] mb-1">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newStaffForm.last_name}
+                    onChange={(e) => setNewStaffForm({ ...newStaffForm, last_name: e.target.value })}
+                    placeholder="e.g. Santos"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[12.5px] font-semibold text-[#0f172a] mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={newStaffForm.email}
+                  onChange={(e) => setNewStaffForm({ ...newStaffForm, email: e.target.value })}
+                  placeholder="doctor.santos@luminaclinic.com"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[12.5px] font-semibold text-[#0f172a] mb-1">
+                    System Role &amp; Permission
+                  </label>
+                  <select
+                    value={newStaffForm.role}
+                    onChange={(e) => setNewStaffForm({ ...newStaffForm, role: e.target.value as any })}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30 cursor-pointer"
+                  >
+                    <option value="doctor">Attending Doctor (Dentist)</option>
+                    <option value="front_desk">Front Desk &amp; Receptionist</option>
+                    <option value="super_admin">Super Admin (Full Access)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[12.5px] font-semibold text-[#0f172a] mb-1">
+                    Specialization
+                  </label>
+                  <input
+                    type="text"
+                    value={newStaffForm.specialization}
+                    onChange={(e) => setNewStaffForm({ ...newStaffForm, specialization: e.target.value })}
+                    placeholder="e.g. Cosmetic Dentistry"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[12.5px] font-semibold text-[#0f172a] mb-1">
+                    PRC License Number (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={newStaffForm.license_number}
+                    onChange={(e) => setNewStaffForm({ ...newStaffForm, license_number: e.target.value })}
+                    placeholder="PRC-123456"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[12.5px] font-semibold text-[#0f172a] mb-1">
+                    Initial Password
+                  </label>
+                  <input
+                    type="password"
+                    value={newStaffForm.password}
+                    onChange={(e) => setNewStaffForm({ ...newStaffForm, password: e.target.value })}
+                    placeholder="Default: LuminaStudio2026!"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddStaffModal(false)}
+                  className="py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-bold text-[13px] hover:bg-slate-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingStaff}
+                  className="button-primary py-2.5 px-5 rounded-xl text-white font-bold text-[13px] shadow-xs cursor-pointer disabled:opacity-70"
+                >
+                  {isSavingStaff ? 'Creating Account...' : 'Create Account'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

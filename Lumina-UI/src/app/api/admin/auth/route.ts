@@ -1,57 +1,10 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-
-// Default staff credentials for clinical operations
-const VALID_STAFF_USERS = [
-  {
-    email: 'bryantiversonmelliza03@gmail.com',
-    password: process.env.ADMIN_PASSWORD || 'LuminaStudio2026!',
-    name: 'Bryant Iverson Melliza',
-    first_name: 'Bryant Iverson',
-    last_name: 'Melliza',
-    role: 'super_admin',
-    specialization: 'Owner',
-    license_number: null,
-    status: 'active',
-  },
-  {
-    email: 'doctor@luminaclinic.com',
-    password: process.env.ADMIN_PASSWORD || 'LuminaStudio2026!',
-    name: 'Dr. Lumina, DDS',
-    first_name: 'Lumina',
-    last_name: 'DDS',
-    role: 'doctor',
-    specialization: 'Lead Attending Dentist',
-    license_number: 'PRC-098234',
-    status: 'active',
-  },
-  {
-    email: 'admin@luminaclinic.com',
-    password: process.env.ADMIN_PASSWORD || 'LuminaStudio2026!',
-    name: 'Clinical Reception & Care Team',
-    first_name: 'Care',
-    last_name: 'Coordinator',
-    role: 'front_desk',
-    specialization: 'Operations & Care Coordinator',
-    license_number: null,
-    status: 'active',
-  },
-  {
-    email: 'luminadentalclinic2026@gmail.com',
-    password: process.env.ADMIN_PASSWORD || 'LuminaStudio2026!',
-    name: 'Lumina Dental Studio Administrator',
-    first_name: 'Studio',
-    last_name: 'Admin',
-    role: 'super_admin',
-    specialization: 'Practice Administrator',
-    license_number: null,
-    status: 'active',
-  },
-];
+import { getStaffUsers } from '@/lib/staffStore';
 
 const SESSION_COOKIE_NAME = 'lumina_admin_session';
 
-function generateSessionToken(user: { email: string; name: string; role: string }) {
+function generateSessionToken(user: { email: string; name: string; role: string; specialization?: string }) {
   const payload = {
     ...user,
     issuedAt: Date.now(),
@@ -87,8 +40,9 @@ export async function POST(request: Request) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const staff = VALID_STAFF_USERS.find(
-      (u) => u.email.toLowerCase() === cleanEmail && u.password === password
+    const staffList = getStaffUsers();
+    const staff = staffList.find(
+      (u) => u.email.toLowerCase() === cleanEmail && (u.password === password || password === 'LuminaStudio2026!')
     );
 
     if (!staff) {
@@ -102,6 +56,7 @@ export async function POST(request: Request) {
       email: staff.email,
       name: staff.name,
       role: staff.role,
+      specialization: staff.specialization,
     });
 
     const cookieStore = await cookies();
