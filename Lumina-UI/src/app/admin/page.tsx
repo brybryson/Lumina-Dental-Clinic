@@ -1465,9 +1465,14 @@ export default function AdminDashboardPage() {
                           </span>
 
                           {isConverted ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-[#0f766e] border border-[#0d9488]/20">
-                              <Check className="w-3 h-3" /> CONVERTED
-                            </span>
+                            <>
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-[#0f766e] border border-[#0d9488]/20">
+                                <Check className="w-3 h-3" /> CONVERTED
+                              </span>
+                              <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                ⚡ Automation Completed
+                              </span>
+                            </>
                           ) : isArchived ? (
                             <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
                               ARCHIVED
@@ -1518,10 +1523,15 @@ export default function AdminDashboardPage() {
                       {/* Actions */}
                       <div className="flex flex-wrap md:flex-col items-center md:items-end gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
                         {isConverted ? (
-                          <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#0f766e] bg-teal-50 border border-teal-200/80 px-3.5 py-1.5 rounded-xl shadow-2xs">
-                            <CheckCircle2 className="w-4 h-4 text-[#0d9488]" />
-                            Converted to Booking
-                          </span>
+                          <div className="flex flex-col items-start md:items-end gap-1">
+                            <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#0f766e] bg-teal-50 border border-teal-200/80 px-3.5 py-1.5 rounded-xl shadow-2xs">
+                              <CheckCircle2 className="w-4 h-4 text-[#0d9488]" />
+                              Converted to Booking
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-medium">
+                              Automation Completed &bull; {dateFormatted}
+                            </span>
+                          </div>
                         ) : (
                           <>
                             <button
