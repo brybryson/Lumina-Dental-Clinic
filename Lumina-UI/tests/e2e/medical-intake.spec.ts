@@ -85,12 +85,12 @@ test.describe('Pre-Visit Digital Medical Intake Token-Gated Workflow Tests', () 
     let intakeToken = '';
     const bookingRes = await request.post('/api/appointments', {
       data: {
-        firstName: 'Elena',
-        lastName: 'Rostova',
+        firstName: 'Iverson',
+        lastName: 'Melliza',
         email: testEmail,
         mobile: '09175558822',
         dob: '1992-04-14',
-        sex: 'Female',
+        sex: 'Male',
         service: 'Laser Teeth Whitening, Dental Cleaning & Routine Checkup',
         date: testDate,
         time: testSlot,
@@ -116,7 +116,7 @@ test.describe('Pre-Visit Digital Medical Intake Token-Gated Workflow Tests', () 
 
     await expect(page.getByTestId('state-intake-form')).toBeVisible({ timeout: 15000 });
     await expect(page.locator('h1:has-text("Pre-Visit Clinical Health History")')).toBeVisible();
-    await expect(page.getByText('Elena Rostova')).toBeVisible();
+    await expect(page.getByText('Iverson Melliza')).toBeVisible();
 
     // 3. Fill form fields to test draft persistence
     const dobInput = page.locator('[data-testid="input-intake-dob"]');
@@ -183,7 +183,7 @@ test.describe('Pre-Visit Digital Medical Intake Token-Gated Workflow Tests', () 
     request,
   }) => {
     // 1. Create a real appointment via API for a patient with no allergies
-    const testEmail = 'lucas.vance.test@gmail.com';
+    const testEmail = 'bryantiversonmelliza03@gmail.com';
     const dynamicDay = 26 + (Math.floor(Date.now() / 1000) % 3);
     const testDate = `2026-08-${dynamicDay}`;
     const testSlot = '10:00 AM – 11:00 AM';
@@ -191,8 +191,8 @@ test.describe('Pre-Visit Digital Medical Intake Token-Gated Workflow Tests', () 
     let intakeToken = '';
     const bookingRes = await request.post('/api/appointments', {
       data: {
-        firstName: 'Lucas',
-        lastName: 'Vance',
+        firstName: 'Bryant',
+        lastName: 'Melliza',
         email: testEmail,
         mobile: '09181234567',
         dob: '1995-08-20',
@@ -222,7 +222,7 @@ test.describe('Pre-Visit Digital Medical Intake Token-Gated Workflow Tests', () 
 
     await expect(page.getByTestId('state-intake-form')).toBeVisible({ timeout: 15000 });
     await expect(page.locator('h1:has-text("Pre-Visit Clinical Health History")')).toBeVisible();
-    await expect(page.getByText('Lucas Vance')).toBeVisible();
+    await expect(page.getByText('Bryant Melliza')).toBeVisible();
 
     // 3. Fill basic fields ONLY — leave all allergy & condition checkboxes UNCHECKED
     const dobInput = page.locator('[data-testid="input-intake-dob"]');
