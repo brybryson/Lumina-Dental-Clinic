@@ -1517,30 +1517,37 @@ export default function AdminDashboardPage() {
 
                       {/* Actions */}
                       <div className="flex flex-wrap md:flex-col items-center md:items-end gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
-                        {!isConverted && (
-                          <button
-                            onClick={() => handleUpdateInquiryStatus(inq.id, 'converted')}
-                            className="button-primary py-2 px-4 rounded-xl text-white text-[12.5px] font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
-                          >
-                            <CheckCircle2 className="w-4 h-4" />
-                            Mark Converted
-                          </button>
-                        )}
-
-                        {!isArchived ? (
-                          <button
-                            onClick={() => handleUpdateInquiryStatus(inq.id, 'archived')}
-                            className="py-1.5 px-3.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-[12px] font-semibold cursor-pointer transition-colors"
-                          >
-                            Archive
-                          </button>
+                        {isConverted ? (
+                          <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#0f766e] bg-teal-50 border border-teal-200/80 px-3.5 py-1.5 rounded-xl shadow-2xs">
+                            <CheckCircle2 className="w-4 h-4 text-[#0d9488]" />
+                            Converted to Booking
+                          </span>
                         ) : (
-                          <button
-                            onClick={() => handleUpdateInquiryStatus(inq.id, 'in_review')}
-                            className="py-1.5 px-3.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-[12px] font-semibold cursor-pointer transition-colors"
-                          >
-                            Restore to Active
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleUpdateInquiryStatus(inq.id, 'converted')}
+                              className="button-primary py-2 px-4 rounded-xl text-white text-[12.5px] font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                              Mark Converted
+                            </button>
+
+                            {!isArchived ? (
+                              <button
+                                onClick={() => handleUpdateInquiryStatus(inq.id, 'archived')}
+                                className="py-1.5 px-3.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-[12px] font-semibold cursor-pointer transition-colors"
+                              >
+                                Archive
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleUpdateInquiryStatus(inq.id, 'in_review')}
+                                className="py-1.5 px-3.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-[12px] font-semibold cursor-pointer transition-colors"
+                              >
+                                Restore to Active
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
