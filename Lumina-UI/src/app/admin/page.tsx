@@ -29,8 +29,15 @@ import {
   Trash2,
   Lock,
   UserCheck,
-  UserX,
+  User,
+  Settings,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
+
+function toTitleCase(str: string): string {
+  return str.replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
 interface Patient {
   id: string;
@@ -94,6 +101,11 @@ interface StaffUser {
   role: 'super_admin' | 'doctor' | 'front_desk';
   specialization?: string;
   license_number?: string | null;
+  birthdate?: string;
+  sex?: string;
+  age?: number;
+  location?: string;
+  profile_completed?: boolean;
   status: 'active' | 'suspended';
   created_at: string;
 }
@@ -189,10 +201,14 @@ export default function AdminDashboardPage() {
     name: string;
     role: string;
     specialization?: string;
+    profile_completed?: boolean;
   } | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [showLogoutDropdown, setShowLogoutDropdown] = useState(false);
-  const logoutRef = useRef<HTMLDivElement>(null);
+
+  // Settings & Logout Dropdown State
+  const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
+  const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
 
   // Tab State
   const [activeTab, setActiveTab] = useState<'schedule' | 'calendar' | 'inquiries' | 'staff'>('schedule');
@@ -200,6 +216,12 @@ export default function AdminDashboardPage() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [staffList, setStaffList] = useState<StaffUser[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
+
+  // Staff Search & Filtering State
+  const [staffSearchQuery, setStaffSearchQuery] = useState('');
+  const [staffRoleFilter, setStaffRoleFilter] = useState('all');
+  const [staffToDelete, setStaffToDelete] = useState<StaffUser | null>(null);
+  const [isDeletingStaff, setIsDeletingStaff] = useState(false);
 
   // Super Admin Staff Creation Modal State
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
@@ -212,6 +234,7 @@ export default function AdminDashboardPage() {
     license_number: '',
     password: '',
   });
+  const [showNewStaffPassword, setShowNewStaffPassword] = useState(false);
   const [isSavingStaff, setIsSavingStaff] = useState(false);
 
   // Schedule Filters
@@ -278,11 +301,11 @@ export default function AdminDashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Close logout dropdown when clicking outside
+  // Close settings dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (logoutRef.current && !logoutRef.current.contains(event.target as Node)) {
-        setShowLogoutDropdown(false);
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        setShowSettingsDropdown(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -385,7 +408,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Super Admin: Create Staff / Doctor Account
+  // Super Admin: Create Staff / Doctor Account with Auto-Capitalization & Password Hashing
   const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingStaff(true);
@@ -418,22 +441,26 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Super Admin: Delete Staff Account
-  const handleDeleteStaff = async (staffId: string, staffName: string) => {
-    if (!confirm(`Are you sure you want to remove access for ${staffName}?`)) return;
+  // Super Admin: Confirm and Delete Staff Account
+  const handleConfirmDeleteStaff = async () => {
+    if (!staffToDelete) return;
+    setIsDeletingStaff(true);
     try {
-      const res = await fetch(`/api/admin/staff?id=${staffId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/staff?id=${staffToDelete.id}`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to remove staff');
       setActionSuccessMsg(data.message || 'Staff access removed.');
+      setStaffToDelete(null);
       loadStaffData();
       setTimeout(() => setActionSuccessMsg(''), 5000);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Error removing staff');
+    } finally {
+      setIsDeletingStaff(false);
     }
   };
 
-  // Treatment Completion Handler (Triggers Workflow 3 with HITL flag)
+  // Treatment Completion Handler (Triggers Workflow 3 with HITL gate)
   const handleConfirmCompletion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!completingApt) return;
@@ -601,11 +628,26 @@ export default function AdminDashboardPage() {
     return true;
   });
 
+  // Filter Staff Directory for Super Admin Tab
+  const filteredStaffList = staffList.filter((s) => {
+    if (staffRoleFilter !== 'all' && s.role !== staffRoleFilter) return false;
+    if (staffSearchQuery.trim()) {
+      const q = staffSearchQuery.toLowerCase();
+      const name = (s.name || '').toLowerCase();
+      const email = (s.email || '').toLowerCase();
+      const spec = (s.specialization || '').toLowerCase();
+      return name.includes(q) || email.includes(q) || spec.includes(q);
+    }
+    return true;
+  });
+
   // Top Metrics
   const totalCount = appointments.length;
   const completedCount = appointments.filter((a) => a.status === 'completed').length;
   const flaggedComplicationsCount = appointments.filter((a) => a.flag_for_manual_followup).length;
   const pendingIntakeCount = appointments.filter((a) => !a.intake_completed_at && a.status === 'confirmed').length;
+
+  const isProfileIncomplete = !currentUser?.profile_completed;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] font-sans">
@@ -637,8 +679,8 @@ export default function AdminDashboardPage() {
           <span className="font-bold text-[#0f172a]">{currentDateTimePST.time} PST</span>
         </div>
 
-        {/* User Profile & Actions with Top-Right Logout Confirmation Popover */}
-        <div className="relative flex items-center gap-2 sm:gap-3" ref={logoutRef}>
+        {/* User Profile & Top-Right Settings Menu */}
+        <div className="relative flex items-center gap-2 sm:gap-3" ref={settingsRef}>
           <div className="px-3.5 py-1.5 rounded-xl bg-teal-50/90 border border-[#0d9488]/20 text-left">
             <span className="block text-[13px] sm:text-[13.5px] font-extrabold text-[#0f172a] leading-tight">
               {currentUser?.name || 'Bryant Iverson Melliza'}
@@ -648,38 +690,66 @@ export default function AdminDashboardPage() {
             </span>
           </div>
 
+          {/* Settings Gear Button with Exclamation Point Badge for First Login / Incomplete Profile */}
           <button
-            onClick={() => setShowLogoutDropdown(!showLogoutDropdown)}
-            className="p-2 sm:p-2.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 transition-colors cursor-pointer"
-            title="Log Out"
+            onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
+            className="relative p-2.5 rounded-xl text-slate-600 hover:text-[#0d9488] hover:bg-slate-100 border border-slate-200 transition-all cursor-pointer"
+            title="Account & Settings"
+            aria-label="Account and Settings"
           >
-            <LogOut className="w-4 h-4" />
+            <Settings className="w-4.5 h-4.5" />
+            {isProfileIncomplete && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white rounded-full text-[10px] font-extrabold flex items-center justify-center ring-2 ring-white shadow-xs">
+                !
+              </span>
+            )}
           </button>
 
-          {/* Compact Top-Right Logout Confirmation Dropdown */}
-          {showLogoutDropdown && (
-            <div className="absolute right-0 top-12 z-50 w-64 p-3.5 bg-white rounded-2xl border border-slate-200/90 shadow-xl animate-in fade-in zoom-in-95 space-y-2.5">
-              <div>
-                <p className="text-[13px] font-bold text-[#0f172a]">End active session?</p>
-                <p className="text-[11.5px] text-slate-500 mt-0.5 leading-snug">
-                  Sign out from {currentUser?.name || 'Lumina Studio'}.
-                </p>
-              </div>
+          {/* Settings Dropdown Popover */}
+          {showSettingsDropdown && (
+            <div className="absolute right-0 top-12 z-50 w-64 p-2 bg-white rounded-2xl border border-slate-200/90 shadow-xl animate-in fade-in zoom-in-95 space-y-1">
+              <button
+                onClick={() => {
+                  setShowSettingsDropdown(false);
+                  router.push('/admin/account');
+                }}
+                className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-colors text-left group cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#0d9488] flex items-center justify-center font-bold">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-bold text-[#0f172a] group-hover:text-[#0d9488] transition-colors">
+                      My Account Profile
+                    </p>
+                    <p className="text-[11px] text-slate-500">Edit details &amp; password</p>
+                  </div>
+                </div>
+                {isProfileIncomplete && (
+                  <span className="w-4.5 h-4.5 bg-amber-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center">
+                    !
+                  </span>
+                )}
+              </button>
 
-              <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
-                <button
-                  onClick={() => setShowLogoutDropdown(false)}
-                  className="flex-1 py-1.5 px-3 rounded-lg border border-slate-200 text-slate-600 text-[12px] font-semibold hover:bg-slate-50 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="flex-1 py-1.5 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[12px] font-bold shadow-xs cursor-pointer transition-colors"
-                >
-                  Log Out
-                </button>
-              </div>
+              <hr className="border-slate-100 my-1" />
+
+              <button
+                onClick={() => {
+                  setShowSettingsDropdown(false);
+                  setShowLogoutConfirmModal(true);
+                }}
+                className="w-full flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-red-50 text-red-600 transition-colors text-left cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center font-bold">
+                  <LogOut className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold">Log Out</p>
+                  <p className="text-[11px] text-red-400">End active session</p>
+                </div>
+              </button>
             </div>
           )}
         </div>
@@ -687,7 +757,7 @@ export default function AdminDashboardPage() {
 
       {/* Main Container — Extra Wide & Responsive */}
       <main className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 py-5 sm:py-7 space-y-6">
-        {/* Clean Executive Greeting Header */}
+        {/* Executive Greeting Header */}
         <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-teal-900 via-[#0f766e] to-[#0d9488] text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="display text-2xl sm:text-3xl font-extrabold tracking-tight">
@@ -1014,7 +1084,7 @@ export default function AdminDashboardPage() {
                         )}
                       </div>
 
-                      {/* Right: Actions (Check In or Complete Procedure) */}
+                      {/* Right: Actions */}
                       <div className="flex flex-wrap items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0">
                         {!isCompleted && !isCheckedIn && apt.status !== 'cancelled' && (
                           <button
@@ -1065,11 +1135,10 @@ export default function AdminDashboardPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: INTERACTIVE CLINIC CALENDAR & PHILIPPINE HOLIDAYS (WIDE & CUTE)    */}
+        {/* TAB 2: INTERACTIVE CLINIC CALENDAR & PHILIPPINE HOLIDAYS                  */}
         {/* ========================================================================= */}
         {activeTab === 'calendar' && (
           <div className="space-y-4 sm:space-y-6">
-            {/* Calendar Header Controls (Dropdowns for Month & Year + Left/Right Buttons) */}
             <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <button
@@ -1080,7 +1149,6 @@ export default function AdminDashboardPage() {
                   <ChevronLeft className="w-4 h-4" />
                 </button>
 
-                {/* Sleek Month Dropdown */}
                 <select
                   value={currentMonth}
                   onChange={(e) => setCurrentMonth(Number(e.target.value))}
@@ -1093,7 +1161,6 @@ export default function AdminDashboardPage() {
                   ))}
                 </select>
 
-                {/* Sleek Year Dropdown */}
                 <select
                   value={currentYear}
                   onChange={(e) => setCurrentYear(Number(e.target.value))}
@@ -1127,10 +1194,8 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Studio Month Grid (Full 35/42 days including Trailing Months) */}
             <div className="p-4 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina overflow-x-auto thin-scrollbar">
               <div className="min-w-[800px] xl:min-w-0 space-y-3">
-                {/* Weekday Header */}
                 <div className="grid grid-cols-7 text-center font-bold text-[12px] text-slate-400 uppercase tracking-wider pb-2.5 border-b border-slate-100">
                   <span className="text-red-400 font-extrabold">Sun</span>
                   <span>Mon</span>
@@ -1141,7 +1206,6 @@ export default function AdminDashboardPage() {
                   <span className="text-red-400 font-extrabold">Sat</span>
                 </div>
 
-                {/* Calendar Days Grid */}
                 <div className="grid grid-cols-7 gap-2 sm:gap-2.5">
                   {fullCalendarDays.map(({ dayNum, dateKey, isCurrentMonth }, idx) => {
                     const holidayName = PH_HOLIDAYS_2026[dateKey];
@@ -1162,7 +1226,6 @@ export default function AdminDashboardPage() {
                             : 'bg-white border-slate-200/80 hover:border-[#0d9488]/50 hover:bg-slate-50/60'
                         }`}
                       >
-                        {/* Top: Day Number & Holiday Tag */}
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
                             <span
@@ -1178,7 +1241,6 @@ export default function AdminDashboardPage() {
                             </span>
                           </div>
 
-                          {/* Holiday Badge (Google Calendar Style full-width pill) */}
                           {holidayName && (
                             <div className="pt-0.5">
                               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-md leading-tight truncate w-full shadow-2xs">
@@ -1188,7 +1250,6 @@ export default function AdminDashboardPage() {
                           )}
                         </div>
 
-                        {/* Middle/Bottom: Cute Google Calendar Event Chips (Top-to-Bottom, More Height) */}
                         <div className="space-y-1.5 mt-2 flex-1 overflow-y-auto no-scrollbar max-h-[125px] sm:max-h-[145px]">
                           {dayAppointments.map((apt) => {
                             const isAptCompleted = apt.status === 'completed';
@@ -1322,10 +1383,11 @@ export default function AdminDashboardPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: SUPER ADMIN STAFF & DOCTOR DIRECTORY (RBAC MANAGEMENT)             */}
+        {/* TAB 4: SUPER ADMIN STAFF & DOCTOR DIRECTORY (UNIFORM LUMINA CARDS)        */}
         {/* ========================================================================= */}
         {activeTab === 'staff' && currentUser?.role === 'super_admin' && (
           <div className="space-y-4">
+            {/* Staff Header & Actions */}
             <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
@@ -1348,70 +1410,119 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
-            {/* Staff Accounts Grid */}
-            <div className="grid gap-3 sm:gap-3.5">
-              {staffList.map((staff) => (
-                <div
-                  key={staff.id}
-                  className="p-5 sm:p-6 rounded-[22px] bg-white border border-slate-200/90 shadow-lumina flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-slate-300 transition-all"
+            {/* Filter & Search Bar for Staff Directory */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-white rounded-2xl border border-slate-200/90 shadow-lumina">
+              <div className="flex items-center gap-2">
+                <select
+                  value={staffRoleFilter}
+                  onChange={(e) => setStaffRoleFilter(e.target.value)}
+                  className="py-1.5 px-3 rounded-xl text-[12.5px] sm:text-[13px] font-semibold border border-slate-200 bg-white text-slate-700 cursor-pointer focus:outline-none"
                 >
-                  <div className="space-y-1.5 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[11px] sm:text-[11.5px] font-bold px-2.5 py-0.5 rounded-full ${
-                          staff.role === 'super_admin'
-                            ? 'bg-amber-100 text-amber-900 border border-amber-300/80'
-                            : staff.role === 'doctor'
-                            ? 'bg-teal-100 text-[#0f766e] border border-teal-200'
-                            : 'bg-blue-100 text-blue-800 border border-blue-200'
-                        }`}
-                      >
-                        {staff.role === 'super_admin'
-                          ? 'Super Admin (Practice Owner)'
-                          : staff.role === 'doctor'
-                          ? 'Attending Doctor / Dentist'
-                          : 'Front Desk & Reception'}
-                      </span>
+                  <option value="all">All Roles</option>
+                  <option value="super_admin">Super Admins</option>
+                  <option value="doctor">Attending Doctors</option>
+                  <option value="front_desk">Front Desk &amp; Staff</option>
+                </select>
 
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md">
-                        <Check className="w-3 h-3 text-emerald-600" /> Active
-                      </span>
-                    </div>
+                <span className="text-[12px] text-slate-400 font-semibold">
+                  Showing {filteredStaffList.length} of {staffList.length} accounts
+                </span>
+              </div>
 
-                    <h3 className="display text-[17px] sm:text-[18px] font-extrabold text-[#0f172a] tracking-tight">
-                      {staff.name}
-                    </h3>
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={staffSearchQuery}
+                  onChange={(e) => setStaffSearchQuery(e.target.value)}
+                  placeholder="Search staff by name, email..."
+                  className="w-full pl-9 pr-3 py-1.5 text-[12.5px] sm:text-[13px] rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30"
+                />
+              </div>
+            </div>
 
-                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[12.5px] text-slate-600">
-                      <span className="font-semibold text-[#0d9488]">
-                        Specialization: {staff.specialization || 'Clinical Operations'}
-                      </span>
-                      <span>&bull;</span>
-                      <span className="inline-flex items-center gap-1">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" /> {staff.email}
-                      </span>
-                      {staff.license_number && (
-                        <>
+            {/* Staff Accounts Grid with Uniform Lumina Styling */}
+            <div className="grid gap-3 sm:gap-3.5">
+              {filteredStaffList.map((staff) => {
+                const initials = `${staff.first_name?.[0] || ''}${staff.last_name?.[0] || ''}`.toUpperCase() || 'ST';
+
+                return (
+                  <div
+                    key={staff.id}
+                    className="p-5 sm:p-6 rounded-[22px] bg-white border border-slate-200/90 shadow-lumina flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-[#0d9488]/40 transition-all"
+                  >
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className="w-12 h-12 rounded-2xl bg-teal-50 text-[#0d9488] border border-[#0d9488]/20 flex items-center justify-center font-extrabold text-[15px] shrink-0">
+                        {initials}
+                      </div>
+
+                      <div className="space-y-1.5 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] sm:text-[11.5px] font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-[#0f766e] border border-[#0d9488]/20">
+                            {staff.role === 'super_admin'
+                              ? 'Super Admin (Practice Owner)'
+                              : staff.role === 'doctor'
+                              ? 'Attending Doctor / Dentist'
+                              : 'Front Desk & Reception'}
+                          </span>
+
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-200">
+                            <Check className="w-3 h-3 text-emerald-600" /> Active
+                          </span>
+
+                          {staff.profile_completed ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                              Profile Verified
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                              Profile Incomplete
+                            </span>
+                          )}
+                        </div>
+
+                        <h3 className="display text-[17.5px] sm:text-[18.5px] font-extrabold text-[#0f172a] tracking-tight">
+                          {staff.name}
+                        </h3>
+
+                        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[12.5px] text-slate-600">
+                          <span className="font-semibold text-[#0d9488]">
+                            Specialization: {staff.specialization || 'Clinical Operations'}
+                          </span>
                           <span>&bull;</span>
-                          <span className="font-mono text-slate-700">License: {staff.license_number}</span>
-                        </>
-                      )}
+                          <span className="inline-flex items-center gap-1">
+                            <Mail className="w-3.5 h-3.5 text-slate-400" /> {staff.email}
+                          </span>
+                          {staff.license_number && (
+                            <>
+                              <span>&bull;</span>
+                              <span className="font-mono text-slate-700">License: {staff.license_number}</span>
+                            </>
+                          )}
+                          {staff.location && (
+                            <>
+                              <span>&bull;</span>
+                              <span className="text-slate-500">Branch: {staff.location}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Super admin cannot delete the primary owner */}
-                  {staff.email !== 'bryantiversonmelliza03@gmail.com' && (
-                    <button
-                      onClick={() => handleDeleteStaff(staff.id, staff.name)}
-                      className="py-2 px-3.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-[12.5px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                      title="Revoke portal access"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Remove
-                    </button>
-                  )}
-                </div>
-              ))}
+                    {/* Super admin cannot delete the primary owner */}
+                    {staff.email !== 'bryantiversonmelliza03@gmail.com' && (
+                      <button
+                        onClick={() => setStaffToDelete(staff)}
+                        className="py-2 px-3.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-[12.5px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer self-start md:self-center"
+                        title="Revoke portal access"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Remove Access
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1423,7 +1534,6 @@ export default function AdminDashboardPage() {
       {selectedCalendarDay && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
           <div className="bg-white rounded-2xl sm:rounded-3xl max-w-[760px] w-full min-h-[560px] max-h-[85vh] p-5 sm:p-7 shadow-2xl border border-slate-100 flex flex-col justify-between animate-in fade-in zoom-in-95 overflow-hidden">
-            {/* Modal Header */}
             <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 shrink-0">
               <div>
                 <p className="eyebrow">DAILY CLINICAL SCHEDULE</p>
@@ -1439,7 +1549,6 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
-            {/* Scrollable Appointment List (Invisible Scrollbar, Fits 3 items seamlessly) */}
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-3.5 py-4 my-1">
               {appointments.filter((a) => a.appointment_date === selectedCalendarDay).length === 0 ? (
                 <div className="p-10 text-center text-slate-400">
@@ -1520,7 +1629,6 @@ export default function AdminDashboardPage() {
               )}
             </div>
 
-            {/* Modal Footer (Fixed at Bottom) */}
             <div className="pt-3.5 border-t border-slate-100 text-right shrink-0">
               <button
                 onClick={() => setSelectedCalendarDay(null)}
@@ -1534,12 +1642,11 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 2: CHAIRSIDE TREATMENT MARK-OFF (WORKFLOW 3 HITL GATE)              */}
+      {/* MODAL 2: CHAIRSIDE TREATMENT MARK-OFF                                     */}
       {/* ========================================================================= */}
       {completingApt && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
           <div className="bg-white rounded-2xl sm:rounded-3xl max-w-[760px] w-full min-h-[560px] max-h-[85vh] p-5 sm:p-7 shadow-2xl border border-slate-100 flex flex-col justify-between animate-in fade-in zoom-in-95 overflow-hidden">
-            {/* Modal Header (Fixed at Top) */}
             <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 shrink-0">
               <div>
                 <p className="eyebrow">CHAIRSIDE TREATMENT MARK-OFF</p>
@@ -1564,7 +1671,6 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
-            {/* Scrollable Form Body (Thin Sleek Scrollbar & No Clipping) */}
             <form onSubmit={handleConfirmCompletion} className="flex-1 overflow-y-auto thin-scrollbar pr-1.5 space-y-4 py-4 my-1 flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 text-[13px] sm:text-[13.5px] text-slate-700 space-y-1.5">
@@ -1576,7 +1682,6 @@ export default function AdminDashboardPage() {
                   </p>
                 </div>
 
-                {/* Clinical Outcome Radio Options (No Emojis) */}
                 <div>
                   <label className="block text-[13px] font-bold text-[#0f172a] mb-2">
                     Clinical Outcome &amp; Post-Op Sequence:
@@ -1634,7 +1739,6 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
 
-                {/* Staff Notes */}
                 <div>
                   <label className="block text-[13px] font-semibold text-[#0f172a] mb-1.5">
                     Doctor / Staff Notes (Optional):
@@ -1649,7 +1753,6 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* Modal Footer (Fixed at Bottom) */}
               <div className="flex items-center justify-end gap-3 pt-3.5 border-t border-slate-100 shrink-0">
                 <button
                   type="button"
@@ -1703,7 +1806,6 @@ export default function AdminDashboardPage() {
 
             {viewingIntakeApt.medical_intakes && viewingIntakeApt.medical_intakes.length > 0 ? (
               <div className="space-y-4 pt-4 text-[13px] sm:text-[13.5px]">
-                {/* Allergy Alert */}
                 {viewingIntakeApt.medical_intakes[0].allergies &&
                 viewingIntakeApt.medical_intakes[0].allergies.length > 0 ? (
                   <div className="p-3.5 sm:p-4 rounded-2xl bg-red-50 border border-red-200 text-red-900">
@@ -1727,7 +1829,6 @@ export default function AdminDashboardPage() {
                   </div>
                 )}
 
-                {/* Pre-Existing Medical Conditions */}
                 <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                   <span className="font-bold text-[#0f172a] block text-[12.5px] sm:text-[13px]">
                     Pre-Existing Health Conditions:
@@ -1746,7 +1847,6 @@ export default function AdminDashboardPage() {
                   )}
                 </div>
 
-                {/* Medications */}
                 <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                   <span className="font-bold text-[#0f172a] block text-[12.5px] sm:text-[13px]">
                     Current Medications:
@@ -1756,7 +1856,6 @@ export default function AdminDashboardPage() {
                   </p>
                 </div>
 
-                {/* Emergency Contact & HMO Insurance */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-[12px] sm:text-[12.5px]">
                     <span className="font-bold text-[#0f172a] block mb-1">Emergency Contact:</span>
@@ -1778,7 +1877,6 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
 
-                {/* Digital Consent Badge */}
                 <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between text-[11.5px] sm:text-[12px] text-slate-400 gap-1">
                   <span className="flex items-center gap-1 font-semibold text-teal-700">
                     <ShieldCheck className="w-4 h-4 text-[#0d9488]" /> Digital Consent Verified
@@ -1838,7 +1936,9 @@ export default function AdminDashboardPage() {
                     type="text"
                     required
                     value={newStaffForm.first_name}
-                    onChange={(e) => setNewStaffForm({ ...newStaffForm, first_name: e.target.value })}
+                    onChange={(e) =>
+                      setNewStaffForm({ ...newStaffForm, first_name: toTitleCase(e.target.value) })
+                    }
                     placeholder="e.g. Maria"
                     className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30"
                   />
@@ -1851,7 +1951,9 @@ export default function AdminDashboardPage() {
                     type="text"
                     required
                     value={newStaffForm.last_name}
-                    onChange={(e) => setNewStaffForm({ ...newStaffForm, last_name: e.target.value })}
+                    onChange={(e) =>
+                      setNewStaffForm({ ...newStaffForm, last_name: toTitleCase(e.target.value) })
+                    }
                     placeholder="e.g. Santos"
                     className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30"
                   />
@@ -1895,7 +1997,9 @@ export default function AdminDashboardPage() {
                   <input
                     type="text"
                     value={newStaffForm.specialization}
-                    onChange={(e) => setNewStaffForm({ ...newStaffForm, specialization: e.target.value })}
+                    onChange={(e) =>
+                      setNewStaffForm({ ...newStaffForm, specialization: toTitleCase(e.target.value) })
+                    }
                     placeholder="e.g. Cosmetic Dentistry"
                     className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30"
                   />
@@ -1918,15 +2022,24 @@ export default function AdminDashboardPage() {
 
                 <div>
                   <label className="block text-[12.5px] font-semibold text-[#0f172a] mb-1">
-                    Initial Password
+                    Initial Practice Password
                   </label>
-                  <input
-                    type="password"
-                    value={newStaffForm.password}
-                    onChange={(e) => setNewStaffForm({ ...newStaffForm, password: e.target.value })}
-                    placeholder="Default: LuminaStudio2026!"
-                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30 font-mono"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showNewStaffPassword ? 'text' : 'password'}
+                      value={newStaffForm.password}
+                      onChange={(e) => setNewStaffForm({ ...newStaffForm, password: e.target.value })}
+                      placeholder="Default: LuminaStudio2026!"
+                      className="w-full p-2.5 pr-9 rounded-xl border border-slate-200 text-[13px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30 font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewStaffPassword(!showNewStaffPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      {showNewStaffPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1947,6 +2060,85 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 5: CONFIRM REMOVE STAFF ACCESS MODAL (NO BROWSER ALERT)             */}
+      {/* ========================================================================= */}
+      {staffToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-3xl max-w-[460px] w-full p-6 sm:p-7 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 border border-red-200 flex items-center justify-center">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h3 className="display text-[18px] sm:text-[19px] font-extrabold text-[#0f172a] tracking-tight">
+                Revoke Staff Access?
+              </h3>
+              <p className="text-[13px] sm:text-[13.5px] text-slate-600 mt-1 leading-relaxed">
+                Are you sure you want to remove portal access for <strong className="text-slate-900">{staffToDelete.name}</strong> ({staffToDelete.email})? They will no longer be able to log in to the Lumina clinical dashboard.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setStaffToDelete(null)}
+                className="py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-bold text-[13px] hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingStaff}
+                onClick={handleConfirmDeleteStaff}
+                className="py-2.5 px-5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-[13px] shadow-xs cursor-pointer disabled:opacity-70"
+              >
+                {isDeletingStaff ? 'Removing...' : 'Yes, Remove Access'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 6: LOGOUT CONFIRMATION MODAL                                        */}
+      {/* ========================================================================= */}
+      {showLogoutConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-3xl max-w-[420px] w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-teal-50 text-[#0d9488] border border-[#0d9488]/20 flex items-center justify-center">
+              <LogOut className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h3 className="display text-[18px] font-extrabold text-[#0f172a] tracking-tight">
+                Log Out of Clinical Portal?
+              </h3>
+              <p className="text-[13px] text-slate-600 mt-1 leading-relaxed">
+                You are currently signed in as <strong className="text-slate-900">{currentUser?.name || 'Dr. Lumina'}</strong>. Are you sure you want to end your active session?
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirmModal(false)}
+                className="py-2 px-4 rounded-xl border border-slate-200 text-slate-700 font-bold text-[13px] hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="button-primary py-2 px-5 rounded-xl text-white font-bold text-[13px] shadow-xs cursor-pointer"
+              >
+                Log Out
+              </button>
+            </div>
           </div>
         </div>
       )}

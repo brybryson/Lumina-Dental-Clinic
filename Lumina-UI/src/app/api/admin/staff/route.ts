@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getStaffUsers, addStaffUser, deleteStaffUser, StaffUser } from '@/lib/staffStore';
+import { hashPassword } from '@/lib/authCrypto';
 import { supabaseAdmin } from '@/lib/supabase';
 
 const SESSION_COOKIE_NAME = 'lumina_admin_session';
@@ -40,18 +41,17 @@ export async function GET() {
     try {
       const { data, error } = await supabaseAdmin
         .from('staff_users')
-        .select('id, email, name, first_name, last_name, role, specialization, license_number, status, created_at')
+        .select('id, email, name, first_name, last_name, role, specialization, license_number, birthdate, sex, age, location, profile_completed, status, created_at')
         .order('created_at', { ascending: true });
 
       if (!error && data && data.length > 0) {
         return NextResponse.json({ success: true, staff: data, source: 'supabase' });
       }
-    } catch {
-      // Fallback to local store if table not yet created in Supabase
-    }
+    } catch {}
 
     const staffList = getStaffUsers();
-    const safeStaff = staffList.map(({ password: _, ...rest }) => rest);
+    // Return staff without password hashes
+    const safeStaff = staffList.map(({ password_hash: _, ...rest }) => rest);
     return NextResponse.json({ success: true, staff: safeStaff, source: 'local_store' });
   } catch (err: unknown) {
     return NextResponse.json(
@@ -61,7 +61,7 @@ export async function GET() {
   }
 }
 
-// POST: Add new Doctor or Staff (Super Admin only, synced with Supabase)
+// POST: Add new Doctor or Staff (Super Admin only, with PBKDF2 Password Hashing)
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -93,22 +93,26 @@ export async function POST(request: Request) {
     const fullName = `${first_name} ${last_name}`.trim();
     const displayName = role === 'doctor' && !fullName.startsWith('Dr.') ? `Dr. ${fullName}` : fullName;
     const finalSpecialization = specialization?.trim() || (role === 'doctor' ? 'General Dentistry' : 'Clinic Operations');
+    const initialPlainPassword = password || 'LuminaStudio2026!';
+    const passwordHash = hashPassword(initialPlainPassword);
 
     const newStaffObj: StaffUser = {
       id: `staff-${Date.now()}`,
       email: cleanEmail,
-      password: password || 'LuminaStudio2026!',
+      password_hash: passwordHash,
       name: displayName,
       first_name: first_name.trim(),
       last_name: last_name.trim(),
       role,
       specialization: finalSpecialization,
       license_number: license_number?.trim() || null,
+      location: 'Bonifacio Global City, Taguig',
+      profile_completed: false,
       status: 'active',
       created_at: new Date().toISOString(),
     };
 
-    // Attempt to write to Supabase staff_users table
+    // Write to Supabase staff_users table with cryptographic hash
     try {
       await supabaseAdmin.from('staff_users').insert({
         email: cleanEmail,
@@ -118,8 +122,10 @@ export async function POST(request: Request) {
         role,
         specialization: finalSpecialization,
         license_number: license_number?.trim() || null,
+        location: 'Bonifacio Global City, Taguig',
+        profile_completed: false,
         status: 'active',
-        password_hash: password || 'LuminaStudio2026!',
+        password_hash: passwordHash,
       });
     } catch (err) {
       console.warn('Supabase staff_users insert fallback:', err);
@@ -127,7 +133,7 @@ export async function POST(request: Request) {
 
     addStaffUser(newStaffObj);
 
-    const { password: _, ...safeStaff } = newStaffObj;
+    const { password_hash: _, ...safeStaff } = newStaffObj;
     return NextResponse.json({
       success: true,
       message: `Staff account for ${newStaffObj.name} created successfully.`,
@@ -141,7 +147,7 @@ export async function POST(request: Request) {
   }
 }
 
-// DELETE: Deactivate/Remove Staff (Super Admin only, synced with Supabase)
+// DELETE: Remove Staff
 export async function DELETE(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -166,7 +172,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Staff ID is required.' }, { status: 400 });
     }
 
-    // Prevent deleting the primary owner
+    // Prevent deleting primary owner
     const staffList = getStaffUsers();
     const target = staffList.find((s) => s.id === staffId);
     if (target?.email === 'bryantiversonmelliza03@gmail.com') {
