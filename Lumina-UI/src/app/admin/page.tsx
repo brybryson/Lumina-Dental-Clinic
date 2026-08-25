@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
   Calendar as CalendarIcon,
   Clock,
-  User,
   CheckCircle2,
   AlertTriangle,
   FileText,
@@ -22,6 +21,10 @@ import {
   ChevronRight,
   CalendarDays,
   Check,
+  Sparkles,
+  TrendingUp,
+  AlertCircle,
+  Clock3,
 } from 'lucide-react';
 
 interface Patient {
@@ -101,6 +104,14 @@ const PH_HOLIDAYS_2026: Record<string, string> = {
   '2026-12-31': "New Year's Eve",
 };
 
+// Current simulation date
+const TODAY_CLINIC_DATE = '2026-08-25';
+
+function isDateInPast(dateStr?: string): boolean {
+  if (!dateStr) return false;
+  return dateStr < TODAY_CLINIC_DATE;
+}
+
 // Formats YYYY-MM-DD into "August 25, 2026"
 function formatLongDate(dateStr?: string): string {
   if (!dateStr) return '';
@@ -130,7 +141,12 @@ function formatLongDate(dateStr?: string): string {
 }
 
 // Clean status badge formatter
-function formatStatusText(status?: string): string {
+function formatStatusText(status?: string, dateStr?: string): string {
+  if (status === 'completed') return 'Completed';
+  if (status === 'cancelled') return 'Cancelled';
+  if (isDateInPast(dateStr) && status !== 'completed') {
+    return 'No-Show / Cancelled';
+  }
   if (!status) return 'Confirmed';
   switch (status.toLowerCase()) {
     case 'intake_submitted':
@@ -161,8 +177,14 @@ export default function AdminDashboardPage() {
   const router = useRouter();
 
   // Authentication State
-  const [currentUser, setCurrentUser] = useState<{ email: string; name: string; role: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{
+    email: string;
+    name: string;
+    role: string;
+    specialization?: string;
+  } | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Tab State
   const [activeTab, setActiveTab] = useState<'schedule' | 'calendar' | 'inquiries'>('schedule');
@@ -190,21 +212,31 @@ export default function AdminDashboardPage() {
   const [viewingIntakeApt, setViewingIntakeApt] = useState<Appointment | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState('');
 
-  // Live Philippine Clock
-  const [currentTimePST, setCurrentTimePST] = useState('');
+  // Live Philippine Clock & Date
+  const [currentDateTimePST, setCurrentDateTimePST] = useState<{ date: string; time: string }>({
+    date: 'Wednesday, Aug 26, 2026',
+    time: '01:30:00 AM',
+  });
 
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      setCurrentTimePST(
-        now.toLocaleTimeString('en-US', {
+      setCurrentDateTimePST({
+        date: now.toLocaleDateString('en-US', {
+          timeZone: 'Asia/Manila',
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        }),
+        time: now.toLocaleTimeString('en-US', {
           timeZone: 'Asia/Manila',
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit',
           hour12: true,
-        })
-      );
+        }),
+      });
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
@@ -359,9 +391,51 @@ export default function AdminDashboardPage() {
     setCurrentMonth(7); // August 2026
   };
 
-  // Build Calendar Days
+  // Build Calendar Days Grid with Trailing Previous & Next Month Days
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
+
+  // Trailing previous month days
+  const prevMonthDays = Array.from({ length: firstDayOfMonth }).map((_, i) => {
+    const day = daysInPrevMonth - firstDayOfMonth + i + 1;
+    const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    const dateKey = `${prevYear}-${(prevMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    return {
+      dayNum: day,
+      dateKey,
+      isCurrentMonth: false,
+    };
+  });
+
+  // Current month days
+  const currentMonthDays = Array.from({ length: daysInCurrentMonth }).map((_, i) => {
+    const day = i + 1;
+    const dateKey = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    return {
+      dayNum: day,
+      dateKey,
+      isCurrentMonth: true,
+    };
+  });
+
+  // Leading next month days to complete 35 or 42 grid
+  const totalSlots = prevMonthDays.length + currentMonthDays.length;
+  const trailingCount = totalSlots <= 35 ? 35 - totalSlots : 42 - totalSlots;
+  const nextMonthDays = Array.from({ length: trailingCount }).map((_, i) => {
+    const day = i + 1;
+    const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
+    const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
+    const dateKey = `${nextYear}-${(nextMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    return {
+      dayNum: day,
+      dateKey,
+      isCurrentMonth: false,
+    };
+  });
+
+  const fullCalendarDays = [...prevMonthDays, ...currentMonthDays, ...nextMonthDays];
 
   if (isAuthLoading) {
     return (
@@ -376,7 +450,7 @@ export default function AdminDashboardPage() {
 
   // Filter Appointments for Schedule Tab
   const filteredAppointments = appointments.filter((apt) => {
-    const todayStr = '2026-08-25';
+    const todayStr = TODAY_CLINIC_DATE;
     const tomorrowStr = '2026-08-26';
 
     if (dateFilter === 'today' && apt.appointment_date !== todayStr) return false;
@@ -409,7 +483,7 @@ export default function AdminDashboardPage() {
       {/* Top Clinical Navigation Bar */}
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2.5 sm:gap-3">
-          <a href="/" className="inline-flex items-center gap-2.5 group" aria-label="Lumina Dental Clinic home">
+          <a href="/admin" className="inline-flex items-center gap-2.5 group cursor-pointer" aria-label="Lumina Dental Studio Admin Hub">
             <img
               src="/images/lumina-logo.png"
               alt="Lumina Dental Studio"
@@ -426,32 +500,29 @@ export default function AdminDashboardPage() {
           </a>
         </div>
 
-        {/* Center PST Live Clock */}
-        <div className="hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100/90 border border-slate-200/80 text-[12px] text-slate-600 font-medium">
+        {/* Center Live PST Clock & Date */}
+        <div className="hidden md:flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-100/90 border border-slate-200/80 text-[12px] text-slate-700 font-semibold shadow-2xs">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <Clock className="w-3.5 h-3.5 text-[#0d9488]" />
-          <span>Manila (PST):</span>
-          <span className="font-mono font-bold text-[#0f172a]">{currentTimePST || '08:00:00 AM'}</span>
+          <span>{currentDateTimePST.date}</span>
+          <span className="text-slate-300">&bull;</span>
+          <span className="font-bold text-[#0f172a]">{currentDateTimePST.time} PST</span>
         </div>
 
-        {/* User Profile & Actions */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-teal-50/90 border border-[#0d9488]/20">
-            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#0d9488] text-white font-bold flex items-center justify-center text-[11px] sm:text-[12px] shadow-xs">
-              DL
-            </div>
-            <div className="text-left hidden xs:block sm:block">
-              <span className="block text-[12.5px] sm:text-[13px] font-bold text-[#0f172a] leading-tight">
-                {currentUser?.name || 'Dr. Lumina'}
-              </span>
-              <span className="block text-[10px] sm:text-[10.5px] text-[#0d9488] font-semibold">
-                {currentUser?.role || 'Attending Clinician'}
-              </span>
-            </div>
+        {/* User Profile & Actions (No DL avatar, shows Full Name & Specialization) */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="px-3.5 py-1.5 rounded-xl bg-teal-50/90 border border-[#0d9488]/20 text-left">
+            <span className="block text-[13px] sm:text-[13.5px] font-extrabold text-[#0f172a] leading-tight">
+              {currentUser?.name || 'Bryant Iverson Melliza'}
+            </span>
+            <span className="block text-[10.5px] sm:text-[11px] text-[#0d9488] font-bold tracking-tight">
+              {currentUser?.specialization || (currentUser?.role === 'super_admin' ? 'Owner' : 'Lead Attending Dentist')}
+            </span>
           </div>
 
           <button
-            onClick={handleLogout}
-            className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 transition-colors cursor-pointer"
+            onClick={() => setShowLogoutModal(true)}
+            className="p-2 sm:p-2.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 transition-colors cursor-pointer"
             title="Log Out"
           >
             <LogOut className="w-4 h-4" />
@@ -460,7 +531,34 @@ export default function AdminDashboardPage() {
       </header>
 
       {/* Main Container — Extra Wide & Responsive */}
-      <main className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 py-5 sm:py-8 space-y-6">
+      <main className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 py-5 sm:py-7 space-y-6">
+        {/* Personalized Welcome Banner */}
+        <div className="p-5 sm:p-7 rounded-3xl bg-gradient-to-r from-teal-900 via-[#0f766e] to-[#0d9488] text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-teal-100 text-[11px] font-bold tracking-wide uppercase">
+              <Sparkles className="w-3.5 h-3.5 text-teal-200" />
+              Practice Operations Portal
+            </div>
+            <h1 className="display text-2xl sm:text-3xl font-extrabold tracking-tight">
+              Hello, {currentUser?.name || 'Bryant Iverson Melliza'}
+            </h1>
+            <p className="text-teal-100 text-[13.5px] sm:text-[14px]">
+              {currentUser?.specialization || 'Practice Owner & Director'} &bull; Lumina Dental Studio Clinic Suite
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={loadDashboardData}
+              disabled={isLoadingData}
+              className="py-2.5 px-4 rounded-xl bg-white/15 hover:bg-white/25 text-white text-[13px] font-bold transition-all flex items-center gap-2 border border-white/20 cursor-pointer"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoadingData ? 'animate-spin' : ''}`} />
+              Sync Data
+            </button>
+          </div>
+        </div>
+
         {/* Banner Alert Notice */}
         {actionSuccessMsg && (
           <div className="p-3.5 sm:p-4 rounded-2xl bg-teal-50/90 border border-[#0d9488]/30 text-[#0f766e] text-[13px] sm:text-[13.5px] flex items-start gap-3 shadow-xs animate-in fade-in slide-in-from-top-2">
@@ -472,45 +570,57 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* Metrics Row */}
+        {/* Polished Metrics Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina flex items-center justify-between">
-            <div>
-              <p className="eyebrow text-[10px] sm:text-[11px] mb-1">TOTAL VISITS</p>
-              <p className="display text-2xl sm:text-3xl font-extrabold text-[#0f172a] tracking-tight">{totalCount}</p>
+          <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina hover:border-slate-300 transition-all flex items-center justify-between group">
+            <div className="space-y-1">
+              <p className="eyebrow text-[10.5px] tracking-wider text-slate-500">TOTAL VISITS</p>
+              <p className="display text-3xl font-extrabold text-[#0f172a] tracking-tight">{totalCount}</p>
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md">
+                <TrendingUp className="w-3 h-3 text-[#0d9488]" /> Active Reservations
+              </span>
             </div>
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-700">
-              <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-          </div>
-
-          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina flex items-center justify-between">
-            <div>
-              <p className="eyebrow text-[10px] sm:text-[11px] mb-1">COMPLETED</p>
-              <p className="display text-2xl sm:text-3xl font-extrabold text-[#0d9488] tracking-tight">{completedCount}</p>
-            </div>
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-teal-50 flex items-center justify-center text-[#0d9488]">
-              <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center group-hover:scale-105 transition-transform shadow-2xs">
+              <CalendarIcon className="w-5 h-5" />
             </div>
           </div>
 
-          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina flex items-center justify-between">
-            <div>
-              <p className="eyebrow text-[10px] sm:text-[11px] mb-1 text-amber-700">INTAKES PENDING</p>
-              <p className="display text-2xl sm:text-3xl font-extrabold text-amber-700 tracking-tight">{pendingIntakeCount}</p>
+          <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina hover:border-teal-300 transition-all flex items-center justify-between group">
+            <div className="space-y-1">
+              <p className="eyebrow text-[10.5px] tracking-wider text-teal-800">COMPLETED</p>
+              <p className="display text-3xl font-extrabold text-[#0d9488] tracking-tight">{completedCount}</p>
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0f766e] bg-teal-100/70 px-2 py-0.5 rounded-md">
+                <Check className="w-3 h-3 text-[#0d9488]" /> Post-Op Dispatched
+              </span>
             </div>
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-teal-50 text-[#0d9488] flex items-center justify-center group-hover:scale-105 transition-transform shadow-2xs border border-teal-100">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
           </div>
 
-          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina flex items-center justify-between">
-            <div>
-              <p className="eyebrow text-[10px] sm:text-[11px] mb-1 text-rose-700">FOLLOW-UP ALERTS</p>
-              <p className="display text-2xl sm:text-3xl font-extrabold text-rose-700 tracking-tight">{flaggedComplicationsCount}</p>
+          <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina hover:border-amber-300 transition-all flex items-center justify-between group">
+            <div className="space-y-1">
+              <p className="eyebrow text-[10.5px] tracking-wider text-amber-700">INTAKES PENDING</p>
+              <p className="display text-3xl font-extrabold text-amber-700 tracking-tight">{pendingIntakeCount}</p>
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-md">
+                <Clock3 className="w-3 h-3 text-amber-600" /> Awaiting Form Submission
+              </span>
             </div>
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600">
-              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform shadow-2xs border border-amber-100">
+              <Clock className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina hover:border-rose-300 transition-all flex items-center justify-between group">
+            <div className="space-y-1">
+              <p className="eyebrow text-[10.5px] tracking-wider text-rose-700">FOLLOW-UP ALERTS</p>
+              <p className="display text-3xl font-extrabold text-rose-700 tracking-tight">{flaggedComplicationsCount}</p>
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-800 bg-rose-100/80 px-2 py-0.5 rounded-md">
+                <AlertCircle className="w-3 h-3 text-rose-600" /> Care Team Check-In
+              </span>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-105 transition-transform shadow-2xs border border-rose-100">
+              <AlertTriangle className="w-5 h-5" />
             </div>
           </div>
         </div>
@@ -641,6 +751,7 @@ export default function AdminDashboardPage() {
                   const hasAllergies = intake?.allergies && intake.allergies.length > 0;
                   const isCompleted = apt.status === 'completed';
                   const isComplicated = apt.flag_for_manual_followup;
+                  const isPast = isDateInPast(apt.appointment_date);
 
                   const initials = `${patient.first_name?.[0] || ''}${patient.last_name?.[0] || ''}`.toUpperCase() || 'PT';
 
@@ -652,6 +763,8 @@ export default function AdminDashboardPage() {
                           ? 'border-red-300 bg-red-50/20'
                           : isCompleted
                           ? 'border-teal-200 bg-teal-50/10'
+                          : isPast
+                          ? 'border-slate-200 bg-slate-50/60 opacity-80'
                           : 'border-slate-200/90 hover:border-[#0d9488]/40'
                       }`}
                     >
@@ -676,13 +789,13 @@ export default function AdminDashboardPage() {
                               <span className="inline-flex items-center gap-1 text-[11px] sm:text-[11.5px] font-bold bg-teal-100/80 text-[#0f766e] px-2.5 py-0.5 rounded-full">
                                 <Check className="w-3 h-3" /> Completed
                               </span>
-                            ) : apt.status === 'cancelled' ? (
-                              <span className="inline-flex items-center text-[11px] sm:text-[11.5px] font-semibold bg-slate-100 text-slate-500 px-2.5 py-0.5 rounded-full">
-                                Cancelled
+                            ) : apt.status === 'cancelled' || (isPast && !isCompleted) ? (
+                              <span className="inline-flex items-center text-[11px] sm:text-[11.5px] font-semibold bg-slate-200 text-slate-600 px-2.5 py-0.5 rounded-full">
+                                {formatStatusText(apt.status, apt.appointment_date)}
                               </span>
                             ) : (
                               <span className="inline-flex items-center text-[11px] sm:text-[11.5px] font-bold bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full">
-                                {formatStatusText(apt.status)}
+                                {formatStatusText(apt.status, apt.appointment_date)}
                               </span>
                             )}
 
@@ -751,7 +864,11 @@ export default function AdminDashboardPage() {
 
                       {/* Right: Actions */}
                       <div className="flex items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0">
-                        {!isCompleted && apt.status !== 'cancelled' && (
+                        {isPast && !isCompleted ? (
+                          <span className="text-[12px] font-semibold text-slate-400 bg-slate-100 py-2 px-3 rounded-xl border border-slate-200">
+                            Past Slot (Rebook)
+                          </span>
+                        ) : !isCompleted && apt.status !== 'cancelled' ? (
                           <button
                             onClick={() => {
                               setCompletingApt(apt);
@@ -764,8 +881,7 @@ export default function AdminDashboardPage() {
                             <CheckCircle2 className="w-4 h-4" />
                             Complete Visit
                           </button>
-                        )}
-                        {isCompleted && (
+                        ) : isCompleted ? (
                           <button
                             onClick={() => {
                               setCompletingApt(apt);
@@ -777,7 +893,7 @@ export default function AdminDashboardPage() {
                           >
                             Edit Outcome
                           </button>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   );
@@ -792,9 +908,9 @@ export default function AdminDashboardPage() {
         {/* ========================================================================= */}
         {activeTab === 'calendar' && (
           <div className="space-y-4 sm:space-y-6">
-            {/* Calendar Header Controls */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 sm:gap-3">
+            {/* Calendar Header Controls (Dropdowns for Month & Year + Left/Right Buttons) */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <button
                   onClick={handlePrevMonth}
                   className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
@@ -802,9 +918,33 @@ export default function AdminDashboardPage() {
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <h2 className="display text-[19px] sm:text-[22px] font-extrabold text-[#0f172a] min-w-[160px] sm:min-w-[200px] text-center tracking-tight">
-                  {monthNames[currentMonth]} {currentYear}
-                </h2>
+
+                {/* Sleek Month Dropdown */}
+                <select
+                  value={currentMonth}
+                  onChange={(e) => setCurrentMonth(Number(e.target.value))}
+                  className="py-2 px-3 rounded-xl border border-slate-200 bg-white font-bold text-[14px] sm:text-[15px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30 cursor-pointer"
+                >
+                  {monthNames.map((month, idx) => (
+                    <option key={month} value={idx}>
+                      {month}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Sleek Year Dropdown */}
+                <select
+                  value={currentYear}
+                  onChange={(e) => setCurrentYear(Number(e.target.value))}
+                  className="py-2 px-3 rounded-xl border border-slate-200 bg-white font-bold text-[14px] sm:text-[15px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30 cursor-pointer"
+                >
+                  {[2025, 2026, 2027, 2028, 2029, 2030].map((yr) => (
+                    <option key={yr} value={yr}>
+                      {yr}
+                    </option>
+                  ))}
+                </select>
+
                 <button
                   onClick={handleNextMonth}
                   className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
@@ -812,20 +952,21 @@ export default function AdminDashboardPage() {
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
+
                 <button
                   onClick={handleTodayMonth}
-                  className="py-1.5 px-3.5 rounded-xl border border-slate-200 text-[12.5px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                  className="py-2 px-3.5 rounded-xl border border-slate-200 text-[12.5px] font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   Today
                 </button>
               </div>
 
-              <div className="text-[13px] text-slate-500 font-medium hidden sm:block">
-                Click any day cell to view or manage appointments.
+              <div className="text-[12.5px] text-slate-500 font-medium">
+                Click any day cell to view daily clinical schedule.
               </div>
             </div>
 
-            {/* Studio Month Grid (Generous Width & Google Calendar Style Event Chips) */}
+            {/* Studio Month Grid (Full 35/42 days including Trailing Months) */}
             <div className="p-4 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina overflow-x-auto thin-scrollbar">
               <div className="min-w-[800px] xl:min-w-0 space-y-3">
                 {/* Weekday Header */}
@@ -841,26 +982,23 @@ export default function AdminDashboardPage() {
 
                 {/* Calendar Days Grid */}
                 <div className="grid grid-cols-7 gap-2 sm:gap-2.5">
-                  {/* Blank days before month start */}
-                  {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                    <div key={`blank-${i}`} className="min-h-[165px] sm:min-h-[190px] rounded-2xl bg-slate-50/40 p-2.5 border border-transparent" />
-                  ))}
-
-                  {/* Month Days */}
-                  {Array.from({ length: daysInMonth }).map((_, i) => {
-                    const dayNum = i + 1;
-                    const dateKey = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+                  {fullCalendarDays.map(({ dayNum, dateKey, isCurrentMonth }, idx) => {
                     const holidayName = PH_HOLIDAYS_2026[dateKey];
                     const dayAppointments = appointments.filter((a) => a.appointment_date === dateKey);
-                    const isToday = dateKey === '2026-08-25';
+                    const isToday = dateKey === TODAY_CLINIC_DATE;
+                    const isPast = isDateInPast(dateKey);
 
                     return (
                       <div
-                        key={`day-${dayNum}`}
+                        key={`cell-${dateKey}-${idx}`}
                         onClick={() => setSelectedCalendarDay(dateKey)}
                         className={`min-h-[165px] sm:min-h-[190px] rounded-2xl p-2.5 sm:p-3 border transition-all cursor-pointer flex flex-col justify-between group ${
-                          isToday
+                          !isCurrentMonth
+                            ? 'bg-slate-50/40 border-slate-100 opacity-50 hover:opacity-100 hover:border-slate-300'
+                            : isToday
                             ? 'bg-teal-50/70 border-[#0d9488] ring-1.5 ring-[#0d9488]/40 shadow-xs'
+                            : isPast
+                            ? 'bg-slate-50/70 border-slate-200/70 text-slate-500 hover:border-slate-300'
                             : holidayName
                             ? 'bg-amber-50/40 border-amber-200 hover:border-amber-400'
                             : 'bg-white border-slate-200/80 hover:border-[#0d9488]/50 hover:bg-slate-50/60'
@@ -873,11 +1011,20 @@ export default function AdminDashboardPage() {
                               className={`text-[13.5px] sm:text-[14px] font-bold ${
                                 isToday
                                   ? 'w-6 h-6 rounded-full bg-[#0d9488] text-white flex items-center justify-center text-[12px] shadow-xs'
+                                  : !isCurrentMonth
+                                  ? 'text-slate-300'
+                                  : isPast
+                                  ? 'text-slate-400'
                                   : 'text-slate-800'
                               }`}
                             >
                               {dayNum}
                             </span>
+                            {isPast && isCurrentMonth && (
+                              <span className="text-[9.5px] font-semibold text-slate-400 uppercase tracking-tight">
+                                Past
+                              </span>
+                            )}
                           </div>
 
                           {/* Holiday Badge (Google Calendar Style full-width pill) */}
@@ -892,19 +1039,38 @@ export default function AdminDashboardPage() {
 
                         {/* Middle/Bottom: Cute Google Calendar Event Chips (Top-to-Bottom, More Height) */}
                         <div className="space-y-1.5 mt-2 flex-1 overflow-y-auto no-scrollbar max-h-[125px] sm:max-h-[145px]">
-                          {dayAppointments.map((apt) => (
-                            <div
-                              key={apt.id}
-                              className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#e0f2fe] text-[#0369a1] text-[11px] font-medium truncate hover:bg-[#bae6fd] transition-colors shadow-2xs"
-                              title={`${apt.time_slot} - ${apt.patients.first_name} (${apt.service_name})`}
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#0284c7] shrink-0" />
-                              <span className="font-bold text-[#0c4a6e]">{formatCompactTime(apt.time_slot)}</span>
-                              <span className="truncate text-[#0369a1]">
-                                [Lumina] {apt.service_name.split('&')[0]?.trim()} ({apt.patients.first_name})
-                              </span>
-                            </div>
-                          ))}
+                          {dayAppointments.map((apt) => {
+                            const isPastApt = isDateInPast(apt.appointment_date);
+                            const isAptCompleted = apt.status === 'completed';
+
+                            return (
+                              <div
+                                key={apt.id}
+                                className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium truncate transition-colors shadow-2xs ${
+                                  isAptCompleted
+                                    ? 'bg-teal-50 text-[#0f766e] border border-teal-200/60'
+                                    : isPastApt
+                                    ? 'bg-slate-100 text-slate-500'
+                                    : 'bg-[#e0f2fe] text-[#0369a1] hover:bg-[#bae6fd]'
+                                }`}
+                                title={`${apt.time_slot} - ${apt.patients.first_name} (${apt.service_name})`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                    isAptCompleted
+                                      ? 'bg-[#0d9488]'
+                                      : isPastApt
+                                      ? 'bg-slate-400'
+                                      : 'bg-[#0284c7]'
+                                  }`}
+                                />
+                                <span className="font-bold">{formatCompactTime(apt.time_slot)}</span>
+                                <span className="truncate">
+                                  [Lumina] {apt.service_name.split('&')[0]?.trim()} ({apt.patients.first_name})
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     );
@@ -1043,41 +1209,52 @@ export default function AdminDashboardPage() {
               ) : (
                 appointments
                   .filter((a) => a.appointment_date === selectedCalendarDay)
-                  .map((apt) => (
-                    <div
-                      key={apt.id}
-                      className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs hover:border-[#0d9488]/40 transition-all"
-                    >
-                      <div className="space-y-1 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11.5px] font-semibold text-[#0f766e] bg-teal-50 px-2 py-0.5 rounded-md border border-[#0d9488]/20">
-                            {apt.time_slot}
-                          </span>
-                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white text-slate-700 border border-slate-200 shadow-2xs">
-                            {formatStatusText(apt.status)}
-                          </span>
-                        </div>
-                        <h4 className="display font-extrabold text-[16px] sm:text-[17px] text-[#0f172a] tracking-tight">
-                          {apt.patients.first_name} {apt.patients.last_name}
-                        </h4>
-                        <p className="text-[13px] sm:text-[13.5px] text-[#0d9488] font-semibold">{apt.service_name}</p>
-                      </div>
+                  .map((apt) => {
+                    const isPast = isDateInPast(apt.appointment_date);
+                    const isCompleted = apt.status === 'completed';
 
-                      <button
-                        onClick={() => {
-                          const currentDay = selectedCalendarDay;
-                          setSelectedCalendarDay(null);
-                          setReturnToCalendarDay(currentDay);
-                          setCompletingApt(apt);
-                          setCompletionOutcome(apt.flag_for_manual_followup ? 'complication' : 'standard');
-                          setCompletionNotes(apt.patient_notes || '');
-                        }}
-                        className="button-primary w-full sm:w-auto py-2 px-4 rounded-xl text-white text-[12.5px] sm:text-[13px] font-bold shadow-xs cursor-pointer shrink-0 self-start sm:self-center"
+                    return (
+                      <div
+                        key={apt.id}
+                        className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs hover:border-[#0d9488]/40 transition-all"
                       >
-                        Action
-                      </button>
-                    </div>
-                  ))
+                        <div className="space-y-1 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11.5px] font-semibold text-[#0f766e] bg-teal-50 px-2 py-0.5 rounded-md border border-[#0d9488]/20">
+                              {apt.time_slot}
+                            </span>
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white text-slate-700 border border-slate-200 shadow-2xs">
+                              {formatStatusText(apt.status, apt.appointment_date)}
+                            </span>
+                          </div>
+                          <h4 className="display font-extrabold text-[16px] sm:text-[17px] text-[#0f172a] tracking-tight">
+                            {apt.patients.first_name} {apt.patients.last_name}
+                          </h4>
+                          <p className="text-[13px] sm:text-[13.5px] text-[#0d9488] font-semibold">{apt.service_name}</p>
+                        </div>
+
+                        {isPast && !isCompleted ? (
+                          <span className="text-[12px] font-semibold text-slate-400 bg-slate-100 py-2 px-3.5 rounded-xl border border-slate-200">
+                            Past Slot (Rebook)
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              const currentDay = selectedCalendarDay;
+                              setSelectedCalendarDay(null);
+                              setReturnToCalendarDay(currentDay);
+                              setCompletingApt(apt);
+                              setCompletionOutcome(apt.flag_for_manual_followup ? 'complication' : 'standard');
+                              setCompletionNotes(apt.patient_notes || '');
+                            }}
+                            className="button-primary w-full sm:w-auto py-2 px-4 rounded-xl text-white text-[12.5px] sm:text-[13px] font-bold shadow-xs cursor-pointer shrink-0 self-start sm:self-center"
+                          >
+                            Action
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })
               )}
             </div>
 
@@ -1362,6 +1539,43 @@ export default function AdminDashboardPage() {
                 className="button-primary w-full sm:w-auto py-2 px-5 rounded-xl text-white font-bold text-[13px] sm:text-[13.5px] cursor-pointer"
               >
                 Close Record
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 4: LOGOUT CONFIRMATION MODAL                                        */}
+      {/* ========================================================================= */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-3xl max-w-[420px] w-full p-6 sm:p-7 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto border border-red-100">
+              <LogOut className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1.5">
+              <h3 className="display text-[19px] font-extrabold text-[#0f172a] tracking-tight">
+                Log Out of Clinical Portal?
+              </h3>
+              <p className="text-[13px] sm:text-[13.5px] text-slate-500 leading-relaxed">
+                You are currently signed in as <strong className="text-slate-800">{currentUser?.name}</strong>. Are you sure you want to end your active session?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 pt-2">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-bold text-[13px] hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogout}
+                className="py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-[13px] shadow-sm cursor-pointer transition-colors"
+              >
+                Yes, Log Out
               </button>
             </div>
           </div>

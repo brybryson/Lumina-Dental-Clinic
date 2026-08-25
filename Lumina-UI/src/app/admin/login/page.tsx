@@ -6,7 +6,7 @@ import { Lock, Mail, Eye, EyeOff, ShieldCheck, AlertCircle, Sparkles } from 'luc
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('doctor@luminaclinic.com');
+  const [email, setEmail] = useState('bryantiversonmelliza03@gmail.com');
   const [password, setPassword] = useState('LuminaStudio2026!');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -138,28 +138,39 @@ export default function AdminLoginPage() {
               <p className="text-[11.5px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
                 Quick Role Presets:
               </p>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => setPreset('doctor@luminaclinic.com')}
-                  className={`flex-1 py-1.5 px-2.5 rounded-lg text-[12px] font-semibold border transition-all text-center ${
-                    email === 'doctor@luminaclinic.com'
-                      ? 'bg-teal-50 border-[#0d9488] text-[#0f766e]'
+                  onClick={() => setPreset('bryantiversonmelliza03@gmail.com')}
+                  className={`py-1.5 px-2 rounded-lg text-[11.5px] font-semibold border transition-all text-center ${
+                    email === 'bryantiversonmelliza03@gmail.com'
+                      ? 'bg-teal-50 border-[#0d9488] text-[#0f766e] font-bold ring-1 ring-[#0d9488]'
                       : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  Dr. Lumina (Dentist)
+                  Bryant (Owner)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreset('doctor@luminaclinic.com')}
+                  className={`py-1.5 px-2 rounded-lg text-[11.5px] font-semibold border transition-all text-center ${
+                    email === 'doctor@luminaclinic.com'
+                      ? 'bg-teal-50 border-[#0d9488] text-[#0f766e] font-bold ring-1 ring-[#0d9488]'
+                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  Dr. Lumina
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreset('admin@luminaclinic.com')}
-                  className={`flex-1 py-1.5 px-2.5 rounded-lg text-[12px] font-semibold border transition-all text-center ${
+                  className={`py-1.5 px-2 rounded-lg text-[11.5px] font-semibold border transition-all text-center ${
                     email === 'admin@luminaclinic.com'
-                      ? 'bg-teal-50 border-[#0d9488] text-[#0f766e]'
+                      ? 'bg-teal-50 border-[#0d9488] text-[#0f766e] font-bold ring-1 ring-[#0d9488]'
                       : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  Front Desk Staff
+                  Front Desk
                 </button>
               </div>
             </div>
