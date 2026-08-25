@@ -1,7 +1,21 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+function getSlotEndTime24(timeSlot: string): string | null {
+  const parts = timeSlot.split(/[–-]/);
+  const endPart = (parts[1] || parts[0]).trim();
+  const match = endPart.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) return null;
+  let hours = parseInt(match[1], 10);
+  const mins = match[2];
+  const meridiem = match[3].toUpperCase();
+  if (meridiem === 'PM' && hours < 12) hours += 12;
+  if (meridiem === 'AM' && hours === 12) hours = 0;
+  return `${hours.toString().padStart(2, '0')}:${mins}`;
+}
+
 // GET: Fetch appointments with joined patient details and medical intake records
+// Automatically auto-tags past unattended time slots to 'no_show' in Supabase
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -66,7 +80,46 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, appointments: data || [] });
+    let appointments = data || [];
+
+    // Auto-tag past unattended appointments to 'no_show' in Supabase
+    const now = new Date();
+    const manilaDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(now);
+    const manilaTimeStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Manila',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(now);
+
+    const pastDueIds: string[] = [];
+    appointments = appointments.map((apt: any) => {
+      if (apt.status === 'confirmed' || apt.status === 'intake_submitted' || apt.status === 'pending') {
+        const isPastDay = apt.appointment_date < manilaDateStr;
+        const isSameDay = apt.appointment_date === manilaDateStr;
+        const endTime = getSlotEndTime24(apt.time_slot);
+        const isPastTime = isSameDay && endTime && manilaTimeStr >= endTime;
+
+        if (isPastDay || isPastTime) {
+          pastDueIds.push(apt.id);
+          return { ...apt, status: 'no_show' };
+        }
+      }
+      return apt;
+    });
+
+    if (pastDueIds.length > 0) {
+      try {
+        await supabaseAdmin
+          .from('appointments')
+          .update({ status: 'no_show' })
+          .in('id', pastDueIds);
+      } catch (patchErr) {
+        console.warn('Auto no-show update warning:', patchErr);
+      }
+    }
+
+    return NextResponse.json({ success: true, appointments });
   } catch (err: unknown) {
     console.error('[API/admin/appointments] Unexpected error:', err);
     return NextResponse.json(
@@ -108,36 +161,21 @@ export async function PATCH(request: Request) {
       updatePayload.patient_notes = patientNotes;
     }
 
-    const { data: updatedAppointment, error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('appointments')
       .update(updatePayload)
       .eq('id', appointmentId)
-      .select('*, patients(*)')
+      .select()
       .single();
 
     if (error) {
-      console.error('[API/admin/appointments] Update error:', error);
+      console.error('[API/admin/appointments] Supabase update error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // If status was marked completed and not flagged for complication, also update patients.last_visit_date
-    if (status === 'completed' && !flagForManualFollowup && updatedAppointment.patient_id) {
-      await supabaseAdmin
-        .from('patients')
-        .update({
-          last_visit_date: updatedAppointment.appointment_date || new Date().toISOString().split('T')[0],
-          recall_sent: false,
-        })
-        .eq('id', updatedAppointment.patient_id);
-    }
-
-    return NextResponse.json({
-      success: true,
-      appointment: updatedAppointment,
-      message: `Appointment ${status === 'completed' ? 'marked as completed' : 'updated'} successfully.`,
-    });
+    return NextResponse.json({ success: true, appointment: data });
   } catch (err: unknown) {
-    console.error('[API/admin/appointments] PATCH error:', err);
+    console.error('[API/admin/appointments] Unexpected error:', err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Internal Server Error' },
       { status: 500 }
