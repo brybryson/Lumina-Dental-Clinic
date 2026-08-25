@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getStaffUsers, addStaffUser, deleteStaffUser, StaffUser } from '@/lib/staffStore';
+import { supabaseAdmin } from '@/lib/supabase';
 
 const SESSION_COOKIE_NAME = 'lumina_admin_session';
 
@@ -17,7 +18,7 @@ function parseSessionToken(token: string) {
   }
 }
 
-// GET: List all staff (Super Admin only)
+// GET: List all staff (Super Admin only, synced with Supabase)
 export async function GET() {
   try {
     const cookieStore = await cookies();
@@ -35,10 +36,23 @@ export async function GET() {
       );
     }
 
+    // Attempt to read from Supabase staff_users table
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('staff_users')
+        .select('id, email, name, first_name, last_name, role, specialization, license_number, status, created_at')
+        .order('created_at', { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        return NextResponse.json({ success: true, staff: data, source: 'supabase' });
+      }
+    } catch {
+      // Fallback to local store if table not yet created in Supabase
+    }
+
     const staffList = getStaffUsers();
-    // Return staff without passwords
     const safeStaff = staffList.map(({ password: _, ...rest }) => rest);
-    return NextResponse.json({ success: true, staff: safeStaff });
+    return NextResponse.json({ success: true, staff: safeStaff, source: 'local_store' });
   } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Internal Server Error' },
@@ -47,7 +61,7 @@ export async function GET() {
   }
 }
 
-// POST: Add new Doctor or Staff (Super Admin only)
+// POST: Add new Doctor or Staff (Super Admin only, synced with Supabase)
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -75,36 +89,48 @@ export async function POST(request: Request) {
       );
     }
 
-    const staffList = getStaffUsers();
-    // Check duplicate email
-    if (staffList.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
-      return NextResponse.json(
-        { error: 'A staff member with this email address already exists.' },
-        { status: 400 }
-      );
-    }
-
+    const cleanEmail = email.trim().toLowerCase();
     const fullName = `${first_name} ${last_name}`.trim();
-    const newStaff: StaffUser = {
+    const displayName = role === 'doctor' && !fullName.startsWith('Dr.') ? `Dr. ${fullName}` : fullName;
+    const finalSpecialization = specialization?.trim() || (role === 'doctor' ? 'General Dentistry' : 'Clinic Operations');
+
+    const newStaffObj: StaffUser = {
       id: `staff-${Date.now()}`,
-      email: email.trim().toLowerCase(),
+      email: cleanEmail,
       password: password || 'LuminaStudio2026!',
-      name: role === 'doctor' && !fullName.startsWith('Dr.') ? `Dr. ${fullName}` : fullName,
+      name: displayName,
       first_name: first_name.trim(),
       last_name: last_name.trim(),
       role,
-      specialization: specialization?.trim() || (role === 'doctor' ? 'General Dentistry' : 'Clinic Operations'),
+      specialization: finalSpecialization,
       license_number: license_number?.trim() || null,
       status: 'active',
       created_at: new Date().toISOString(),
     };
 
-    addStaffUser(newStaff);
+    // Attempt to write to Supabase staff_users table
+    try {
+      await supabaseAdmin.from('staff_users').insert({
+        email: cleanEmail,
+        first_name: first_name.trim(),
+        last_name: last_name.trim(),
+        name: displayName,
+        role,
+        specialization: finalSpecialization,
+        license_number: license_number?.trim() || null,
+        status: 'active',
+        password_hash: password || 'LuminaStudio2026!',
+      });
+    } catch (err) {
+      console.warn('Supabase staff_users insert fallback:', err);
+    }
 
-    const { password: _, ...safeStaff } = newStaff;
+    addStaffUser(newStaffObj);
+
+    const { password: _, ...safeStaff } = newStaffObj;
     return NextResponse.json({
       success: true,
-      message: `Staff account for ${newStaff.name} created successfully.`,
+      message: `Staff account for ${newStaffObj.name} created successfully.`,
       staff: safeStaff,
     });
   } catch (err: unknown) {
@@ -115,7 +141,7 @@ export async function POST(request: Request) {
   }
 }
 
-// DELETE: Deactivate/Remove Staff (Super Admin only)
+// DELETE: Deactivate/Remove Staff (Super Admin only, synced with Supabase)
 export async function DELETE(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -140,8 +166,8 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Staff ID is required.' }, { status: 400 });
     }
 
-    const staffList = getStaffUsers();
     // Prevent deleting the primary owner
+    const staffList = getStaffUsers();
     const target = staffList.find((s) => s.id === staffId);
     if (target?.email === 'bryantiversonmelliza03@gmail.com') {
       return NextResponse.json(
@@ -149,6 +175,10 @@ export async function DELETE(request: Request) {
         { status: 400 }
       );
     }
+
+    try {
+      await supabaseAdmin.from('staff_users').delete().eq('id', staffId);
+    } catch {}
 
     deleteStaffUser(staffId);
 
