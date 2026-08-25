@@ -905,7 +905,7 @@ function CustomCalendar({
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const dayNumber = i + 1;
           const isWeekend = (dayNumber + blankDays - 1) % 7 === 0 || (dayNumber + blankDays - 1) % 7 === 6;
-          const isPast = dayNumber < 24;
+          const isPast = dayNumber < 25;
           const dateString = `Aug ${dayNumber < 10 ? '0' : ''}${dayNumber}, 2026`;
           const isSelected = selectedDate === dateString;
 
