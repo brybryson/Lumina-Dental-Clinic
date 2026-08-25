@@ -78,34 +78,43 @@ test.describe('Pre-Visit Digital Medical Intake Token-Gated Workflow Tests', () 
   }) => {
     // 1. Create a real appointment via API to obtain an authentic intake token
     const testEmail = 'vrsnmllz03@gmail.com';
-    const dynamicDay = 25 + (Math.floor(Date.now() / 1000) % 5);
-    const testDate = `2026-08-${dynamicDay}`;
-    const testSlot = `${((Math.floor(Date.now() / 1000) % 4) + 1).toString().padStart(2, '0')}:00 PM – ${((Math.floor(Date.now() / 1000) % 4) + 2).toString().padStart(2, '0')}:00 PM`;
+    const possibleSlots = [
+      '08:00 AM – 09:00 AM',
+      '09:00 AM – 10:00 AM',
+      '10:00 AM – 11:00 AM',
+      '11:00 AM – 12:00 PM',
+      '01:00 PM – 02:00 PM',
+      '02:00 PM – 03:00 PM',
+      '03:00 PM – 04:00 PM',
+      '04:00 PM – 05:00 PM',
+    ];
 
     let intakeToken = '';
-    const bookingRes = await request.post('/api/appointments', {
-      data: {
-        firstName: 'Iverson',
-        lastName: 'Melliza',
-        email: testEmail,
-        mobile: '09175558822',
-        dob: '1992-04-14',
-        sex: 'Male',
-        service: 'Laser Teeth Whitening, Dental Cleaning & Routine Checkup',
-        date: testDate,
-        time: testSlot,
-        notes: 'Pre-visit medical history requested',
-      },
-    });
+    for (const dayNum of [26, 27, 28, 29]) {
+      const testDate = `2026-08-${dayNum}`;
+      for (const slot of possibleSlots) {
+        const bookingRes = await request.post('/api/appointments', {
+          data: {
+            firstName: 'Iverson',
+            lastName: 'Melliza',
+            email: testEmail,
+            mobile: '09175558822',
+            dob: '1992-04-14',
+            sex: 'Male',
+            service: 'Laser Teeth Whitening, Dental Cleaning & Routine Checkup',
+            date: testDate,
+            time: slot,
+            notes: 'Pre-visit medical history requested',
+          },
+        });
 
-    if (bookingRes.status() === 200) {
-      const bookingData = await bookingRes.json();
-      intakeToken = bookingData.intakeToken;
-    } else {
-      const listRes = await request.get('/api/appointments');
-      const listData = await listRes.json();
-      const candidate = (listData.appointments || []).find((a: any) => !a.intake_completed_at && a.intake_token);
-      intakeToken = candidate?.intake_token || '';
+        if (bookingRes.status() === 200) {
+          const bookingData = await bookingRes.json();
+          intakeToken = bookingData.intakeToken;
+          if (intakeToken) break;
+        }
+      }
+      if (intakeToken) break;
     }
 
     expect(intakeToken).toBeTruthy();
@@ -183,35 +192,44 @@ test.describe('Pre-Visit Digital Medical Intake Token-Gated Workflow Tests', () 
     request,
   }) => {
     // 1. Create a real appointment via API for a patient with no allergies
-    const testEmail = 'bryantiversonmelliza03@gmail.com';
-    const dynamicDay = 26 + (Math.floor(Date.now() / 1000) % 3);
-    const testDate = `2026-08-${dynamicDay}`;
-    const testSlot = '10:00 AM – 11:00 AM';
+    const testEmail = 'vrsnmllz03@gmail.com';
+    const possibleSlots = [
+      '01:00 PM – 02:00 PM',
+      '02:00 PM – 03:00 PM',
+      '03:00 PM – 04:00 PM',
+      '04:00 PM – 05:00 PM',
+      '08:00 AM – 09:00 AM',
+      '09:00 AM – 10:00 AM',
+      '10:00 AM – 11:00 AM',
+      '11:00 AM – 12:00 PM',
+    ];
 
     let intakeToken = '';
-    const bookingRes = await request.post('/api/appointments', {
-      data: {
-        firstName: 'Bryant',
-        lastName: 'Melliza',
-        email: testEmail,
-        mobile: '09181234567',
-        dob: '1995-08-20',
-        sex: 'Male',
-        service: 'Routine Dental Cleaning & Examination',
-        date: testDate,
-        time: testSlot,
-        notes: 'Routine 6-month checkup - no known health issues',
-      },
-    });
+    for (const dayNum of [29, 28, 27, 26]) {
+      const testDate = `2026-08-${dayNum}`;
+      for (const slot of possibleSlots) {
+        const bookingRes = await request.post('/api/appointments', {
+          data: {
+            firstName: 'Iverson',
+            lastName: 'Melliza',
+            email: testEmail,
+            mobile: '09181234567',
+            dob: '1995-08-20',
+            sex: 'Male',
+            service: 'Routine Dental Cleaning & Examination',
+            date: testDate,
+            time: slot,
+            notes: 'Routine 6-month checkup - no known health issues',
+          },
+        });
 
-    if (bookingRes.status() === 200) {
-      const bookingData = await bookingRes.json();
-      intakeToken = bookingData.intakeToken;
-    } else {
-      const listRes = await request.get('/api/appointments');
-      const listData = await listRes.json();
-      const candidate = (listData.appointments || []).find((a: any) => !a.intake_completed_at && a.intake_token);
-      intakeToken = candidate?.intake_token || '';
+        if (bookingRes.status() === 200) {
+          const bookingData = await bookingRes.json();
+          intakeToken = bookingData.intakeToken;
+          if (intakeToken) break;
+        }
+      }
+      if (intakeToken) break;
     }
 
     expect(intakeToken).toBeTruthy();
@@ -222,7 +240,7 @@ test.describe('Pre-Visit Digital Medical Intake Token-Gated Workflow Tests', () 
 
     await expect(page.getByTestId('state-intake-form')).toBeVisible({ timeout: 15000 });
     await expect(page.locator('h1:has-text("Pre-Visit Clinical Health History")')).toBeVisible();
-    await expect(page.getByText('Bryant Melliza')).toBeVisible();
+    await expect(page.getByText('Iverson Melliza')).toBeVisible();
 
     // 3. Fill basic fields ONLY — leave all allergy & condition checkboxes UNCHECKED
     const dobInput = page.locator('[data-testid="input-intake-dob"]');
