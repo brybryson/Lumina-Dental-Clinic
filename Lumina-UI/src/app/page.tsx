@@ -238,8 +238,8 @@ function Nav({ onEmergency }: { onEmergency: () => void }) {
         <div className="flex items-center justify-between">
           <Logo />
 
-          {/* Navigation Links */}
-          <nav aria-label="Primary navigation" className="hidden items-center gap-7 md:flex">
+          {/* Navigation Links (Responsive at 1024px+ and compact gaps) */}
+          <nav aria-label="Primary navigation" className="hidden items-center gap-4 lg:gap-6 xl:gap-7 lg:flex">
             <button
               onClick={() => go('treatments')}
               className="text-[13px] font-semibold text-slate-600 hover:text-[#0d9488] transition-colors cursor-pointer"
@@ -277,17 +277,17 @@ function Nav({ onEmergency }: { onEmergency: () => void }) {
           </nav>
 
           {/* Right Action Group */}
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="hidden items-center gap-2 sm:gap-2.5 lg:gap-3 md:flex">
             <button
-              className="text-[12.5px] font-bold text-rose-800 bg-rose-50/90 hover:bg-rose-100 border border-rose-200/80 px-3.5 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+              className="text-[12px] sm:text-[12.5px] font-bold text-rose-800 bg-rose-50/90 hover:bg-rose-100 border border-rose-200/80 px-2.5 sm:px-3.5 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
               onClick={onEmergency}
               data-testid="button-emergency-care"
             >
               <Phone size={13} className="text-rose-600" />
-              Emergency care
+              <span>Emergency care</span>
             </button>
             <button
-              className="button-primary flex items-center gap-2 rounded-xl px-4.5 py-2.5 text-[13px] font-bold shadow-xs cursor-pointer"
+              className="button-primary flex items-center gap-1.5 sm:gap-2 rounded-xl px-3.5 sm:px-4.5 py-2.5 text-[12.5px] sm:text-[13px] font-bold shadow-xs cursor-pointer shrink-0"
               onClick={() => {
                 trackEvent('cta_clicked', { location: 'nav' });
                 go('booking-section');
@@ -298,9 +298,9 @@ function Nav({ onEmergency }: { onEmergency: () => void }) {
             </button>
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Button (Visible below lg breakpoint) */}
           <button
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700 md:hidden cursor-pointer"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700 lg:hidden cursor-pointer"
             onClick={() => setOpen(!open)}
             aria-label="Toggle navigation menu"
             data-testid="button-mobile-menu"
@@ -309,9 +309,9 @@ function Nav({ onEmergency }: { onEmergency: () => void }) {
           </button>
         </div>
 
-        {/* Mobile Dropdown */}
+        {/* Mobile / Tablet Dropdown */}
         {open && (
-          <div className="mt-3 border-t border-slate-100 pt-3 md:hidden">
+          <div className="mt-3 border-t border-slate-100 pt-3 lg:hidden">
             <div className="flex flex-col gap-2">
               <button
                 className="text-left py-1.5 text-sm font-semibold text-slate-700"

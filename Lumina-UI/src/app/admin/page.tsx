@@ -843,7 +843,7 @@ export default function AdminDashboardPage() {
                 <div className="grid grid-cols-7 gap-2 sm:gap-2.5">
                   {/* Blank days before month start */}
                   {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                    <div key={`blank-${i}`} className="min-h-[140px] sm:min-h-[155px] rounded-2xl bg-slate-50/40 p-2.5 border border-transparent" />
+                    <div key={`blank-${i}`} className="min-h-[165px] sm:min-h-[190px] rounded-2xl bg-slate-50/40 p-2.5 border border-transparent" />
                   ))}
 
                   {/* Month Days */}
@@ -858,7 +858,7 @@ export default function AdminDashboardPage() {
                       <div
                         key={`day-${dayNum}`}
                         onClick={() => setSelectedCalendarDay(dateKey)}
-                        className={`min-h-[140px] sm:min-h-[155px] rounded-2xl p-2.5 sm:p-3 border transition-all cursor-pointer flex flex-col justify-between group ${
+                        className={`min-h-[165px] sm:min-h-[190px] rounded-2xl p-2.5 sm:p-3 border transition-all cursor-pointer flex flex-col justify-between group ${
                           isToday
                             ? 'bg-teal-50/70 border-[#0d9488] ring-1.5 ring-[#0d9488]/40 shadow-xs'
                             : holidayName
@@ -878,11 +878,6 @@ export default function AdminDashboardPage() {
                             >
                               {dayNum}
                             </span>
-                            {dayAppointments.length > 0 && (
-                              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#0d9488] text-white shadow-2xs">
-                                {dayAppointments.length}
-                              </span>
-                            )}
                           </div>
 
                           {/* Holiday Badge (Google Calendar Style full-width pill) */}
@@ -895,8 +890,8 @@ export default function AdminDashboardPage() {
                           )}
                         </div>
 
-                        {/* Middle/Bottom: Cute Google Calendar Event Chips (Top-to-Bottom) */}
-                        <div className="space-y-1.5 mt-2 flex-1 overflow-y-auto thin-scrollbar pr-0.5 max-h-[85px]">
+                        {/* Middle/Bottom: Cute Google Calendar Event Chips (Top-to-Bottom, More Height) */}
+                        <div className="space-y-1.5 mt-2 flex-1 overflow-y-auto no-scrollbar max-h-[125px] sm:max-h-[145px]">
                           {dayAppointments.map((apt) => (
                             <div
                               key={apt.id}
@@ -1039,8 +1034,8 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
-            {/* Scrollable Appointment List (Fits 3 items seamlessly) */}
-            <div className="flex-1 overflow-y-auto thin-scrollbar pr-1.5 space-y-3.5 py-4 my-1">
+            {/* Scrollable Appointment List (Invisible Scrollbar, Fits 3 items seamlessly) */}
+            <div className="flex-1 overflow-y-auto no-scrollbar space-y-3.5 py-4 my-1">
               {appointments.filter((a) => a.appointment_date === selectedCalendarDay).length === 0 ? (
                 <div className="p-10 text-center text-slate-400">
                   <p className="text-[15px] font-medium">No appointments booked for this date.</p>
