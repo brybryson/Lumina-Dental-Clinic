@@ -112,12 +112,13 @@ function UnsubscribeContent() {
               Direct appointment confirmations, intake documents, and urgent chairside notices for actively scheduled visits will continue to reach your inbox for medical record safety.
             </div>
 
-            <div className="pt-2">
+            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between text-[13px] text-slate-500">
+              <span>Lumina Dental Clinic &copy; 2026</span>
               <a
                 href="/"
-                className="button-primary w-full py-4 px-6 rounded-xl text-white text-center font-bold text-[15px] cursor-pointer block"
+                className="text-[13.5px] font-semibold text-[#0f172a] hover:text-[#0d9488] transition-colors flex items-center gap-1.5 cursor-pointer"
               >
-                Return to Home
+                <ArrowLeft className="w-4 h-4" /> Back to Lumina Home
               </a>
             </div>
           </div>
@@ -253,11 +254,14 @@ function UnsubscribeContent() {
               </div>
             </form>
 
-            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between text-[12px] text-slate-400">
-              <a href="/" className="hover:text-slate-700 transition-colors flex items-center gap-1">
-                <ArrowLeft className="w-3.5 h-3.5" /> Back to Lumina Home
+            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between text-[13px] text-slate-500">
+              <span>Lumina Dental Clinic &copy; 2026</span>
+              <a
+                href="/"
+                className="text-[13.5px] font-semibold text-[#0f172a] hover:text-[#0d9488] transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" /> Back to Lumina Home
               </a>
-              <span>Lumina Dental Studio &copy; 2026</span>
             </div>
           </div>
         )}
