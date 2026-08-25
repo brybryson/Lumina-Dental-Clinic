@@ -221,6 +221,8 @@ export default function AdminDashboardPage() {
   // Staff Search & Filtering State
   const [staffSearchQuery, setStaffSearchQuery] = useState('');
   const [staffRoleFilter, setStaffRoleFilter] = useState('all');
+  const [staffCurrentPage, setStaffCurrentPage] = useState(1);
+  const STAFF_PER_PAGE = 9;
   const [staffToDelete, setStaffToDelete] = useState<StaffUser | null>(null);
   const [isDeletingStaff, setIsDeletingStaff] = useState(false);
 
@@ -641,6 +643,12 @@ export default function AdminDashboardPage() {
     }
     return true;
   });
+
+  const totalStaffPages = Math.ceil(filteredStaffList.length / STAFF_PER_PAGE) || 1;
+  const paginatedStaffList = filteredStaffList.slice(
+    (staffCurrentPage - 1) * STAFF_PER_PAGE,
+    staffCurrentPage * STAFF_PER_PAGE
+  );
 
   // Top Metrics
   const totalCount = appointments.length;
@@ -1241,6 +1249,7 @@ export default function AdminDashboardPage() {
 
                 <div className="grid grid-cols-7 gap-2 sm:gap-2.5">
                   {fullCalendarDays.map(({ dayNum, dateKey, isCurrentMonth }, idx) => {
+                    const isSunday = idx % 7 === 0;
                     const holidayName = PH_HOLIDAYS_2026[dateKey];
                     const dayAppointments = appointments.filter((a) => a.appointment_date === dateKey);
                     const isToday = dateKey === todayManilaKey;
@@ -1248,15 +1257,17 @@ export default function AdminDashboardPage() {
                     return (
                       <div
                         key={`cell-${dateKey}-${idx}`}
-                        onClick={() => setSelectedCalendarDay(dateKey)}
-                        className={`min-h-[165px] sm:min-h-[190px] rounded-2xl p-2.5 sm:p-3 border transition-all cursor-pointer flex flex-col justify-between group ${
-                          !isCurrentMonth
-                            ? 'bg-slate-50/40 border-slate-100 opacity-50 hover:opacity-100 hover:border-slate-300'
+                        onClick={() => !isSunday && setSelectedCalendarDay(dateKey)}
+                        className={`min-h-[165px] sm:min-h-[190px] rounded-2xl p-2.5 sm:p-3 border transition-all flex flex-col justify-between group ${
+                          isSunday
+                            ? 'bg-slate-100/50 border-slate-200/50 cursor-not-allowed opacity-60'
+                            : !isCurrentMonth
+                            ? 'bg-slate-50/40 border-slate-100 opacity-50 hover:opacity-100 hover:border-slate-300 cursor-pointer'
                             : isToday
-                            ? 'bg-teal-50/70 border-[#0d9488] ring-1.5 ring-[#0d9488]/40 shadow-xs'
+                            ? 'bg-teal-50/70 border-[#0d9488] ring-1.5 ring-[#0d9488]/40 shadow-xs cursor-pointer'
                             : holidayName
-                            ? 'bg-amber-50/40 border-amber-200 hover:border-amber-400'
-                            : 'bg-white border-slate-200/80 hover:border-[#0d9488]/50 hover:bg-slate-50/60'
+                            ? 'bg-amber-50/40 border-amber-200 hover:border-amber-400 cursor-pointer'
+                            : 'bg-white border-slate-200/80 hover:border-[#0d9488]/50 hover:bg-slate-50/60 cursor-pointer'
                         }`}
                       >
                         <div className="space-y-1">
@@ -1265,6 +1276,8 @@ export default function AdminDashboardPage() {
                               className={`text-[13.5px] sm:text-[14px] font-bold ${
                                 isToday
                                   ? 'w-6 h-6 rounded-full bg-[#0d9488] text-white flex items-center justify-center text-[12px] shadow-xs'
+                                  : isSunday
+                                  ? 'text-slate-400'
                                   : !isCurrentMonth
                                   ? 'text-slate-300'
                                   : 'text-slate-800'
@@ -1452,7 +1465,10 @@ export default function AdminDashboardPage() {
               <div className="flex items-center gap-2">
                 <select
                   value={staffRoleFilter}
-                  onChange={(e) => setStaffRoleFilter(e.target.value)}
+                  onChange={(e) => {
+                    setStaffRoleFilter(e.target.value);
+                    setStaffCurrentPage(1);
+                  }}
                   className="py-1.5 px-3 rounded-xl text-[12.5px] sm:text-[13px] font-semibold border border-slate-200 bg-white text-slate-700 cursor-pointer focus:outline-none"
                 >
                   <option value="all">All Roles</option>
@@ -1462,7 +1478,7 @@ export default function AdminDashboardPage() {
                 </select>
 
                 <span className="text-[12px] text-slate-400 font-semibold">
-                  Showing {filteredStaffList.length} of {staffList.length} accounts
+                  Showing {paginatedStaffList.length} of {filteredStaffList.length} accounts
                 </span>
               </div>
 
@@ -1471,16 +1487,19 @@ export default function AdminDashboardPage() {
                 <input
                   type="text"
                   value={staffSearchQuery}
-                  onChange={(e) => setStaffSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setStaffSearchQuery(e.target.value);
+                    setStaffCurrentPage(1);
+                  }}
                   placeholder="Search staff by name, email..."
                   className="w-full pl-9 pr-3 py-1.5 text-[12.5px] sm:text-[13px] rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30"
                 />
               </div>
             </div>
 
-            {/* Staff Multi-Column Cards Grid (Clean Layout - No Initials) */}
+            {/* Staff Multi-Column Cards Grid (9 Cards Per Page) */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
-              {filteredStaffList.map((staff) => {
+              {paginatedStaffList.map((staff) => {
                 const isPrimaryOwner = staff.email === 'bryantiversonmelliza03@gmail.com';
 
                 return (
@@ -1568,6 +1587,50 @@ export default function AdminDashboardPage() {
                 );
               })}
             </div>
+
+            {/* Pagination Controls (Triggers when staff users exceed 9/10 cards) */}
+            {filteredStaffList.length > 9 && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-slate-200/90 shadow-lumina">
+                <span className="text-[12.5px] text-slate-500 font-semibold">
+                  Showing {(staffCurrentPage - 1) * STAFF_PER_PAGE + 1} &ndash; {Math.min(staffCurrentPage * STAFF_PER_PAGE, filteredStaffList.length)} of {filteredStaffList.length} staff accounts (Page {staffCurrentPage} of {totalStaffPages})
+                </span>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    disabled={staffCurrentPage === 1}
+                    onClick={() => setStaffCurrentPage((p) => Math.max(p - 1, 1))}
+                    className="px-3.5 py-1.5 rounded-xl border border-slate-200 text-slate-600 text-[12.5px] font-bold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all"
+                  >
+                    Previous
+                  </button>
+
+                  {Array.from({ length: totalStaffPages }).map((_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button
+                        key={`page-${pageNum}`}
+                        onClick={() => setStaffCurrentPage(pageNum)}
+                        className={`w-8 h-8 rounded-xl text-[12.5px] font-bold transition-all cursor-pointer ${
+                          staffCurrentPage === pageNum
+                            ? 'bg-[#0d9488] text-white shadow-xs'
+                            : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    disabled={staffCurrentPage === totalStaffPages}
+                    onClick={() => setStaffCurrentPage((p) => Math.min(p + 1, totalStaffPages))}
+                    className="px-3.5 py-1.5 rounded-xl border border-slate-200 text-slate-600 text-[12.5px] font-bold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
