@@ -30,8 +30,7 @@ export default function AdminLoginPage() {
         throw new Error(data.error || 'Authentication failed. Please check your credentials.');
       }
 
-      router.push('/admin');
-      router.refresh();
+      window.location.href = '/admin';
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : 'Login failed');
     } finally {

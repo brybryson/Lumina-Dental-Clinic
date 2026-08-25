@@ -1,7 +1,17 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import { getScreenshotFolder } from './helpers';
 
-test.describe('Lumina Clinic Admin Portal & Dentist Dashboard E2E Tests', () => {
+async function loginAsDentist(page: Page) {
+  await page.goto('/admin/login');
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: /Dr. Lumina \(Dentist\)/i }).click();
+  await page.getByRole('button', { name: /Sign In to Lumina Portal/i }).click();
+  await page.waitForURL(/\/admin/, { timeout: 15000 });
+  await page.waitForLoadState('networkidle');
+  await expect(page.getByText('Dr. Lumina')).toBeVisible({ timeout: 15000 });
+}
+
+test.describe('Lumina Clinic Admin Portal & Interactive Calendar E2E Tests', () => {
   const folder = getScreenshotFolder('admin');
 
   test('should validate staff login, reject invalid credentials, and authenticate Dr. Lumina', async ({ page }) => {
@@ -28,9 +38,8 @@ test.describe('Lumina Clinic Admin Portal & Dentist Dashboard E2E Tests', () => 
     await page.getByRole('button', { name: /Sign In to Lumina Portal/i }).click();
 
     // Verify redirected to /admin dashboard
-    await expect(page).toHaveURL(/\/admin/);
-    await expect(page.getByText('Dr. Lumina, DDS')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/Lead Attending Dentist/i)).toBeVisible();
+    await page.waitForURL(/\/admin/, { timeout: 15000 });
+    await expect(page.getByText('Dr. Lumina')).toBeVisible({ timeout: 10000 });
 
     await page.screenshot({
       path: `${folder}/02-admin-dashboard-loaded.png`,
@@ -38,88 +47,97 @@ test.describe('Lumina Clinic Admin Portal & Dentist Dashboard E2E Tests', () => 
     });
   });
 
-  test('should render daily schedule, metrics, and switch tabs between Inquiries and Calendar', async ({ page }) => {
-    // Authenticate
-    await page.goto('/admin/login');
-    await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: /Dr. Lumina \(Dentist\)/i }).click();
-    await page.getByRole('button', { name: /Sign In to Lumina Portal/i }).click();
-    await expect(page.getByText('Dr. Lumina, DDS')).toBeVisible({ timeout: 10000 });
+  test('should render daily schedule, metrics, and filter appointments', async ({ page }) => {
+    await loginAsDentist(page);
 
     // Verify Metrics Row
-    await expect(page.getByText('Total Appointments')).toBeVisible();
-    await expect(page.getByText('Treatments Completed')).toBeVisible();
-    await expect(page.getByText('Pending Intakes')).toBeVisible();
+    await expect(page.getByText(/TOTAL VISITS/i)).toBeVisible();
+    await expect(page.getByText('COMPLETED', { exact: true })).toBeVisible();
+    await expect(page.getByText(/INTAKES PENDING/i)).toBeVisible();
 
-    // Switch to Inquiries Tab
-    await page.getByRole('button', { name: /Inquiries & Leads/i }).click();
-    await expect(page.getByRole('heading', { name: /Clinical Inquiries & Lead Recovery Hub/i })).toBeVisible();
-
-    await page.screenshot({
-      path: `${folder}/03-admin-inquiries-tab.png`,
-      fullPage: false,
-    });
-
-    // Switch to Calendar Tab
-    await page.getByRole('button', { name: /Google Calendar Sync/i }).click();
-    await expect(page.getByRole('heading', { name: /Google Calendar & Multi-Operatory Engine/i })).toBeVisible();
-    await expect(page.getByText('luminadentalclinic2026@gmail.com')).toBeVisible();
+    // Test Date Filter
+    await page.getByRole('button', { name: /Today \(Aug 25\)/i }).click();
+    await page.getByRole('button', { name: /All Visits/i }).click();
 
     await page.screenshot({
-      path: `${folder}/04-admin-calendar-sync-tab.png`,
+      path: `${folder}/03-admin-schedule-filtered.png`,
       fullPage: false,
     });
   });
 
-  test('should open Medical Intake viewer modal and display clinical history and allergies', async ({ page }) => {
-    await page.goto('/admin/login');
-    await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: /Dr. Lumina \(Dentist\)/i }).click();
-    await page.getByRole('button', { name: /Sign In to Lumina Portal/i }).click();
-    await expect(page.getByText('Dr. Lumina, DDS')).toBeVisible({ timeout: 10000 });
+  test('should navigate Interactive Studio Calendar with Philippine Holidays and day modal', async ({ page }) => {
+    await loginAsDentist(page);
+
+    // Switch to Clinic Calendar Tab
+    await page.getByRole('button', { name: /Studio Calendar & PH Holidays/i }).click();
+    await expect(page.getByText('August 2026')).toBeVisible();
+
+    // Verify Philippine Holidays rendered
+    await expect(page.getByText(/Ninoy Aquino Day/i)).toBeVisible();
+    await expect(page.getByText(/National Heroes Day/i)).toBeVisible();
+
+    await page.screenshot({
+      path: `${folder}/04-admin-calendar-month-holidays.png`,
+      fullPage: false,
+    });
+
+    // Month navigation: Click Next Month (September) then Prev Month
+    await page.getByLabel('Next Month').click();
+    await expect(page.getByText('September 2026')).toBeVisible();
+    await page.getByRole('button', { name: 'Today', exact: true }).click();
+    await expect(page.getByText('August 2026')).toBeVisible();
+
+    // Click a day cell to open Day Schedule Modal
+    const dayCell = page.locator('div[class*="rounded-2xl"]:has-text("28")').first();
+    if (await dayCell.isVisible()) {
+      await dayCell.click();
+      await expect(page.getByText(/DAILY CLINICAL SCHEDULE/i)).toBeVisible();
+
+      await page.screenshot({
+        path: `${folder}/05-admin-calendar-day-modal.png`,
+        fullPage: false,
+      });
+
+      await page.getByRole('button', { name: /Close/i }).click();
+    }
+  });
+
+  test('should open Medical Intake modal and Treatment Completion modal', async ({ page }) => {
+    await loginAsDentist(page);
 
     // Switch to Chairside Schedule
     await page.getByRole('button', { name: /Chairside Schedule/i }).click();
 
     // If an intake badge is present, click View
-    const intakeViewBtn = page.getByRole('button', { name: /Intake Form Received/i }).first();
+    const intakeViewBtn = page.getByRole('button', { name: /Intake Form/i }).first();
     if (await intakeViewBtn.isVisible()) {
       await intakeViewBtn.click();
-      await expect(page.getByText(/PATIENT CLINICAL HEALTH HISTORY/i)).toBeVisible();
+      await expect(page.getByText(/PATIENT MEDICAL HEALTH RECORD/i)).toBeVisible();
       await expect(page.getByText(/Emergency Contact/i)).toBeVisible();
 
       await page.screenshot({
-        path: `${folder}/05-admin-medical-intake-modal.png`,
+        path: `${folder}/06-admin-medical-intake-modal.png`,
         fullPage: false,
       });
 
-      // Close modal
       await page.getByRole('button', { name: /Close Record/i }).click();
     }
-  });
 
-  test('should trigger Treatment Completion modal with Complication Flag (HITL Safeguard)', async ({ page }) => {
-    await page.goto('/admin/login');
-    await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: /Dr. Lumina \(Dentist\)/i }).click();
-    await page.getByRole('button', { name: /Sign In to Lumina Portal/i }).click();
-    await expect(page.getByText('Dr. Lumina, DDS')).toBeVisible({ timeout: 10000 });
-
-    // Locate Complete Treatment or Edit Outcome button
-    const completeBtn = page.getByRole('button', { name: /Complete Treatment|Edit Outcome/i }).first();
+    // Locate Complete Visit or Edit Outcome button
+    const completeBtn = page.getByRole('button', { name: /Complete Visit|Edit Outcome/i }).first();
     if (await completeBtn.isVisible()) {
       await completeBtn.click();
 
-      // Verify Modal opens with radio options
+      // Verify Modal opens with simplified text options (no emojis)
       await expect(page.getByText(/CHAIRSIDE TREATMENT MARK-OFF/i)).toBeVisible();
-      await expect(page.getByText(/Standard Routine — No Complications/i)).toBeVisible();
+      await expect(page.getByText(/Standard Visit — Normal Recovery/i)).toBeVisible();
       await expect(page.getByText(/Complication Encountered/i)).toBeVisible();
 
       // Select Complication option
       await page.getByLabel(/Complication Encountered/i).check();
 
       await page.screenshot({
-        path: `${folder}/06-admin-completion-modal-complication.png`,
+        path: `${folder}/07-admin-completion-modal-polished.png`,
         fullPage: false,
       });
 

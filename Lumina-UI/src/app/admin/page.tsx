@@ -12,17 +12,17 @@ import {
   Phone,
   Mail,
   LogOut,
-  ExternalLink,
   Search,
-  Filter,
   ShieldCheck,
-  Sparkles,
   RefreshCw,
   X,
   Stethoscope,
   Inbox,
-  Activity,
-  HeartPulse,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+  Check,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface Patient {
@@ -78,6 +78,80 @@ interface Inquiry {
   created_at: string;
 }
 
+// 2026 Philippine Official Holidays
+const PH_HOLIDAYS_2026: Record<string, string> = {
+  '2026-01-01': "New Year's Day",
+  '2026-01-02': 'Special Non-Working Holiday',
+  '2026-02-17': 'Chinese New Year',
+  '2026-02-25': 'EDSA People Power Revolution',
+  '2026-04-02': 'Maundy Thursday',
+  '2026-04-03': 'Good Friday',
+  '2026-04-04': 'Black Saturday',
+  '2026-04-09': 'Araw ng Kagitingan',
+  '2026-05-01': 'Labor Day',
+  '2026-06-12': 'Independence Day',
+  '2026-08-21': 'Ninoy Aquino Day',
+  '2026-08-31': 'National Heroes Day',
+  '2026-11-01': "All Saints' Day",
+  '2026-11-02': "All Souls' Day",
+  '2026-11-30': 'Bonifacio Day',
+  '2026-12-08': 'Feast of the Immaculate Conception',
+  '2026-12-24': 'Christmas Eve',
+  '2026-12-25': 'Christmas Day',
+  '2026-12-30': 'Rizal Day',
+  '2026-12-31': "New Year's Eve",
+};
+
+// Formats YYYY-MM-DD into "August 25, 2026"
+function formatLongDate(dateStr?: string): string {
+  if (!dateStr) return '';
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const date = new Date(year, month, day);
+      return date.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+  } catch {}
+  return dateStr;
+}
+
+// Clean status badge formatter
+function formatStatusText(status?: string): string {
+  if (!status) return 'Confirmed';
+  switch (status.toLowerCase()) {
+    case 'intake_submitted':
+      return 'Intake Submitted';
+    case 'lead_captured':
+      return 'Lead Captured';
+    case 'in_review':
+      return 'In Review';
+    case 'completed':
+      return 'Completed';
+    case 'cancelled':
+      return 'Cancelled';
+    case 'no_show':
+      return 'No Show';
+    case 'confirmed':
+    default:
+      return 'Confirmed';
+  }
+}
+
 export default function AdminDashboardPage() {
   const router = useRouter();
 
@@ -85,18 +159,24 @@ export default function AdminDashboardPage() {
   const [currentUser, setCurrentUser] = useState<{ email: string; name: string; role: string } | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  // Tab & Data State
-  const [activeTab, setActiveTab] = useState<'schedule' | 'inquiries' | 'calendar'>('schedule');
+  // Tab State
+  const [activeTab, setActiveTab] = useState<'schedule' | 'calendar' | 'inquiries'>('schedule');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
-  // Filters
+  // Schedule Filters
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'tomorrow' | string>('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Selected Items for Modals
+  // Calendar View State
+  const [currentYear, setCurrentYear] = useState(2026);
+  const [currentMonth, setCurrentMonth] = useState(7); // 7 = August
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null);
+  const [returnToCalendarDay, setReturnToCalendarDay] = useState<string | null>(null);
+
+  // Modals State
   const [completingApt, setCompletingApt] = useState<Appointment | null>(null);
   const [completionOutcome, setCompletionOutcome] = useState<'standard' | 'complication'>('standard');
   const [completionNotes, setCompletionNotes] = useState('');
@@ -104,6 +184,27 @@ export default function AdminDashboardPage() {
 
   const [viewingIntakeApt, setViewingIntakeApt] = useState<Appointment | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState('');
+
+  // Live Philippine Clock
+  const [currentTimePST, setCurrentTimePST] = useState('');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTimePST(
+        now.toLocaleTimeString('en-US', {
+          timeZone: 'Asia/Manila',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true,
+        })
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Check auth session
   useEffect(() => {
@@ -190,13 +291,14 @@ export default function AdminDashboardPage() {
 
       setActionSuccessMsg(
         isComplication
-          ? `⚠️ Treatment completed with Complication Alert for ${completingApt.patients.first_name}. Automated emails bypassed; Slack alert triggered for manual staff phone check-in.`
-          : `✅ Treatment completed for ${completingApt.patients.first_name}. Standard Post-Op Care Sequence dispatched via Workflow 3.`
+          ? `Follow-up alert dispatched for ${completingApt.patients.first_name}. Automated sequence bypassed; Slack alert sent to the clinical care team.`
+          : `Visit marked complete for ${completingApt.patients.first_name}. Post-Op Care Sequence scheduled.`
       );
 
       setCompletingApt(null);
       setCompletionNotes('');
       setCompletionOutcome('standard');
+      setReturnToCalendarDay(null);
       loadDashboardData();
 
       setTimeout(() => setActionSuccessMsg(''), 8000);
@@ -223,18 +325,51 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // Calendar Month Helpers
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const handlePrevMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear(currentYear - 1);
+    } else {
+      setCurrentMonth(currentMonth - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear(currentYear + 1);
+    } else {
+      setCurrentMonth(currentMonth + 1);
+    }
+  };
+
+  const handleTodayMonth = () => {
+    setCurrentYear(2026);
+    setCurrentMonth(7); // August 2026
+  };
+
+  // Build Calendar Days
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen hero-wash flex items-center justify-center">
+      <div className="min-h-screen hero-wash flex items-center justify-center font-sans px-4">
         <div className="text-center">
           <div className="w-8 h-8 border-3 border-[#0d9488]/30 border-t-[#0d9488] rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm font-semibold text-slate-600">Authenticating Clinical Session...</p>
+          <p className="text-sm font-semibold text-slate-600">Accessing Lumina Clinical Portal...</p>
         </div>
       </div>
     );
   }
 
-  // Filter Appointments
+  // Filter Appointments for Schedule Tab
   const filteredAppointments = appointments.filter((apt) => {
     const todayStr = '2026-08-25';
     const tomorrowStr = '2026-08-26';
@@ -258,126 +393,150 @@ export default function AdminDashboardPage() {
     return true;
   });
 
-  // Metrics
+  // Top Metrics
   const totalCount = appointments.length;
   const completedCount = appointments.filter((a) => a.status === 'completed').length;
   const flaggedComplicationsCount = appointments.filter((a) => a.flag_for_manual_followup).length;
   const pendingIntakeCount = appointments.filter((a) => !a.intake_completed_at && a.status === 'confirmed').length;
 
   return (
-    <div className="min-h-screen bg-slate-50/70 text-[#0f172a]">
-      {/* Top Clinic Navigation Header */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-4 sm:px-8 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3.5">
-          <a href="/" className="inline-flex items-center gap-2.5 group">
+    <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] font-sans">
+      {/* Top Clinical Navigation Bar (Responsive on Mobile, Tablet & Desktop) */}
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3 sm:px-8 py-3 flex items-center justify-between shadow-xs">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <a href="/" className="inline-flex items-center gap-2.5 group" aria-label="Lumina Dental Clinic home">
             <img
               src="/images/lumina-logo.png"
-              alt="Lumina Logo"
-              className="h-8 w-auto object-contain"
+              alt="Lumina Dental Studio"
+              className="h-7 sm:h-8.5 w-auto object-contain transition-transform group-hover:scale-105"
             />
             <div>
-              <span className="block display font-extrabold text-[#0f172a] text-[17px] leading-tight">
+              <span className="block display font-extrabold text-[#0f172a] text-[15.5px] sm:text-[17.5px] leading-tight tracking-tight">
                 Lumina Dental Studio
               </span>
-              <span className="block text-[10px] text-[#0d9488] font-bold tracking-[0.14em] uppercase">
-                Clinical Admin &amp; Dentist Dashboard
+              <span className="block text-[9.5px] sm:text-[10.5px] text-[#0d9488] font-bold tracking-[0.12em] uppercase">
+                Clinical Operations &amp; Doctor Hub
               </span>
             </div>
           </a>
         </div>
 
-        {/* User Profile & Actions */}
-        <div className="flex items-center gap-3">
-          <a
-            href="https://calendar.google.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden md:inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-slate-200 text-[12.5px] font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-          >
-            <CalendarIcon className="w-3.5 h-3.5 text-[#0d9488]" />
-            Google Calendar
-            <ExternalLink className="w-3 h-3 text-slate-400" />
-          </a>
+        {/* Center PST Live Clock (Hidden on small mobile, visible on sm+) */}
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100/90 border border-slate-200/80 text-[12px] text-slate-600 font-medium">
+          <Clock className="w-3.5 h-3.5 text-[#0d9488]" />
+          <span>Manila (PST):</span>
+          <span className="font-mono font-bold text-[#0f172a]">{currentTimePST || '08:00:00 AM'}</span>
+        </div>
 
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-teal-50/80 border border-[#0d9488]/20 rounded-xl">
-            <Stethoscope className="w-4 h-4 text-[#0d9488]" />
-            <div className="text-left">
-              <span className="block text-[12.5px] font-bold text-[#0f766e] leading-tight">
+        {/* User Profile & Actions */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-xl bg-teal-50/90 border border-[#0d9488]/20">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#0d9488] text-white font-bold flex items-center justify-center text-[11px] sm:text-[12px] shadow-xs">
+              DL
+            </div>
+            <div className="text-left hidden xs:block sm:block">
+              <span className="block text-[12.5px] sm:text-[13px] font-bold text-[#0f172a] leading-tight">
                 {currentUser?.name || 'Dr. Lumina'}
               </span>
-              <span className="block text-[10px] text-[#0d9488] font-medium">
-                {currentUser?.role || 'Attending Dentist'}
+              <span className="block text-[10px] sm:text-[10.5px] text-[#0d9488] font-semibold">
+                {currentUser?.role || 'Attending Clinician'}
               </span>
             </div>
           </div>
 
           <button
             onClick={handleLogout}
-            className="p-2 rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50 border border-slate-200 transition-colors"
-            title="Log Out of Clinic Portal"
+            className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 transition-colors"
+            title="Log Out"
           >
             <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-6">
-        {/* Banner Alert if any action was performed */}
+      {/* Main Container */}
+      <main className="max-w-7xl mx-auto px-3 sm:px-8 py-5 sm:py-8 space-y-5 sm:space-y-6">
+        {/* Banner Alert Notice */}
         {actionSuccessMsg && (
-          <div className="p-4 rounded-2xl bg-teal-50 border border-[#0d9488]/30 text-[#0f766e] text-[14px] flex items-start gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-teal-50/90 border border-[#0d9488]/30 text-[#0f766e] text-[13px] sm:text-[13.5px] flex items-start gap-3 shadow-xs animate-in fade-in slide-in-from-top-2">
             <CheckCircle2 className="w-5 h-5 shrink-0 text-[#0d9488] mt-0.5" />
-            <div className="flex-1 font-medium">{actionSuccessMsg}</div>
+            <div className="flex-1 font-medium leading-relaxed">{actionSuccessMsg}</div>
             <button onClick={() => setActionSuccessMsg('')} className="text-slate-400 hover:text-slate-600">
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        {/* Top Summary Metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
-            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-              Total Appointments
-            </p>
-            <p className="display text-2xl sm:text-3xl font-extrabold text-[#0f172a]">{totalCount}</p>
+        {/* Metrics Row (Responsive 2x2 on Mobile, 4x1 on Tablet/Desktop) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina flex items-center justify-between">
+            <div>
+              <p className="eyebrow text-[10px] sm:text-[11px] mb-1">TOTAL VISITS</p>
+              <p className="display text-2xl sm:text-3xl font-extrabold text-[#0f172a] tracking-tight">{totalCount}</p>
+            </div>
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-700">
+              <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
           </div>
-          <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
-            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-              Treatments Completed
-            </p>
-            <p className="display text-2xl sm:text-3xl font-extrabold text-[#0d9488]">{completedCount}</p>
+
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina flex items-center justify-between">
+            <div>
+              <p className="eyebrow text-[10px] sm:text-[11px] mb-1">COMPLETED</p>
+              <p className="display text-2xl sm:text-3xl font-extrabold text-[#0d9488] tracking-tight">{completedCount}</p>
+            </div>
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-teal-50 flex items-center justify-center text-[#0d9488]">
+              <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
           </div>
-          <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
-            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-              Pending Intakes
-            </p>
-            <p className="display text-2xl sm:text-3xl font-extrabold text-amber-600">{pendingIntakeCount}</p>
+
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina flex items-center justify-between">
+            <div>
+              <p className="eyebrow text-[10px] sm:text-[11px] mb-1 text-amber-700">INTAKES PENDING</p>
+              <p className="display text-2xl sm:text-3xl font-extrabold text-amber-700 tracking-tight">{pendingIntakeCount}</p>
+            </div>
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
           </div>
-          <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
-            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-              Complications ⚠️
-            </p>
-            <p className="display text-2xl sm:text-3xl font-extrabold text-rose-600">{flaggedComplicationsCount}</p>
+
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina flex items-center justify-between">
+            <div>
+              <p className="eyebrow text-[10px] sm:text-[11px] mb-1 text-rose-700">FOLLOW-UP ALERTS</p>
+              <p className="display text-2xl sm:text-3xl font-extrabold text-rose-700 tracking-tight">{flaggedComplicationsCount}</p>
+            </div>
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600">
+              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+        {/* Navigation Tabs (Smooth Scroll on Mobile) */}
+        <div className="flex items-center gap-1.5 sm:gap-2 border-b border-slate-200/80 pb-2.5 overflow-x-auto flex-nowrap no-scrollbar">
           <button
             onClick={() => setActiveTab('schedule')}
-            className={`py-2 px-4 rounded-xl text-[14px] font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`py-2 px-3.5 sm:px-4 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
               activeTab === 'schedule'
                 ? 'bg-[#0d9488] text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <CalendarIcon className="w-4 h-4" />
+            <Stethoscope className="w-4 h-4" />
             Chairside Schedule
           </button>
           <button
+            onClick={() => setActiveTab('calendar')}
+            className={`py-2 px-3.5 sm:px-4 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeTab === 'calendar'
+                ? 'bg-[#0d9488] text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <CalendarDays className="w-4 h-4" />
+            Studio Calendar &amp; PH Holidays
+          </button>
+          <button
             onClick={() => setActiveTab('inquiries')}
-            className={`py-2 px-4 rounded-xl text-[14px] font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`py-2 px-3.5 sm:px-4 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
               activeTab === 'inquiries'
                 ? 'bg-[#0d9488] text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -386,42 +545,31 @@ export default function AdminDashboardPage() {
             <Inbox className="w-4 h-4" />
             Inquiries &amp; Leads ({inquiries.length})
           </button>
-          <button
-            onClick={() => setActiveTab('calendar')}
-            className={`py-2 px-4 rounded-xl text-[14px] font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'calendar'
-                ? 'bg-[#0d9488] text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Activity className="w-4 h-4" />
-            Google Calendar Sync
-          </button>
         </div>
 
         {/* ========================================================================= */}
-        {/* TAB 1: SCHEDULE & CHAIRSIDE OPERATIONS                                  */}
+        {/* TAB 1: CHAIRSIDE SCHEDULE & PATIENT CARDS                                */}
         {/* ========================================================================= */}
         {activeTab === 'schedule' && (
           <div className="space-y-4">
-            {/* Control Bar: Filters & Search */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+            {/* Filter and Search Bar */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 sm:p-4 bg-white rounded-2xl border border-slate-200/90 shadow-lumina">
+              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 md:pb-0">
                 <button
                   onClick={() => setDateFilter('all')}
-                  className={`py-1.5 px-3 rounded-lg text-[13px] font-semibold border transition-all cursor-pointer ${
+                  className={`py-1.5 px-3 rounded-xl text-[12.5px] sm:text-[13px] font-semibold border transition-all shrink-0 cursor-pointer ${
                     dateFilter === 'all'
-                      ? 'bg-slate-900 text-white border-slate-900'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                       : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  All Dates
+                  All Visits
                 </button>
                 <button
                   onClick={() => setDateFilter('today')}
-                  className={`py-1.5 px-3 rounded-lg text-[13px] font-semibold border transition-all cursor-pointer ${
+                  className={`py-1.5 px-3 rounded-xl text-[12.5px] sm:text-[13px] font-semibold border transition-all shrink-0 cursor-pointer ${
                     dateFilter === 'today'
-                      ? 'bg-slate-900 text-white border-slate-900'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                       : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
@@ -429,9 +577,9 @@ export default function AdminDashboardPage() {
                 </button>
                 <button
                   onClick={() => setDateFilter('tomorrow')}
-                  className={`py-1.5 px-3 rounded-lg text-[13px] font-semibold border transition-all cursor-pointer ${
+                  className={`py-1.5 px-3 rounded-xl text-[12.5px] sm:text-[13px] font-semibold border transition-all shrink-0 cursor-pointer ${
                     dateFilter === 'tomorrow'
-                      ? 'bg-slate-900 text-white border-slate-900'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                       : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
@@ -440,7 +588,7 @@ export default function AdminDashboardPage() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="py-1.5 px-3 rounded-lg text-[13px] font-semibold border border-slate-200 bg-white text-slate-700 cursor-pointer focus:outline-none"
+                  className="py-1.5 px-3 rounded-xl text-[12.5px] sm:text-[13px] font-semibold border border-slate-200 bg-white text-slate-700 cursor-pointer focus:outline-none shrink-0"
                 >
                   <option value="all">All Statuses</option>
                   <option value="confirmed">Confirmed</option>
@@ -451,19 +599,19 @@ export default function AdminDashboardPage() {
 
               <div className="flex items-center gap-2">
                 <div className="relative flex-1 md:w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search patient, service..."
-                    className="w-full pl-9 pr-3 py-1.5 text-[13px] rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#0d9488]"
+                    className="w-full pl-9 pr-3 py-1.5 text-[12.5px] sm:text-[13px] rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30"
                   />
                 </div>
                 <button
                   onClick={loadDashboardData}
                   disabled={isLoadingData}
-                  className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+                  className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors shrink-0"
                   title="Refresh Schedule"
                 >
                   <RefreshCw className={`w-4 h-4 ${isLoadingData ? 'animate-spin' : ''}`} />
@@ -471,125 +619,127 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Schedule List / Table */}
+            {/* Schedule Cards */}
             {filteredAppointments.length === 0 ? (
-              <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/90 text-slate-500">
+              <div className="p-10 sm:p-12 text-center bg-white rounded-3xl border border-slate-200/90 shadow-lumina text-slate-500">
                 <CalendarIcon className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-                <p className="text-[15px] font-bold text-[#0f172a]">No appointments found</p>
+                <p className="text-[16px] font-bold text-[#0f172a]">No appointments found</p>
                 <p className="text-[13px] text-slate-400 mt-1">
-                  Try adjusting your date or status filters above.
+                  Try adjusting the date filter or search query above.
                 </p>
               </div>
             ) : (
-              <div className="grid gap-3">
+              <div className="grid gap-3 sm:gap-3.5">
                 {filteredAppointments.map((apt) => {
                   const patient = apt.patients || {};
                   const intake = (apt.medical_intakes && apt.medical_intakes[0]) || null;
                   const hasAllergies = intake?.allergies && intake.allergies.length > 0;
-                  const hasConditions = intake?.medical_conditions && intake.medical_conditions.length > 0;
                   const isCompleted = apt.status === 'completed';
                   const isComplicated = apt.flag_for_manual_followup;
+
+                  const initials = `${patient.first_name?.[0] || ''}${patient.last_name?.[0] || ''}`.toUpperCase() || 'PT';
 
                   return (
                     <div
                       key={apt.id}
-                      className={`p-5 rounded-2xl bg-white border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs ${
+                      className={`p-4 sm:p-6 rounded-2xl sm:rounded-[22px] bg-white border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-5 shadow-lumina ${
                         isComplicated
                           ? 'border-red-300 bg-red-50/20'
                           : isCompleted
                           ? 'border-teal-200 bg-teal-50/10'
-                          : 'border-slate-200/90 hover:border-slate-300'
+                          : 'border-slate-200/90 hover:border-[#0d9488]/40'
                       }`}
                     >
-                      {/* Left: Time & Patient Info */}
-                      <div className="space-y-1.5 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="inline-flex items-center gap-1 font-mono font-bold text-[13px] bg-slate-100 text-slate-800 px-2.5 py-1 rounded-md">
-                            <Clock className="w-3.5 h-3.5 text-[#0d9488]" />
-                            {apt.appointment_date} &bull; {apt.time_slot}
-                          </span>
-
-                          {isCompleted ? (
-                            <span className="inline-flex items-center gap-1 text-[12px] font-bold bg-teal-100 text-[#0f766e] px-2.5 py-0.5 rounded-md">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Completed
-                            </span>
-                          ) : apt.status === 'cancelled' ? (
-                            <span className="inline-flex items-center gap-1 text-[12px] font-bold bg-slate-100 text-slate-500 px-2.5 py-0.5 rounded-md">
-                              Cancelled
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[12px] font-bold bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-md">
-                              Confirmed Reservation
-                            </span>
-                          )}
-
-                          {isComplicated && (
-                            <span className="inline-flex items-center gap-1 text-[12px] font-bold bg-red-100 text-red-700 px-2.5 py-0.5 rounded-md">
-                              <AlertTriangle className="w-3.5 h-3.5" /> Complication Flagged
-                            </span>
-                          )}
+                      {/* Left: Patient Avatar & Key Details */}
+                      <div className="flex items-start gap-3 sm:gap-4 flex-1">
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-teal-50 text-[#0d9488] border border-[#0d9488]/20 flex items-center justify-center font-extrabold text-[14px] sm:text-[15px] shrink-0">
+                          {initials}
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-[17px] font-extrabold text-[#0f172a]">
-                            {patient.first_name} {patient.last_name}
-                          </h3>
-                          {patient.sex_assigned_at_birth && (
-                            <span className="text-[12px] text-slate-400 font-medium">
-                              ({patient.sex_assigned_at_birth})
-                            </span>
-                          )}
-                        </div>
+                        <div className="space-y-1 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="display text-[17px] sm:text-[18px] font-extrabold text-[#0f172a] leading-snug tracking-tight">
+                              {patient.first_name} {patient.last_name}
+                            </h3>
+                            {patient.sex_assigned_at_birth && (
+                              <span className="text-[12px] text-slate-400 font-medium">
+                                ({patient.sex_assigned_at_birth})
+                              </span>
+                            )}
 
-                        <p className="text-[13.5px] font-semibold text-[#0d9488]">
-                          {apt.service_name}
-                        </p>
+                            {isCompleted ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] sm:text-[11.5px] font-bold bg-teal-100/80 text-[#0f766e] px-2.5 py-0.5 rounded-full">
+                                <Check className="w-3 h-3" /> Completed
+                              </span>
+                            ) : apt.status === 'cancelled' ? (
+                              <span className="inline-flex items-center text-[11px] sm:text-[11.5px] font-semibold bg-slate-100 text-slate-500 px-2.5 py-0.5 rounded-full">
+                                Cancelled
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center text-[11px] sm:text-[11.5px] font-bold bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full">
+                                {formatStatusText(apt.status)}
+                              </span>
+                            )}
 
-                        <div className="flex flex-wrap items-center gap-4 text-[12.5px] text-slate-500 pt-1">
-                          <span className="inline-flex items-center gap-1">
-                            <Phone className="w-3.5 h-3.5 text-slate-400" /> {patient.mobile}
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <Mail className="w-3.5 h-3.5 text-slate-400" /> {patient.email}
-                          </span>
-                          {apt.patient_notes && (
-                            <span className="text-slate-600 italic bg-slate-50 px-2 py-0.5 rounded-sm">
-                              &ldquo;{apt.patient_notes}&rdquo;
+                            {isComplicated && (
+                              <span className="inline-flex items-center gap-1 text-[11px] sm:text-[11.5px] font-bold bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full">
+                                <AlertTriangle className="w-3 h-3" /> Staff Check-in Needed
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                            <span className="inline-flex items-center gap-1.5 text-[12.5px] sm:text-[13px] font-semibold text-[#0f766e] bg-teal-50/90 px-2.5 py-1 rounded-lg border border-[#0d9488]/20">
+                              <Clock className="w-3.5 h-3.5 text-[#0d9488]" />
+                              {formatLongDate(apt.appointment_date)} &bull; {apt.time_slot}
                             </span>
-                          )}
+                            <span className="inline-flex items-center text-[12px] sm:text-[12.5px] font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+                              {apt.service_name}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[12px] sm:text-[12.5px] text-slate-500 pt-1">
+                            <span className="inline-flex items-center gap-1">
+                              <Phone className="w-3.5 h-3.5 text-slate-400" /> {patient.mobile}
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <Mail className="w-3.5 h-3.5 text-slate-400" /> {patient.email}
+                            </span>
+                            {apt.patient_notes && (
+                              <span className="text-slate-600 italic bg-slate-50 px-2 py-0.5 rounded">
+                                &ldquo;{apt.patient_notes}&rdquo;
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      {/* Middle: Medical Intake Status Badges */}
-                      <div className="flex flex-col gap-1.5 md:min-w-[200px]">
+                      {/* Middle: Medical Health History Pill */}
+                      <div className="flex flex-col gap-1.5 md:min-w-[180px]">
                         {intake ? (
                           <button
                             onClick={() => setViewingIntakeApt(apt)}
-                            className="inline-flex items-center justify-between p-2 rounded-xl bg-teal-50 border border-teal-200 text-left hover:bg-teal-100/70 transition-colors cursor-pointer"
+                            className="p-2 px-3 rounded-xl bg-teal-50 border border-teal-200/90 text-left hover:bg-teal-100/70 transition-all flex items-center justify-between group cursor-pointer"
                           >
-                            <div className="flex items-center gap-1.5 text-[12.5px] font-bold text-[#0f766e]">
+                            <span className="text-[12px] sm:text-[12.5px] font-bold text-[#0f766e] flex items-center gap-1.5">
                               <FileText className="w-3.5 h-3.5" />
-                              Intake Form Received
-                            </div>
-                            <span className="text-[11px] font-bold text-[#0d9488]">View &rarr;</span>
+                              Intake Form
+                            </span>
+                            <span className="text-[11px] sm:text-[11.5px] text-[#0d9488] font-bold group-hover:translate-x-0.5 transition-transform">
+                              View &rarr;
+                            </span>
                           </button>
                         ) : (
-                          <div className="p-2 rounded-xl bg-amber-50/70 border border-amber-200/80 text-[12px] font-medium text-amber-800 flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5 shrink-0 text-amber-600" />
-                            Intake Pending Patient Fill
+                          <div className="p-2 px-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-[11.5px] sm:text-[12px] font-medium text-amber-800 flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-amber-600" />
+                            Intake Pending
                           </div>
                         )}
 
                         {hasAllergies && (
-                          <div className="px-2.5 py-1 rounded-lg bg-red-100/80 border border-red-200 text-red-800 text-[11.5px] font-bold flex items-center gap-1.5">
+                          <div className="px-2.5 py-1 rounded-lg bg-red-100/80 border border-red-200 text-red-800 text-[11px] sm:text-[11.5px] font-bold flex items-center gap-1.5">
                             <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
                             Allergy: {intake?.allergies?.join(', ')}
-                          </div>
-                        )}
-
-                        {hasConditions && !hasAllergies && (
-                          <div className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-[11.5px] font-medium">
-                            Conditions: {intake?.medical_conditions?.join(', ')}
                           </div>
                         )}
                       </div>
@@ -602,11 +752,12 @@ export default function AdminDashboardPage() {
                               setCompletingApt(apt);
                               setCompletionOutcome('standard');
                               setCompletionNotes('');
+                              setReturnToCalendarDay(null);
                             }}
-                            className="button-primary py-2.5 px-4 rounded-xl text-white font-bold text-[13.5px] cursor-pointer flex items-center gap-1.5 shadow-xs"
+                            className="button-primary w-full md:w-auto py-2.5 px-4 rounded-xl text-white font-bold text-[13px] cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
                           >
                             <CheckCircle2 className="w-4 h-4" />
-                            Complete Treatment
+                            Complete Visit
                           </button>
                         )}
                         {isCompleted && (
@@ -615,8 +766,9 @@ export default function AdminDashboardPage() {
                               setCompletingApt(apt);
                               setCompletionOutcome(isComplicated ? 'complication' : 'standard');
                               setCompletionNotes(apt.patient_notes || '');
+                              setReturnToCalendarDay(null);
                             }}
-                            className="py-2 px-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-[12.5px] font-semibold cursor-pointer"
+                            className="w-full md:w-auto py-2 px-3.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-[12.5px] font-semibold cursor-pointer text-center"
                           >
                             Edit Outcome
                           </button>
@@ -631,34 +783,168 @@ export default function AdminDashboardPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: INQUIRIES & LEAD RECOVERY HUB                                    */}
+        {/* TAB 2: INTERACTIVE CLINIC CALENDAR & PHILIPPINE HOLIDAYS                */}
+        {/* ========================================================================= */}
+        {activeTab === 'calendar' && (
+          <div className="space-y-4 sm:space-y-6">
+            {/* Calendar Controls */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <button
+                  onClick={handlePrevMonth}
+                  className="p-1.5 sm:p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+                  aria-label="Previous Month"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <h2 className="display text-[18px] sm:text-[21px] font-extrabold text-[#0f172a] min-w-[150px] sm:min-w-[190px] text-center tracking-tight">
+                  {monthNames[currentMonth]} {currentYear}
+                </h2>
+                <button
+                  onClick={handleNextMonth}
+                  className="p-1.5 sm:p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+                  aria-label="Next Month"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleTodayMonth}
+                  className="py-1.5 px-3 sm:px-3.5 rounded-xl border border-slate-200 text-[12px] sm:text-[12.5px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Today
+                </button>
+              </div>
+
+              <div className="text-[12.5px] sm:text-[13px] text-slate-500 font-medium hidden sm:block">
+                Click any day cell to view appointments.
+              </div>
+            </div>
+
+            {/* Studio Month Grid (Scrollable on small mobile devices) */}
+            <div className="p-4 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina overflow-x-auto">
+              <div className="min-w-[620px] md:min-w-0 space-y-3">
+                {/* Weekday Header */}
+                <div className="grid grid-cols-7 text-center font-bold text-[11.5px] sm:text-[12px] text-slate-400 uppercase tracking-wider pb-2 border-b border-slate-100">
+                  <span className="text-red-400">Sun</span>
+                  <span>Mon</span>
+                  <span>Tue</span>
+                  <span>Wed</span>
+                  <span>Thu</span>
+                  <span>Fri</span>
+                  <span className="text-red-400">Sat</span>
+                </div>
+
+                {/* Calendar Days Grid */}
+                <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                  {/* Blank days before month start */}
+                  {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                    <div key={`blank-${i}`} className="min-h-[85px] sm:min-h-[105px] rounded-2xl bg-slate-50/40 p-2 border border-transparent" />
+                  ))}
+
+                  {/* Month Days */}
+                  {Array.from({ length: daysInMonth }).map((_, i) => {
+                    const dayNum = i + 1;
+                    const dateKey = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+                    const holidayName = PH_HOLIDAYS_2026[dateKey];
+                    const dayAppointments = appointments.filter((a) => a.appointment_date === dateKey);
+                    const isToday = dateKey === '2026-08-25';
+
+                    return (
+                      <div
+                        key={`day-${dayNum}`}
+                        onClick={() => setSelectedCalendarDay(dateKey)}
+                        className={`min-h-[85px] sm:min-h-[110px] rounded-2xl p-2 sm:p-2.5 border transition-all cursor-pointer flex flex-col justify-between ${
+                          isToday
+                            ? 'bg-teal-50/60 border-[#0d9488] ring-1 ring-[#0d9488]/40'
+                            : holidayName
+                            ? 'bg-amber-50/40 border-amber-200'
+                            : 'bg-white border-slate-200/80 hover:border-[#0d9488]/50 hover:bg-slate-50/50'
+                        }`}
+                      >
+                        {/* Day Header */}
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={`text-[12.5px] sm:text-[13.5px] font-bold ${
+                                isToday
+                                  ? 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#0d9488] text-white flex items-center justify-center text-[11px] sm:text-[12px]'
+                                  : 'text-slate-800'
+                              }`}
+                            >
+                              {dayNum}
+                            </span>
+                            {dayAppointments.length > 0 && (
+                              <span className="text-[9.5px] sm:text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#0d9488] text-white">
+                                {dayAppointments.length}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Holiday Badge */}
+                          {holidayName && (
+                            <div className="mt-1">
+                              <span className="inline-flex items-center text-[9.5px] sm:text-[10px] font-bold text-amber-800 bg-amber-100/90 px-1.5 py-0.5 rounded-md leading-tight truncate max-w-full">
+                                PH &bull; {holidayName}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Appointment Chips */}
+                        <div className="space-y-1 mt-1 overflow-hidden">
+                          {dayAppointments.slice(0, 2).map((apt) => (
+                            <div
+                              key={apt.id}
+                              className="text-[10px] sm:text-[11px] font-semibold p-1 rounded-lg bg-teal-100/70 text-[#0f766e] truncate"
+                              title={`${apt.time_slot} - ${apt.patients.first_name} (${apt.service_name})`}
+                            >
+                              <strong>{apt.time_slot.split('–')[0].trim()}</strong> &bull; {apt.patients.first_name}
+                            </div>
+                          ))}
+                          {dayAppointments.length > 2 && (
+                            <span className="text-[9.5px] sm:text-[10px] text-slate-400 font-semibold block text-center">
+                              +{dayAppointments.length - 2} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 3: INQUIRIES & LEAD RECOVERY                                        */}
         {/* ========================================================================= */}
         {activeTab === 'inquiries' && (
           <div className="space-y-4">
-            <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
-              <h2 className="display text-[19px] font-bold text-[#0f172a] mb-1">
-                Clinical Inquiries &amp; Lead Recovery Hub
+            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina">
+              <h2 className="display text-[18px] sm:text-[20px] font-bold text-[#0f172a] tracking-tight">
+                Clinical Inquiries &amp; Abandoned Lead Recovery
               </h2>
-              <p className="text-[13.5px] text-[#527078]">
-                Track prospective leads captured from contact inquiries and Step 1 booking abandonments. Automated by Workflow 5.
+              <p className="text-[13px] sm:text-[14px] text-[#527078] mt-1">
+                Leads captured from the contact modal and Step 1 booking abandonments. Automated recovery powered by Workflow 5.
               </p>
             </div>
 
             {inquiries.length === 0 ? (
-              <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/90 text-slate-500">
+              <div className="p-10 sm:p-12 text-center bg-white rounded-3xl border border-slate-200/90 text-slate-500 shadow-lumina">
                 <Inbox className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-                <p className="text-[15px] font-bold text-[#0f172a]">No inquiries recorded yet</p>
+                <p className="text-[16px] font-bold text-[#0f172a]">No inquiries recorded</p>
               </div>
             ) : (
-              <div className="grid gap-3">
+              <div className="grid gap-3 sm:gap-3.5">
                 {inquiries.map((inq) => (
                   <div
                     key={inq.id}
-                    className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className="p-4 sm:p-6 rounded-[22px] bg-white border border-slate-200/90 shadow-lumina flex flex-col md:flex-row md:items-center justify-between gap-4"
                   >
-                    <div className="space-y-1">
+                    <div className="space-y-1.5 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-[12px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                        <span className="text-[11px] sm:text-[11.5px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md">
                           {new Date(inq.created_at).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
@@ -667,9 +953,9 @@ export default function AdminDashboardPage() {
                           })}
                         </span>
                         <span
-                          className={`text-[11.5px] font-bold px-2 py-0.5 rounded ${
+                          className={`text-[11px] sm:text-[11.5px] font-bold px-2.5 py-0.5 rounded-full ${
                             inq.status === 'converted'
-                              ? 'bg-teal-100 text-teal-800'
+                              ? 'bg-teal-100 text-[#0f766e]'
                               : inq.status === 'in_review'
                               ? 'bg-amber-100 text-amber-800'
                               : inq.status === 'archived'
@@ -679,23 +965,23 @@ export default function AdminDashboardPage() {
                         >
                           {inq.status.toUpperCase()}
                         </span>
-                        <span className="text-[11.5px] text-slate-400 font-medium">
+                        <span className="text-[11px] sm:text-[11.5px] text-slate-400 font-medium">
                           Source: {inq.source}
                         </span>
                       </div>
 
-                      <h4 className="text-[16px] font-extrabold text-[#0f172a]">
+                      <h4 className="display text-[16.5px] sm:text-[17.5px] font-extrabold text-[#0f172a] tracking-tight">
                         {inq.first_name} {inq.last_name || ''}
                       </h4>
-                      <p className="text-[13px] font-semibold text-[#0d9488]">
+                      <p className="text-[13px] sm:text-[13.5px] font-semibold text-[#0d9488]">
                         Interest: {inq.service_of_interest || 'General Clinical Question'}
                       </p>
                       {inq.message && (
-                        <p className="text-[13px] text-slate-600 bg-slate-50 p-2 rounded-lg italic">
+                        <p className="text-[12.5px] sm:text-[13px] text-slate-600 bg-slate-50 p-2.5 rounded-xl italic">
                           &ldquo;{inq.message}&rdquo;
                         </p>
                       )}
-                      <div className="flex items-center gap-4 text-[12.5px] text-slate-500 pt-1">
+                      <div className="flex items-center gap-4 text-[12px] sm:text-[12.5px] text-slate-500 pt-0.5">
                         <span>Email: {inq.email}</span>
                         {inq.phone && <span>Phone: {inq.phone}</span>}
                       </div>
@@ -705,7 +991,7 @@ export default function AdminDashboardPage() {
                       {inq.status !== 'converted' && (
                         <button
                           onClick={() => handleUpdateInquiryStatus(inq.id, 'converted')}
-                          className="py-1.5 px-3 rounded-lg border border-teal-300 bg-teal-50 text-[#0f766e] text-[12.5px] font-bold hover:bg-teal-100"
+                          className="button-primary py-1.5 px-3.5 rounded-xl text-white text-[12px] sm:text-[12.5px] font-bold shadow-xs cursor-pointer"
                         >
                           Mark Converted
                         </button>
@@ -713,7 +999,7 @@ export default function AdminDashboardPage() {
                       {inq.status !== 'archived' && (
                         <button
                           onClick={() => handleUpdateInquiryStatus(inq.id, 'archived')}
-                          className="py-1.5 px-3 rounded-lg border border-slate-200 text-slate-600 text-[12.5px] font-semibold hover:bg-slate-100"
+                          className="py-1.5 px-3.5 rounded-xl border border-slate-200 text-slate-600 text-[12px] sm:text-[12.5px] font-semibold hover:bg-slate-50 cursor-pointer"
                         >
                           Archive
                         </button>
@@ -725,191 +1011,225 @@ export default function AdminDashboardPage() {
             )}
           </div>
         )}
-
-        {/* ========================================================================= */}
-        {/* TAB 3: GOOGLE CALENDAR & SYNC ENGINE                                    */}
-        {/* ========================================================================= */}
-        {activeTab === 'calendar' && (
-          <div className="p-7 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-5">
-              <div>
-                <h2 className="display text-[20px] font-bold text-[#0f172a]">
-                  Google Calendar &amp; Multi-Operatory Engine
-                </h2>
-                <p className="text-[14px] text-[#527078] mt-1">
-                  Automated bidirectional appointment scheduling powered by n8n Workflow 6.
-                </p>
-              </div>
-              <a
-                href="https://calendar.google.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="button-primary py-2.5 px-5 rounded-xl text-white font-bold text-[13.5px] flex items-center gap-2"
-              >
-                Launch Google Calendar <ExternalLink className="w-4 h-4" />
-              </a>
-            </div>
-
-            <div className="grid sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-teal-50/80 border border-teal-200">
-                <span className="text-[11px] font-bold uppercase text-[#0d9488] block mb-1">
-                  Real-Time Sync State
-                </span>
-                <span className="text-[16px] font-extrabold text-[#0f766e] flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#0d9488] animate-pulse" />
-                  Active (Webhook Driven)
-                </span>
-                <p className="text-[12px] text-slate-600 mt-2">
-                  Every website booking automatically creates a clinical event on the practice calendar.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-[11px] font-bold uppercase text-slate-400 block mb-1">
-                  Primary Calendar ID
-                </span>
-                <span className="text-[13.5px] font-mono font-bold text-slate-700 block truncate">
-                  luminadentalclinic2026@gmail.com
-                </span>
-                <p className="text-[12px] text-slate-500 mt-2">
-                  Google Workspace Calendar configured with timezone Asia/Manila (PST).
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-[11px] font-bold uppercase text-slate-400 block mb-1">
-                  Operatory Capacity
-                </span>
-                <span className="text-[16px] font-extrabold text-slate-800 block">
-                  3 Operatory Suites
-                </span>
-                <p className="text-[12px] text-slate-500 mt-2">
-                  Automatic conflict prevention blocks double-booking on both calendar and website.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
 
       {/* ========================================================================= */}
-      {/* MODAL 1: TREATMENT COMPLETION & HITL COMPLICATION GATE (WORKFLOW 3)      */}
+      {/* MODAL 1: DAILY CLINICAL SCHEDULE MODAL (CALENDAR DAY CLICK)               */}
       {/* ========================================================================= */}
-      {completingApt && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-[560px] w-full p-6 sm:p-8 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+      {selectedCalendarDay && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-[620px] w-full min-h-[520px] max-h-[580px] p-5 sm:p-7 shadow-2xl border border-slate-100 flex flex-col justify-between animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
               <div>
-                <p className="eyebrow">CHAIRSIDE TREATMENT MARK-OFF</p>
-                <h3 className="display text-[20px] font-bold text-[#0f172a]">
-                  Complete Procedure &mdash; {completingApt.patients.first_name} {completingApt.patients.last_name}
+                <p className="eyebrow">DAILY CLINICAL SCHEDULE</p>
+                <h3 className="display text-[19px] sm:text-[21px] font-extrabold text-[#0f172a] tracking-tight">
+                  {formatLongDate(selectedCalendarDay)}
                 </h3>
               </div>
               <button
-                onClick={() => setCompletingApt(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                onClick={() => setSelectedCalendarDay(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleConfirmCompletion} className="space-y-5 pt-4">
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-[13px] text-slate-700 space-y-1">
-                <p>
-                  <strong>Treatment:</strong> {completingApt.service_name}
-                </p>
-                <p>
-                  <strong>Slot:</strong> {completingApt.appointment_date} &bull; {completingApt.time_slot}
-                </p>
-              </div>
+            <div className="flex-1 overflow-y-auto pr-1 space-y-3.5 pt-3.5 my-1">
+              {appointments.filter((a) => a.appointment_date === selectedCalendarDay).length === 0 ? (
+                <div className="p-8 text-center text-slate-400">
+                  <p>No appointments booked for this date.</p>
+                </div>
+              ) : (
+                appointments
+                  .filter((a) => a.appointment_date === selectedCalendarDay)
+                  .map((apt) => (
+                    <div
+                      key={apt.id}
+                      className="p-4 sm:p-4.5 rounded-2xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12.5px] sm:text-[13px] font-semibold text-[#0f766e] bg-teal-50/90 px-2.5 py-0.5 rounded-lg border border-[#0d9488]/20">
+                            {apt.time_slot}
+                          </span>
+                          <span className="text-[11px] sm:text-[11.5px] font-bold px-2.5 py-0.5 rounded-full bg-white text-slate-700 border border-slate-200 shadow-2xs">
+                            {formatStatusText(apt.status)}
+                          </span>
+                        </div>
+                        <h4 className="display font-extrabold text-[16px] sm:text-[17px] text-[#0f172a] tracking-tight">
+                          {apt.patients.first_name} {apt.patients.last_name}
+                        </h4>
+                        <p className="text-[13px] sm:text-[13.5px] text-[#0d9488] font-semibold">{apt.service_name}</p>
+                      </div>
 
-              {/* Clinical Outcome Radio Options */}
+                      <button
+                        onClick={() => {
+                          const currentDay = selectedCalendarDay;
+                          setSelectedCalendarDay(null);
+                          setReturnToCalendarDay(currentDay);
+                          setCompletingApt(apt);
+                          setCompletionOutcome(apt.flag_for_manual_followup ? 'complication' : 'standard');
+                          setCompletionNotes(apt.patient_notes || '');
+                        }}
+                        className="button-primary w-full sm:w-auto py-2 px-4 rounded-xl text-white text-[12.5px] sm:text-[13px] font-bold shadow-xs cursor-pointer shrink-0 self-start sm:self-center"
+                      >
+                        Action
+                      </button>
+                    </div>
+                  ))
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 text-right">
+              <button
+                onClick={() => setSelectedCalendarDay(null)}
+                className="w-full sm:w-auto py-2.5 px-6 rounded-xl border border-slate-200 text-slate-600 font-semibold text-[13px] sm:text-[13.5px] hover:bg-slate-100 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 2: CHAIRSIDE TREATMENT MARK-OFF (WORKFLOW 3 HITL GATE)              */}
+      {/* ========================================================================= */}
+      {completingApt && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-[620px] w-full min-h-[520px] max-h-[580px] p-5 sm:p-7 shadow-2xl border border-slate-100 flex flex-col justify-between animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
               <div>
-                <label className="block text-[13px] font-bold text-[#0f172a] mb-2">
-                  Clinical Outcome &amp; Post-Op Trigger:
-                </label>
-                <div className="space-y-2.5">
-                  <label
-                    className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
-                      completionOutcome === 'standard'
-                        ? 'border-[#0d9488] bg-teal-50/70 ring-1 ring-[#0d9488]'
-                        : 'border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="outcome"
-                      value="standard"
-                      checked={completionOutcome === 'standard'}
-                      onChange={() => setCompletionOutcome('standard')}
-                      className="mt-1 text-[#0d9488] focus:ring-[#0d9488]"
-                    />
-                    <div>
-                      <span className="block font-bold text-[14px] text-[#0f172a]">
-                        Standard Routine &mdash; No Complications ✅
-                      </span>
-                      <span className="block text-[12.5px] text-[#527078] mt-0.5">
-                        Workflow 3 will wait 2 hours, send procedure-specific aftercare guidelines (Dos/Don&rsquo;ts), and schedule Dr. Lumina&rsquo;s 9 AM morning check-in.
-                      </span>
-                    </div>
-                  </label>
+                <p className="eyebrow">CHAIRSIDE TREATMENT MARK-OFF</p>
+                <h3 className="display text-[19px] sm:text-[21px] font-extrabold text-[#0f172a] tracking-tight">
+                  Complete Procedure &mdash; {completingApt.patients.first_name} {completingApt.patients.last_name}
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  if (returnToCalendarDay) {
+                    const backDay = returnToCalendarDay;
+                    setCompletingApt(null);
+                    setReturnToCalendarDay(null);
+                    setSelectedCalendarDay(backDay);
+                  } else {
+                    setCompletingApt(null);
+                  }
+                }}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-                  <label
-                    className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
-                      completionOutcome === 'complication'
-                        ? 'border-red-500 bg-red-50/80 ring-1 ring-red-500'
-                        : 'border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="outcome"
-                      value="complication"
-                      checked={completionOutcome === 'complication'}
-                      onChange={() => setCompletionOutcome('complication')}
-                      className="mt-1 text-red-600 focus:ring-red-500"
-                    />
-                    <div>
-                      <span className="block font-bold text-[14px] text-red-700">
-                        Complication Encountered ⚠️ (Manual Follow-up Required)
-                      </span>
-                      <span className="block text-[12.5px] text-red-800/80 mt-0.5">
-                        <strong>Human-in-the-Loop Safeguard:</strong> Automated emails will be BYPASSED. An urgent alert card will be fired immediately to staff Slack <code>#clinical-alerts</code> with patient phone/email for direct doctor/staff phone check-in.
-                      </span>
-                    </div>
+            <form onSubmit={handleConfirmCompletion} className="flex-1 overflow-y-auto pr-1 space-y-4 pt-3 my-1 flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 text-[13px] sm:text-[13.5px] text-slate-700 space-y-1.5">
+                  <p>
+                    <strong className="text-slate-900">Treatment:</strong> {completingApt.service_name}
+                  </p>
+                  <p>
+                    <strong className="text-slate-900">Slot:</strong> {formatLongDate(completingApt.appointment_date)} &bull; {completingApt.time_slot}
+                  </p>
+                </div>
+
+                {/* Clinical Outcome Radio Options (No Emojis) */}
+                <div>
+                  <label className="block text-[13px] font-bold text-[#0f172a] mb-2">
+                    Clinical Outcome &amp; Post-Op Sequence:
                   </label>
+                  <div className="space-y-2.5">
+                    <label
+                      className={`flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl border cursor-pointer transition-all ${
+                        completionOutcome === 'standard'
+                          ? 'border-[#0d9488] bg-teal-50/70 ring-1 ring-[#0d9488]'
+                          : 'border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="outcome"
+                        value="standard"
+                        checked={completionOutcome === 'standard'}
+                        onChange={() => setCompletionOutcome('standard')}
+                        className="mt-1 text-[#0d9488] focus:ring-[#0d9488]"
+                      />
+                      <div>
+                        <span className="block font-bold text-[14px] sm:text-[14.5px] text-[#0f172a]">
+                          Standard Visit &mdash; Normal Recovery
+                        </span>
+                        <span className="block text-[12.5px] sm:text-[13px] text-[#527078] mt-0.5 leading-relaxed">
+                          Triggers standard aftercare instructions in 2 hours and schedules {currentUser?.name || 'Dr. Lumina'}’s morning comfort check-in.
+                        </span>
+                      </div>
+                    </label>
+
+                    <label
+                      className={`flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl border cursor-pointer transition-all ${
+                        completionOutcome === 'complication'
+                          ? 'border-red-500 bg-red-50/80 ring-1 ring-red-500'
+                          : 'border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="outcome"
+                        value="complication"
+                        checked={completionOutcome === 'complication'}
+                        onChange={() => setCompletionOutcome('complication')}
+                        className="mt-1 text-red-600 focus:ring-red-500"
+                      />
+                      <div>
+                        <span className="block font-bold text-[14px] sm:text-[14.5px] text-red-700">
+                          Complication Encountered (Care Team Phone Check-in)
+                        </span>
+                        <span className="block text-[12.5px] sm:text-[13px] text-red-800/80 mt-0.5 leading-relaxed">
+                          Bypasses automated emails and dispatches an urgent alert to the clinical Slack channel for personalized doctor/staff phone outreach.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Staff Notes */}
+                <div>
+                  <label className="block text-[13px] font-semibold text-[#0f172a] mb-1.5">
+                    Doctor / Staff Notes (Optional):
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={completionNotes}
+                    onChange={(e) => setCompletionNotes(e.target.value)}
+                    placeholder="e.g. Prescribed Amoxicillin 500mg. Scheduled for stitch removal."
+                    className="w-full p-3 rounded-xl border border-slate-200 text-[13px] sm:text-[13.5px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30"
+                  />
                 </div>
               </div>
 
-              {/* Staff Notes */}
-              <div>
-                <label className="block text-[13px] font-semibold text-[#0f172a] mb-1.5">
-                  Staff / Doctor Clinical Notes (Optional):
-                </label>
-                <textarea
-                  rows={2}
-                  value={completionNotes}
-                  onChange={(e) => setCompletionNotes(e.target.value)}
-                  placeholder="e.g. Prescribed Amoxicillin 500mg. Patient reported mild sensitivity."
-                  className="w-full p-3 rounded-xl border border-slate-200 text-[13.5px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30"
-                />
-              </div>
-
               {/* Modal Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setCompletingApt(null)}
-                  className="py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-semibold text-[13.5px] hover:bg-slate-100"
+                  onClick={() => {
+                    if (returnToCalendarDay) {
+                      const backDay = returnToCalendarDay;
+                      setCompletingApt(null);
+                      setReturnToCalendarDay(null);
+                      setSelectedCalendarDay(backDay);
+                    } else {
+                      setCompletingApt(null);
+                    }
+                  }}
+                  className="py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-semibold text-[13px] sm:text-[13.5px] hover:bg-slate-100 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCompleting}
-                  className="button-primary py-2.5 px-6 rounded-xl text-white font-bold text-[13.5px] cursor-pointer shadow-xs disabled:opacity-70"
+                  className="button-primary py-2.5 px-5 sm:px-6 rounded-xl text-white font-bold text-[13px] sm:text-[13.5px] cursor-pointer shadow-xs disabled:opacity-70"
                 >
-                  {isCompleting ? 'Saving Outcome...' : 'Mark Completed & Trigger Post-Op'}
+                  {isCompleting ? 'Saving Outcome...' : 'Confirm & Complete'}
                 </button>
               </div>
             </form>
@@ -918,15 +1238,15 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 2: PRE-VISIT MEDICAL INTAKE VIEWER                                */}
+      {/* MODAL 3: PRE-VISIT MEDICAL INTAKE VIEWER                                */}
       {/* ========================================================================= */}
       {viewingIntakeApt && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-[620px] w-full p-6 sm:p-8 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-[620px] w-full p-5 sm:p-8 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
-                <p className="eyebrow">PATIENT CLINICAL HEALTH HISTORY</p>
-                <h3 className="display text-[20px] font-bold text-[#0f172a]">
+                <p className="eyebrow">PATIENT MEDICAL HEALTH RECORD</p>
+                <h3 className="display text-[19px] sm:text-[21px] font-extrabold text-[#0f172a] tracking-tight">
                   {viewingIntakeApt.patients.first_name} {viewingIntakeApt.patients.last_name}
                 </h3>
               </div>
@@ -939,19 +1259,19 @@ export default function AdminDashboardPage() {
             </div>
 
             {viewingIntakeApt.medical_intakes && viewingIntakeApt.medical_intakes.length > 0 ? (
-              <div className="space-y-4 pt-4 text-[13.5px]">
-                {/* Allergy Alert Section */}
+              <div className="space-y-4 pt-4 text-[13px] sm:text-[13.5px]">
+                {/* Allergy Alert */}
                 {viewingIntakeApt.medical_intakes[0].allergies &&
                 viewingIntakeApt.medical_intakes[0].allergies.length > 0 ? (
-                  <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-900">
-                    <span className="font-extrabold text-[14px] flex items-center gap-1.5 text-red-700 mb-1">
+                  <div className="p-3.5 sm:p-4 rounded-2xl bg-red-50 border border-red-200 text-red-900">
+                    <span className="font-extrabold text-[13.5px] sm:text-[14px] flex items-center gap-1.5 text-red-700 mb-1">
                       <AlertTriangle className="w-4 h-4" /> ALLERGY WARNING:
                     </span>
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {viewingIntakeApt.medical_intakes[0].allergies.map((allergy, i) => (
                         <span
                           key={i}
-                          className="py-1 px-3 rounded-lg bg-red-600 text-white font-bold text-[12px]"
+                          className="py-1 px-3 rounded-lg bg-red-600 text-white font-bold text-[11.5px] sm:text-[12px]"
                         >
                           {allergy}
                         </span>
@@ -959,43 +1279,43 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3.5 rounded-xl bg-teal-50 border border-teal-200 text-[#0f766e] text-[13px] font-semibold">
-                    ✅ No known drug or environmental allergies reported.
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-teal-50 border border-teal-200 text-[#0f766e] text-[12.5px] sm:text-[13px] font-semibold">
+                    No drug or environmental allergies reported.
                   </div>
                 )}
 
-                {/* Medical Conditions */}
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                  <span className="font-bold text-[#0f172a] block text-[13px]">
-                    Pre-Existing Medical Conditions:
+                {/* Pre-Existing Medical Conditions */}
+                <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                  <span className="font-bold text-[#0f172a] block text-[12.5px] sm:text-[13px]">
+                    Pre-Existing Health Conditions:
                   </span>
                   {viewingIntakeApt.medical_intakes[0].medical_conditions &&
                   viewingIntakeApt.medical_intakes[0].medical_conditions.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
                       {viewingIntakeApt.medical_intakes[0].medical_conditions.map((cond, i) => (
-                        <span key={i} className="py-1 px-2.5 rounded-md bg-slate-200 text-slate-800 text-[12px] font-semibold">
+                        <span key={i} className="py-1 px-2.5 rounded-md bg-slate-200 text-slate-800 text-[11.5px] sm:text-[12px] font-semibold">
                           {cond}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-slate-500 text-[13px]">None reported.</p>
+                    <p className="text-slate-500 text-[12.5px] sm:text-[13px]">None reported.</p>
                   )}
                 </div>
 
                 {/* Medications */}
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                  <span className="font-bold text-[#0f172a] block text-[13px]">
-                    Current Prescribed Medications:
+                <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                  <span className="font-bold text-[#0f172a] block text-[12.5px] sm:text-[13px]">
+                    Current Medications:
                   </span>
-                  <p className="text-slate-700">
+                  <p className="text-slate-700 font-medium">
                     {viewingIntakeApt.medical_intakes[0].current_medications || 'None'}
                   </p>
                 </div>
 
-                {/* Emergency Contact & Insurance */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-[12.5px]">
+                {/* Emergency Contact & HMO Insurance */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-[12px] sm:text-[12.5px]">
                     <span className="font-bold text-[#0f172a] block mb-1">Emergency Contact:</span>
                     <p className="font-semibold text-slate-800">
                       {viewingIntakeApt.medical_intakes[0].emergency_contact_name || 'Not provided'}
@@ -1004,10 +1324,10 @@ export default function AdminDashboardPage() {
                       {viewingIntakeApt.medical_intakes[0].emergency_contact_phone || ''}
                     </p>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-[12.5px]">
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-[12px] sm:text-[12.5px]">
                     <span className="font-bold text-[#0f172a] block mb-1">HMO / Insurance:</span>
                     <p className="font-semibold text-slate-800">
-                      {viewingIntakeApt.medical_intakes[0].hmo_provider || 'Private Pay / None'}
+                      {viewingIntakeApt.medical_intakes[0].hmo_provider || 'Private Pay'}
                     </p>
                     <p className="text-slate-500">
                       {viewingIntakeApt.medical_intakes[0].hmo_member_id || ''}
@@ -1016,9 +1336,9 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* Digital Consent Badge */}
-                <div className="pt-2 flex items-center justify-between text-[12px] text-slate-400">
+                <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between text-[11.5px] sm:text-[12px] text-slate-400 gap-1">
                   <span className="flex items-center gap-1 font-semibold text-teal-700">
-                    <ShieldCheck className="w-4 h-4 text-[#0d9488]" /> Digital Consent Signed
+                    <ShieldCheck className="w-4 h-4 text-[#0d9488]" /> Digital Consent Verified
                   </span>
                   <span>
                     Submitted on{' '}
@@ -1035,7 +1355,7 @@ export default function AdminDashboardPage() {
             <div className="pt-4 mt-4 border-t border-slate-100 text-right">
               <button
                 onClick={() => setViewingIntakeApt(null)}
-                className="button-primary py-2 px-5 rounded-xl text-white font-bold text-[13.5px]"
+                className="button-primary w-full sm:w-auto py-2 px-5 rounded-xl text-white font-bold text-[13px] sm:text-[13.5px] cursor-pointer"
               >
                 Close Record
               </button>

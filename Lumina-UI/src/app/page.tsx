@@ -2946,12 +2946,6 @@ function Footer({ onOpenLegal }: { onOpenLegal: (tab: LegalTab) => void }) {
             >
               Email Preferences
             </a>
-            <a
-              href="/admin/login"
-              className="text-[#8ce0db] hover:text-white transition-colors cursor-pointer font-medium"
-            >
-              Doctor &amp; Staff Portal
-            </a>
           </div>
         </div>
       </div>
