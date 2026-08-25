@@ -1278,6 +1278,7 @@ export default function AdminDashboardPage() {
                         <div className="space-y-1.5 mt-2 flex-1 overflow-y-auto no-scrollbar max-h-[125px] sm:max-h-[145px]">
                           {dayAppointments.map((apt) => {
                             const isAptCompleted = apt.status === 'completed';
+                            const isAptNoShow = apt.status === 'no_show';
 
                             return (
                               <div
@@ -1285,13 +1286,19 @@ export default function AdminDashboardPage() {
                                 className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium truncate transition-colors shadow-2xs ${
                                   isAptCompleted
                                     ? 'bg-teal-50 text-[#0f766e] border border-teal-200/60'
+                                    : isAptNoShow
+                                    ? 'bg-slate-100 text-slate-500 border border-slate-200'
                                     : 'bg-[#e0f2fe] text-[#0369a1] hover:bg-[#bae6fd]'
                                 }`}
-                                title={`${apt.time_slot} - ${apt.patients.first_name} (${apt.service_name})`}
+                                title={`${apt.time_slot} - ${apt.patients.first_name} (${apt.service_name}) [${formatStatusText(apt.status)}]`}
                               >
                                 <span
                                   className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                    isAptCompleted ? 'bg-[#0d9488]' : 'bg-[#0284c7]'
+                                    isAptCompleted
+                                      ? 'bg-[#0d9488]'
+                                      : isAptNoShow
+                                      ? 'bg-slate-400'
+                                      : 'bg-[#0284c7]'
                                   }`}
                                 />
                                 <span className="font-bold">{formatCompactTime(apt.time_slot)}</span>
@@ -1596,38 +1603,58 @@ export default function AdminDashboardPage() {
                         key={apt.id}
                         className={`p-4 sm:p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs transition-all ${
                           isNoShow
-                            ? 'bg-slate-50/50 border-slate-200 opacity-75'
+                            ? 'bg-slate-50/80 border-slate-200 text-slate-500'
+                            : isCompleted
+                            ? 'bg-teal-50/20 border-teal-200/80'
                             : 'bg-white border-slate-200/90 hover:border-[#0d9488]/40'
                         }`}
                       >
-                        <div className="space-y-1 flex-1">
+                        <div className="space-y-1.5 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-[11.5px] font-semibold text-[#0f766e] bg-teal-50 px-2 py-0.5 rounded-md border border-[#0d9488]/20">
+                            <span
+                              className={`text-[11.5px] font-semibold px-2.5 py-0.5 rounded-md border ${
+                                isNoShow
+                                  ? 'bg-slate-200/70 text-slate-600 border-slate-300'
+                                  : 'bg-teal-50 text-[#0f766e] border-[#0d9488]/20'
+                              }`}
+                            >
                               {apt.time_slot}
                             </span>
                             <span
-                              className={`text-[11px] font-bold px-2 py-0.5 rounded-full border shadow-2xs ${
+                              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border shadow-2xs ${
                                 isCompleted
                                   ? 'bg-teal-50 text-[#0f766e] border-teal-200'
                                   : isCheckedIn
                                   ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                                   : isNoShow
-                                  ? 'bg-slate-100 text-slate-600 border-slate-200'
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
                                   : 'bg-blue-50 text-blue-700 border-blue-200'
                               }`}
                             >
-                              {formatStatusText(apt.status)}
+                              {isNoShow ? 'No Show' : formatStatusText(apt.status)}
                             </span>
                           </div>
-                          <h4 className="display font-extrabold text-[16px] sm:text-[17px] text-[#0f172a] tracking-tight">
+                          <h4
+                            className={`display font-extrabold text-[16px] sm:text-[17px] tracking-tight ${
+                              isNoShow ? 'text-slate-700' : 'text-[#0f172a]'
+                            }`}
+                          >
                             {apt.patients.first_name} {apt.patients.last_name}
                           </h4>
-                          <p className="text-[13px] sm:text-[13.5px] text-[#0d9488] font-semibold">{apt.service_name}</p>
+                          <p
+                            className={`text-[13px] sm:text-[13.5px] font-semibold ${
+                              isNoShow ? 'text-slate-500' : 'text-[#0d9488]'
+                            }`}
+                          >
+                            {apt.service_name}
+                          </p>
                         </div>
 
+                        {/* Right Side: Strictly NO Action button if no_show */}
                         <div className="flex flex-wrap items-center gap-2">
                           {isNoShow ? (
-                            <span className="text-[12px] font-semibold text-slate-400 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
+                            <span className="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl shadow-2xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                               Unattended
                             </span>
                           ) : isCompleted ? (
