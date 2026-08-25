@@ -22,7 +22,6 @@ import {
   ChevronRight,
   CalendarDays,
   Check,
-  ArrowLeft,
 } from 'lucide-react';
 
 interface Patient {
@@ -150,6 +149,12 @@ function formatStatusText(status?: string): string {
     default:
       return 'Confirmed';
   }
+}
+
+// Compact time badge formatter for Google Calendar style chips (e.g. "10am")
+function formatCompactTime(slot: string): string {
+  const start = slot.split('–')[0]?.trim() || slot;
+  return start.toLowerCase().replace(':00', '').replace(/\s+/g, '');
 }
 
 export default function AdminDashboardPage() {
@@ -401,8 +406,8 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] font-sans">
-      {/* Top Clinical Navigation Bar (Responsive on Mobile, Tablet & Desktop) */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3 sm:px-8 py-3 flex items-center justify-between shadow-xs">
+      {/* Top Clinical Navigation Bar */}
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2.5 sm:gap-3">
           <a href="/" className="inline-flex items-center gap-2.5 group" aria-label="Lumina Dental Clinic home">
             <img
@@ -421,8 +426,8 @@ export default function AdminDashboardPage() {
           </a>
         </div>
 
-        {/* Center PST Live Clock (Hidden on small mobile, visible on sm+) */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100/90 border border-slate-200/80 text-[12px] text-slate-600 font-medium">
+        {/* Center PST Live Clock */}
+        <div className="hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100/90 border border-slate-200/80 text-[12px] text-slate-600 font-medium">
           <Clock className="w-3.5 h-3.5 text-[#0d9488]" />
           <span>Manila (PST):</span>
           <span className="font-mono font-bold text-[#0f172a]">{currentTimePST || '08:00:00 AM'}</span>
@@ -430,7 +435,7 @@ export default function AdminDashboardPage() {
 
         {/* User Profile & Actions */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-xl bg-teal-50/90 border border-[#0d9488]/20">
+          <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-teal-50/90 border border-[#0d9488]/20">
             <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#0d9488] text-white font-bold flex items-center justify-center text-[11px] sm:text-[12px] shadow-xs">
               DL
             </div>
@@ -446,7 +451,7 @@ export default function AdminDashboardPage() {
 
           <button
             onClick={handleLogout}
-            className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 transition-colors"
+            className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 transition-colors cursor-pointer"
             title="Log Out"
           >
             <LogOut className="w-4 h-4" />
@@ -454,8 +459,8 @@ export default function AdminDashboardPage() {
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-3 sm:px-8 py-5 sm:py-8 space-y-5 sm:space-y-6">
+      {/* Main Container — Extra Wide & Responsive */}
+      <main className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 py-5 sm:py-8 space-y-6">
         {/* Banner Alert Notice */}
         {actionSuccessMsg && (
           <div className="p-3.5 sm:p-4 rounded-2xl bg-teal-50/90 border border-[#0d9488]/30 text-[#0f766e] text-[13px] sm:text-[13.5px] flex items-start gap-3 shadow-xs animate-in fade-in slide-in-from-top-2">
@@ -467,7 +472,7 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* Metrics Row (Responsive 2x2 on Mobile, 4x1 on Tablet/Desktop) */}
+        {/* Metrics Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina flex items-center justify-between">
             <div>
@@ -510,7 +515,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Navigation Tabs (Smooth Scroll on Mobile) */}
+        {/* Navigation Tabs */}
         <div className="flex items-center gap-1.5 sm:gap-2 border-b border-slate-200/80 pb-2.5 overflow-x-auto flex-nowrap no-scrollbar">
           <button
             onClick={() => setActiveTab('schedule')}
@@ -554,7 +559,7 @@ export default function AdminDashboardPage() {
           <div className="space-y-4">
             {/* Filter and Search Bar */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 sm:p-4 bg-white rounded-2xl border border-slate-200/90 shadow-lumina">
-              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 md:pb-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
                 <button
                   onClick={() => setDateFilter('all')}
                   className={`py-1.5 px-3 rounded-xl text-[12.5px] sm:text-[13px] font-semibold border transition-all shrink-0 cursor-pointer ${
@@ -611,7 +616,7 @@ export default function AdminDashboardPage() {
                 <button
                   onClick={loadDashboardData}
                   disabled={isLoadingData}
-                  className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors shrink-0"
+                  className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors shrink-0 cursor-pointer"
                   title="Refresh Schedule"
                 >
                   <RefreshCw className={`w-4 h-4 ${isLoadingData ? 'animate-spin' : ''}`} />
@@ -689,7 +694,7 @@ export default function AdminDashboardPage() {
                           </div>
 
                           <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                            <span className="inline-flex items-center gap-1.5 text-[12.5px] sm:text-[13px] font-semibold text-[#0f766e] bg-teal-50/90 px-2.5 py-1 rounded-lg border border-[#0d9488]/20">
+                            <span className="inline-flex items-center gap-1.5 text-[12px] sm:text-[12.5px] font-semibold text-[#0f766e] bg-teal-50/90 px-2.5 py-1 rounded-lg border border-[#0d9488]/20">
                               <Clock className="w-3.5 h-3.5 text-[#0d9488]" />
                               {formatLongDate(apt.appointment_date)} &bull; {apt.time_slot}
                             </span>
@@ -783,62 +788,62 @@ export default function AdminDashboardPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: INTERACTIVE CLINIC CALENDAR & PHILIPPINE HOLIDAYS                */}
+        {/* TAB 2: INTERACTIVE CLINIC CALENDAR & PHILIPPINE HOLIDAYS (WIDE & CUTE)    */}
         {/* ========================================================================= */}
         {activeTab === 'calendar' && (
           <div className="space-y-4 sm:space-y-6">
-            {/* Calendar Controls */}
+            {/* Calendar Header Controls */}
             <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-lumina flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 sm:gap-3">
                 <button
                   onClick={handlePrevMonth}
-                  className="p-1.5 sm:p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+                  className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
                   aria-label="Previous Month"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <h2 className="display text-[18px] sm:text-[21px] font-extrabold text-[#0f172a] min-w-[150px] sm:min-w-[190px] text-center tracking-tight">
+                <h2 className="display text-[19px] sm:text-[22px] font-extrabold text-[#0f172a] min-w-[160px] sm:min-w-[200px] text-center tracking-tight">
                   {monthNames[currentMonth]} {currentYear}
                 </h2>
                 <button
                   onClick={handleNextMonth}
-                  className="p-1.5 sm:p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+                  className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
                   aria-label="Next Month"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleTodayMonth}
-                  className="py-1.5 px-3 sm:px-3.5 rounded-xl border border-slate-200 text-[12px] sm:text-[12.5px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                  className="py-1.5 px-3.5 rounded-xl border border-slate-200 text-[12.5px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   Today
                 </button>
               </div>
 
-              <div className="text-[12.5px] sm:text-[13px] text-slate-500 font-medium hidden sm:block">
-                Click any day cell to view appointments.
+              <div className="text-[13px] text-slate-500 font-medium hidden sm:block">
+                Click any day cell to view or manage appointments.
               </div>
             </div>
 
-            {/* Studio Month Grid (Scrollable on small mobile devices) */}
-            <div className="p-4 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina overflow-x-auto">
-              <div className="min-w-[620px] md:min-w-0 space-y-3">
+            {/* Studio Month Grid (Generous Width & Google Calendar Style Event Chips) */}
+            <div className="p-4 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina overflow-x-auto thin-scrollbar">
+              <div className="min-w-[800px] xl:min-w-0 space-y-3">
                 {/* Weekday Header */}
-                <div className="grid grid-cols-7 text-center font-bold text-[11.5px] sm:text-[12px] text-slate-400 uppercase tracking-wider pb-2 border-b border-slate-100">
-                  <span className="text-red-400">Sun</span>
+                <div className="grid grid-cols-7 text-center font-bold text-[12px] text-slate-400 uppercase tracking-wider pb-2.5 border-b border-slate-100">
+                  <span className="text-red-400 font-extrabold">Sun</span>
                   <span>Mon</span>
                   <span>Tue</span>
                   <span>Wed</span>
                   <span>Thu</span>
                   <span>Fri</span>
-                  <span className="text-red-400">Sat</span>
+                  <span className="text-red-400 font-extrabold">Sat</span>
                 </div>
 
                 {/* Calendar Days Grid */}
-                <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                <div className="grid grid-cols-7 gap-2 sm:gap-2.5">
                   {/* Blank days before month start */}
                   {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                    <div key={`blank-${i}`} className="min-h-[85px] sm:min-h-[105px] rounded-2xl bg-slate-50/40 p-2 border border-transparent" />
+                    <div key={`blank-${i}`} className="min-h-[140px] sm:min-h-[155px] rounded-2xl bg-slate-50/40 p-2.5 border border-transparent" />
                   ))}
 
                   {/* Month Days */}
@@ -853,59 +858,58 @@ export default function AdminDashboardPage() {
                       <div
                         key={`day-${dayNum}`}
                         onClick={() => setSelectedCalendarDay(dateKey)}
-                        className={`min-h-[85px] sm:min-h-[110px] rounded-2xl p-2 sm:p-2.5 border transition-all cursor-pointer flex flex-col justify-between ${
+                        className={`min-h-[140px] sm:min-h-[155px] rounded-2xl p-2.5 sm:p-3 border transition-all cursor-pointer flex flex-col justify-between group ${
                           isToday
-                            ? 'bg-teal-50/60 border-[#0d9488] ring-1 ring-[#0d9488]/40'
+                            ? 'bg-teal-50/70 border-[#0d9488] ring-1.5 ring-[#0d9488]/40 shadow-xs'
                             : holidayName
-                            ? 'bg-amber-50/40 border-amber-200'
-                            : 'bg-white border-slate-200/80 hover:border-[#0d9488]/50 hover:bg-slate-50/50'
+                            ? 'bg-amber-50/40 border-amber-200 hover:border-amber-400'
+                            : 'bg-white border-slate-200/80 hover:border-[#0d9488]/50 hover:bg-slate-50/60'
                         }`}
                       >
-                        {/* Day Header */}
-                        <div>
+                        {/* Top: Day Number & Holiday Tag */}
+                        <div className="space-y-1">
                           <div className="flex items-center justify-between">
                             <span
-                              className={`text-[12.5px] sm:text-[13.5px] font-bold ${
+                              className={`text-[13.5px] sm:text-[14px] font-bold ${
                                 isToday
-                                  ? 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#0d9488] text-white flex items-center justify-center text-[11px] sm:text-[12px]'
+                                  ? 'w-6 h-6 rounded-full bg-[#0d9488] text-white flex items-center justify-center text-[12px] shadow-xs'
                                   : 'text-slate-800'
                               }`}
                             >
                               {dayNum}
                             </span>
                             {dayAppointments.length > 0 && (
-                              <span className="text-[9.5px] sm:text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#0d9488] text-white">
+                              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#0d9488] text-white shadow-2xs">
                                 {dayAppointments.length}
                               </span>
                             )}
                           </div>
 
-                          {/* Holiday Badge */}
+                          {/* Holiday Badge (Google Calendar Style full-width pill) */}
                           {holidayName && (
-                            <div className="mt-1">
-                              <span className="inline-flex items-center text-[9.5px] sm:text-[10px] font-bold text-amber-800 bg-amber-100/90 px-1.5 py-0.5 rounded-md leading-tight truncate max-w-full">
-                                PH &bull; {holidayName}
+                            <div className="pt-0.5">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-md leading-tight truncate w-full shadow-2xs">
+                                🇵🇭 {holidayName}
                               </span>
                             </div>
                           )}
                         </div>
 
-                        {/* Appointment Chips */}
-                        <div className="space-y-1 mt-1 overflow-hidden">
-                          {dayAppointments.slice(0, 2).map((apt) => (
+                        {/* Middle/Bottom: Cute Google Calendar Event Chips (Top-to-Bottom) */}
+                        <div className="space-y-1.5 mt-2 flex-1 overflow-y-auto thin-scrollbar pr-0.5 max-h-[85px]">
+                          {dayAppointments.map((apt) => (
                             <div
                               key={apt.id}
-                              className="text-[10px] sm:text-[11px] font-semibold p-1 rounded-lg bg-teal-100/70 text-[#0f766e] truncate"
+                              className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#e0f2fe] text-[#0369a1] text-[11px] font-medium truncate hover:bg-[#bae6fd] transition-colors shadow-2xs"
                               title={`${apt.time_slot} - ${apt.patients.first_name} (${apt.service_name})`}
                             >
-                              <strong>{apt.time_slot.split('–')[0].trim()}</strong> &bull; {apt.patients.first_name}
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#0284c7] shrink-0" />
+                              <span className="font-bold text-[#0c4a6e]">{formatCompactTime(apt.time_slot)}</span>
+                              <span className="truncate text-[#0369a1]">
+                                [Lumina] {apt.service_name.split('&')[0]?.trim()} ({apt.patients.first_name})
+                              </span>
                             </div>
                           ))}
-                          {dayAppointments.length > 2 && (
-                            <span className="text-[9.5px] sm:text-[10px] text-slate-400 font-semibold block text-center">
-                              +{dayAppointments.length - 2} more
-                            </span>
-                          )}
                         </div>
                       </div>
                     );
@@ -1018,11 +1022,12 @@ export default function AdminDashboardPage() {
       {/* ========================================================================= */}
       {selectedCalendarDay && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-[620px] w-full min-h-[520px] max-h-[580px] p-5 sm:p-7 shadow-2xl border border-slate-100 flex flex-col justify-between animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-[760px] w-full min-h-[560px] max-h-[85vh] p-5 sm:p-7 shadow-2xl border border-slate-100 flex flex-col justify-between animate-in fade-in zoom-in-95 overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 shrink-0">
               <div>
                 <p className="eyebrow">DAILY CLINICAL SCHEDULE</p>
-                <h3 className="display text-[19px] sm:text-[21px] font-extrabold text-[#0f172a] tracking-tight">
+                <h3 className="display text-[20px] sm:text-[22px] font-extrabold text-[#0f172a] tracking-tight">
                   {formatLongDate(selectedCalendarDay)}
                 </h3>
               </div>
@@ -1034,10 +1039,11 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-1 space-y-3.5 pt-3.5 my-1">
+            {/* Scrollable Appointment List (Fits 3 items seamlessly) */}
+            <div className="flex-1 overflow-y-auto thin-scrollbar pr-1.5 space-y-3.5 py-4 my-1">
               {appointments.filter((a) => a.appointment_date === selectedCalendarDay).length === 0 ? (
-                <div className="p-8 text-center text-slate-400">
-                  <p>No appointments booked for this date.</p>
+                <div className="p-10 text-center text-slate-400">
+                  <p className="text-[15px] font-medium">No appointments booked for this date.</p>
                 </div>
               ) : (
                 appointments
@@ -1045,14 +1051,14 @@ export default function AdminDashboardPage() {
                   .map((apt) => (
                     <div
                       key={apt.id}
-                      className="p-4 sm:p-4.5 rounded-2xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                      className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs hover:border-[#0d9488]/40 transition-all"
                     >
                       <div className="space-y-1 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-[12.5px] sm:text-[13px] font-semibold text-[#0f766e] bg-teal-50/90 px-2.5 py-0.5 rounded-lg border border-[#0d9488]/20">
+                          <span className="text-[11.5px] font-semibold text-[#0f766e] bg-teal-50 px-2 py-0.5 rounded-md border border-[#0d9488]/20">
                             {apt.time_slot}
                           </span>
-                          <span className="text-[11px] sm:text-[11.5px] font-bold px-2.5 py-0.5 rounded-full bg-white text-slate-700 border border-slate-200 shadow-2xs">
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white text-slate-700 border border-slate-200 shadow-2xs">
                             {formatStatusText(apt.status)}
                           </span>
                         </div>
@@ -1080,7 +1086,8 @@ export default function AdminDashboardPage() {
               )}
             </div>
 
-            <div className="pt-3 border-t border-slate-100 text-right">
+            {/* Modal Footer (Fixed at Bottom) */}
+            <div className="pt-3.5 border-t border-slate-100 text-right shrink-0">
               <button
                 onClick={() => setSelectedCalendarDay(null)}
                 className="w-full sm:w-auto py-2.5 px-6 rounded-xl border border-slate-200 text-slate-600 font-semibold text-[13px] sm:text-[13.5px] hover:bg-slate-100 cursor-pointer"
@@ -1097,8 +1104,9 @@ export default function AdminDashboardPage() {
       {/* ========================================================================= */}
       {completingApt && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-[620px] w-full min-h-[520px] max-h-[580px] p-5 sm:p-7 shadow-2xl border border-slate-100 flex flex-col justify-between animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-[760px] w-full min-h-[560px] max-h-[85vh] p-5 sm:p-7 shadow-2xl border border-slate-100 flex flex-col justify-between animate-in fade-in zoom-in-95 overflow-hidden">
+            {/* Modal Header (Fixed at Top) */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 shrink-0">
               <div>
                 <p className="eyebrow">CHAIRSIDE TREATMENT MARK-OFF</p>
                 <h3 className="display text-[19px] sm:text-[21px] font-extrabold text-[#0f172a] tracking-tight">
@@ -1122,7 +1130,8 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
-            <form onSubmit={handleConfirmCompletion} className="flex-1 overflow-y-auto pr-1 space-y-4 pt-3 my-1 flex flex-col justify-between">
+            {/* Scrollable Form Body (Thin Sleek Scrollbar & No Clipping) */}
+            <form onSubmit={handleConfirmCompletion} className="flex-1 overflow-y-auto thin-scrollbar pr-1.5 space-y-4 py-4 my-1 flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 text-[13px] sm:text-[13.5px] text-slate-700 space-y-1.5">
                   <p>
@@ -1206,8 +1215,8 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* Modal Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              {/* Modal Footer (Fixed at Bottom) */}
+              <div className="flex items-center justify-end gap-3 pt-3.5 border-t border-slate-100 shrink-0">
                 <button
                   type="button"
                   onClick={() => {
