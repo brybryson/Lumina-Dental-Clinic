@@ -218,6 +218,11 @@ export default function AdminDashboardPage() {
   const [staffList, setStaffList] = useState<StaffUser[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
+  // Inquiries Search & Filtering State
+  const [inquirySearchQuery, setInquirySearchQuery] = useState('');
+  const [inquiryStatusFilter, setInquiryStatusFilter] = useState('all');
+  const [inquirySourceFilter, setInquirySourceFilter] = useState('all');
+
   // Staff Search & Filtering State
   const [staffSearchQuery, setStaffSearchQuery] = useState('');
   const [staffRoleFilter, setStaffRoleFilter] = useState('all');
@@ -628,6 +633,27 @@ export default function AdminDashboardPage() {
       return patientName.includes(q) || email.includes(q) || service.includes(q);
     }
 
+    return true;
+  });
+
+  // Filter Inquiries & Leads
+  const filteredInquiries = inquiries.filter((inq) => {
+    if (inquiryStatusFilter !== 'all') {
+      if (inquiryStatusFilter === 'pending' && inq.status === 'converted') return false;
+      if (inquiryStatusFilter === 'pending' && inq.status === 'archived') return false;
+      if (inquiryStatusFilter === 'converted' && inq.status !== 'converted') return false;
+      if (inquiryStatusFilter === 'archived' && inq.status !== 'archived') return false;
+    }
+    if (inquirySourceFilter !== 'all' && inq.source !== inquirySourceFilter) return false;
+    if (inquirySearchQuery.trim()) {
+      const q = inquirySearchQuery.toLowerCase();
+      const name = `${inq.first_name || ''} ${inq.last_name || ''}`.toLowerCase();
+      const email = (inq.email || '').toLowerCase();
+      const phone = (inq.phone || '').toLowerCase();
+      const service = (inq.service_of_interest || '').toLowerCase();
+      const msg = (inq.message || '').toLowerCase();
+      return name.includes(q) || email.includes(q) || phone.includes(q) || service.includes(q) || msg.includes(q);
+    }
     return true;
   });
 
@@ -1344,6 +1370,7 @@ export default function AdminDashboardPage() {
         {/* ========================================================================= */}
         {activeTab === 'inquiries' && (
           <div className="space-y-4">
+            {/* Header Banner */}
             <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina">
               <h2 className="display text-[18px] sm:text-[20px] font-bold text-[#0f172a] tracking-tight">
                 Clinical Inquiries &amp; Abandoned Lead Recovery
@@ -1353,83 +1380,172 @@ export default function AdminDashboardPage() {
               </p>
             </div>
 
-            {inquiries.length === 0 ? (
+            {/* Filter & Search Bar for Inquiries */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 sm:p-4 bg-white rounded-2xl border border-slate-200/90 shadow-lumina">
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={inquiryStatusFilter}
+                  onChange={(e) => setInquiryStatusFilter(e.target.value)}
+                  className="py-1.5 px-3 rounded-xl text-[12.5px] sm:text-[13px] font-semibold border border-slate-200 bg-white text-slate-700 cursor-pointer focus:outline-none"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="pending">New / Active Leads</option>
+                  <option value="converted">Converted to Booking</option>
+                  <option value="archived">Archived</option>
+                </select>
+
+                <select
+                  value={inquirySourceFilter}
+                  onChange={(e) => setInquirySourceFilter(e.target.value)}
+                  className="py-1.5 px-3 rounded-xl text-[12.5px] sm:text-[13px] font-semibold border border-slate-200 bg-white text-slate-700 cursor-pointer focus:outline-none"
+                >
+                  <option value="all">All Sources</option>
+                  <option value="contact_modal">Contact Form Modal</option>
+                  <option value="booking_funnel_step1">Step 1 Funnel Drop-off</option>
+                </select>
+
+                <span className="text-[12px] text-slate-400 font-semibold">
+                  Showing {filteredInquiries.length} of {inquiries.length} leads
+                </span>
+              </div>
+
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={inquirySearchQuery}
+                  onChange={(e) => setInquirySearchQuery(e.target.value)}
+                  placeholder="Search name, email, interest, message..."
+                  className="w-full pl-9 pr-3 py-1.5 text-[12.5px] sm:text-[13px] rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30"
+                />
+              </div>
+            </div>
+
+            {/* Inquiries Cards List */}
+            {filteredInquiries.length === 0 ? (
               <div className="p-10 sm:p-12 text-center bg-white rounded-3xl border border-slate-200/90 text-slate-500 shadow-lumina">
                 <Inbox className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-                <p className="text-[16px] font-bold text-[#0f172a]">No inquiries recorded</p>
+                <p className="text-[16px] font-bold text-[#0f172a]">No inquiries match your filter</p>
+                <p className="text-[13px] text-slate-400 mt-1">
+                  Try adjusting the status filter, source selector, or search term above.
+                </p>
               </div>
             ) : (
               <div className="grid gap-3 sm:gap-3.5">
-                {inquiries.map((inq) => (
-                  <div
-                    key={inq.id}
-                    className="p-4 sm:p-6 rounded-[22px] bg-white border border-slate-200/90 shadow-lumina flex flex-col md:flex-row md:items-center justify-between gap-4"
-                  >
-                    <div className="space-y-1.5 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] sm:text-[11.5px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md">
-                          {new Date(inq.created_at).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                        <span
-                          className={`text-[11px] sm:text-[11.5px] font-bold px-2.5 py-0.5 rounded-full ${
-                            inq.status === 'converted'
-                              ? 'bg-teal-100 text-[#0f766e]'
-                              : inq.status === 'in_review'
-                              ? 'bg-amber-100 text-amber-800'
-                              : inq.status === 'archived'
-                              ? 'bg-slate-100 text-slate-500'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}
-                        >
-                          {inq.status.toUpperCase()}
-                        </span>
-                        <span className="text-[11px] sm:text-[11.5px] text-slate-400 font-medium">
-                          Source: {inq.source}
-                        </span>
+                {filteredInquiries.map((inq) => {
+                  const isConverted = inq.status === 'converted';
+                  const isArchived = inq.status === 'archived';
+                  const isStep1Dropoff = inq.source === 'booking_funnel_step1';
+
+                  const dateFormatted = new Date(inq.created_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true,
+                  });
+
+                  return (
+                    <div
+                      key={inq.id}
+                      className={`p-5 sm:p-6 rounded-3xl bg-white border shadow-lumina flex flex-col md:flex-row md:items-start justify-between gap-5 transition-all ${
+                        isConverted
+                          ? 'border-teal-200/80 bg-teal-50/15'
+                          : isArchived
+                          ? 'border-slate-200/80 bg-slate-50/50 opacity-75'
+                          : 'border-slate-200/90 hover:border-[#0d9488]/40'
+                      }`}
+                    >
+                      <div className="space-y-2 flex-1">
+                        {/* Top Badges */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[12px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md">
+                            {dateFormatted}
+                          </span>
+
+                          {isConverted ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-[#0f766e] border border-[#0d9488]/20">
+                              <Check className="w-3 h-3" /> CONVERTED
+                            </span>
+                          ) : isArchived ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                              ARCHIVED
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                              NEW LEAD
+                            </span>
+                          )}
+
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500">
+                            {isStep1Dropoff ? 'Step 1 Funnel Drop-off' : 'Contact Form Inquiry'}
+                          </span>
+                        </div>
+
+                        {/* Name & Specialization of Interest */}
+                        <div>
+                          <h4 className="display text-[17px] sm:text-[18.5px] font-extrabold text-[#0f172a] tracking-tight">
+                            {inq.first_name} {inq.last_name || ''}
+                          </h4>
+                          <p className="text-[13px] sm:text-[13.5px] font-semibold text-[#0d9488] mt-0.5">
+                            Interest: {inq.service_of_interest || 'General Clinical Consultation'}
+                          </p>
+                        </div>
+
+                        {/* Inbound Message */}
+                        {inq.message && (
+                          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-[13px] text-slate-600 italic leading-relaxed">
+                            &ldquo;{inq.message}&rdquo;
+                          </div>
+                        )}
+
+                        {/* Contact Channels */}
+                        <div className="flex flex-wrap items-center gap-4 text-[12.5px] text-slate-600 pt-1">
+                          <span className="inline-flex items-center gap-1.5">
+                            <Mail className="w-3.5 h-3.5 text-slate-400" />
+                            <a href={`mailto:${inq.email}`} className="hover:text-[#0d9488] font-medium">{inq.email}</a>
+                          </span>
+                          {inq.phone && (
+                            <span className="inline-flex items-center gap-1.5">
+                              <Phone className="w-3.5 h-3.5 text-slate-400" />
+                              <a href={`tel:${inq.phone}`} className="hover:text-[#0d9488] font-medium">{inq.phone}</a>
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      <h4 className="display text-[16.5px] sm:text-[17.5px] font-extrabold text-[#0f172a] tracking-tight">
-                        {inq.first_name} {inq.last_name || ''}
-                      </h4>
-                      <p className="text-[13px] sm:text-[13.5px] font-semibold text-[#0d9488]">
-                        Interest: {inq.service_of_interest || 'General Clinical Question'}
-                      </p>
-                      {inq.message && (
-                        <p className="text-[12.5px] sm:text-[13px] text-slate-600 bg-slate-50 p-2.5 rounded-xl italic">
-                          &ldquo;{inq.message}&rdquo;
-                        </p>
-                      )}
-                      <div className="flex items-center gap-4 text-[12px] sm:text-[12.5px] text-slate-500 pt-0.5">
-                        <span>Email: {inq.email}</span>
-                        {inq.phone && <span>Phone: {inq.phone}</span>}
+                      {/* Actions */}
+                      <div className="flex flex-wrap md:flex-col items-center md:items-end gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                        {!isConverted && (
+                          <button
+                            onClick={() => handleUpdateInquiryStatus(inq.id, 'converted')}
+                            className="button-primary py-2 px-4 rounded-xl text-white text-[12.5px] font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            Mark Converted
+                          </button>
+                        )}
+
+                        {!isArchived ? (
+                          <button
+                            onClick={() => handleUpdateInquiryStatus(inq.id, 'archived')}
+                            className="py-1.5 px-3.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-[12px] font-semibold cursor-pointer transition-colors"
+                          >
+                            Archive
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleUpdateInquiryStatus(inq.id, 'in_review')}
+                            className="py-1.5 px-3.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-[12px] font-semibold cursor-pointer transition-colors"
+                          >
+                            Restore to Active
+                          </button>
+                        )}
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-2">
-                      {inq.status !== 'converted' && (
-                        <button
-                          onClick={() => handleUpdateInquiryStatus(inq.id, 'converted')}
-                          className="button-primary py-1.5 px-3.5 rounded-xl text-white text-[12px] sm:text-[12.5px] font-bold shadow-xs cursor-pointer"
-                        >
-                          Mark Converted
-                        </button>
-                      )}
-                      {inq.status !== 'archived' && (
-                        <button
-                          onClick={() => handleUpdateInquiryStatus(inq.id, 'archived')}
-                          className="py-1.5 px-3.5 rounded-xl border border-slate-200 text-slate-600 text-[12px] sm:text-[12.5px] font-semibold hover:bg-slate-50 cursor-pointer"
-                        >
-                          Archive
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
