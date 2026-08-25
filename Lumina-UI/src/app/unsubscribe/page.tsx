@@ -93,19 +93,17 @@ function UnsubscribeContent() {
 
       <div className="rounded-[28px] bg-white border border-slate-200/90 shadow-[0_24px_70px_rgba(15,62,74,0.08)] p-7 sm:p-10 transition-all">
         {isSuccess ? (
-          <div className="text-left">
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-teal-50 border border-teal-200/90 text-[#0d9488] text-[12px] font-bold tracking-wide uppercase mb-4">
-              Preferences Updated
+          <div>
+            <div className="mb-6">
+              <p className="eyebrow mb-2">PREFERENCES UPDATED</p>
+              <h1 className="display text-[24px] sm:text-[28px] font-extrabold text-[#0f172a] leading-tight">
+                You Have Been Unsubscribed
+              </h1>
+              <p className="mt-2 text-[14.5px] leading-relaxed text-[#527078]">
+                Automated reminders and promotional communications for{' '}
+                <strong className="text-[#0f172a] font-semibold">{email}</strong> have been turned off.
+              </p>
             </div>
-
-            <h1 className="display text-[26px] sm:text-[28px] font-extrabold text-[#0f172a] mb-2 leading-tight">
-              You Have Been Unsubscribed
-            </h1>
-
-            <p className="text-[#527078] text-[15px] leading-relaxed mb-6">
-              Automated reminders and promotional communications for{' '}
-              <strong className="text-[#0f172a] font-semibold">{email}</strong> have been turned off.
-            </p>
 
             <div className="rounded-2xl bg-slate-50/90 border border-slate-200/90 p-5 mb-8 text-[13.5px] leading-relaxed text-[#527078]">
               <span className="font-bold text-[#0f172a] block mb-1">
@@ -127,6 +125,13 @@ function UnsubscribeContent() {
               >
                 Book an Appointment
               </a>
+            </div>
+
+            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between text-[12px] text-slate-400">
+              <a href="/" className="hover:text-slate-700 transition-colors flex items-center gap-1">
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Lumina Home
+              </a>
+              <span>Lumina Dental Studio &copy; 2026</span>
             </div>
           </div>
         ) : (
