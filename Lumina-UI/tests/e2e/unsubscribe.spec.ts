@@ -53,7 +53,7 @@ test.describe('Unsubscribe & Email Preference Management E2E Tests', () => {
 
     // Verify confirmation heading appears
     await expect(
-      page.getByRole('heading', { name: /Subscription Preferences Updated/i })
+      page.getByRole('heading', { name: /You Have Been Unsubscribed/i })
     ).toBeVisible({ timeout: 10000 });
 
     // Verify reassurance message and buttons

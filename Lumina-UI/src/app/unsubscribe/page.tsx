@@ -2,31 +2,22 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import {
-  Mail,
-  CheckCircle2,
-  AlertCircle,
-  ArrowLeft,
-  ShieldCheck,
-  BellOff,
-  CalendarCheck,
-  Check,
-} from 'lucide-react';
+import { Mail, AlertCircle, ArrowLeft } from 'lucide-react';
 
 function LuminaLogomark() {
   return (
-    <div className="flex justify-center mb-6">
+    <div className="flex justify-center mb-8">
       <a href="/" className="inline-flex items-center gap-3 group" aria-label="Lumina Dental Studio home">
         <img
           src="/images/lumina-logo.png"
           alt="Lumina Dental Studio Logo"
-          className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
+          className="h-9 w-auto object-contain transition-transform group-hover:scale-105"
         />
         <div className="text-left">
           <span className="block font-bold text-slate-900 text-lg leading-tight tracking-tight">
             Lumina Dental Studio
           </span>
-          <span className="block text-[11px] text-teal-700 font-medium tracking-wide uppercase">
+          <span className="block text-[10.5px] text-teal-800 font-semibold tracking-wider uppercase">
             Clinical &amp; Aesthetic Dentistry
           </span>
         </div>
@@ -37,9 +28,10 @@ function LuminaLogomark() {
 
 function UnsubscribeContent() {
   const searchParams = useSearchParams();
-  const rawEmail = searchParams.get('email') || '';
+  const queryEmail = searchParams.get('email');
 
   const [email, setEmail] = useState('');
+  const [isLockedFromUrl, setIsLockedFromUrl] = useState(false);
   const [optOutBookingReminders, setOptOutBookingReminders] = useState(true);
   const [optOutRecallReminders, setOptOutRecallReminders] = useState(true);
   const [optOutNewsletters, setOptOutNewsletters] = useState(true);
@@ -48,10 +40,12 @@ function UnsubscribeContent() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (rawEmail) {
-      setEmail(decodeURIComponent(rawEmail).trim());
+    if (queryEmail) {
+      const decoded = decodeURIComponent(queryEmail).trim();
+      setEmail(decoded);
+      setIsLockedFromUrl(true);
     }
-  }, [rawEmail]);
+  }, [queryEmail]);
 
   const handleUnsubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +53,7 @@ function UnsubscribeContent() {
 
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
-      setErrorMsg('Please enter a valid email address.');
+      setErrorMsg('Please provide a valid email address.');
       return;
     }
 
@@ -82,7 +76,7 @@ function UnsubscribeContent() {
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        throw new Error(data.error || 'Failed to update preferences.');
+        throw new Error(data.error || 'Unable to update communication preferences.');
       }
 
       setIsSuccess(true);
@@ -94,86 +88,81 @@ function UnsubscribeContent() {
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto">
+    <div className="w-full max-w-lg mx-auto">
       <LuminaLogomark />
 
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xl shadow-slate-900/5 p-6 sm:p-10 transition-all">
+      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-lg shadow-slate-900/4 p-7 sm:p-9 transition-all">
         {isSuccess ? (
-          <div className="text-center py-4">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-teal-50 border border-teal-200 text-teal-700 mb-5 shadow-sm">
-              <CheckCircle2 className="w-8 h-8 stroke-[2.2]" />
+          <div className="text-left">
+            <div className="inline-block px-3 py-1 rounded-full bg-teal-50 border border-teal-200/80 text-teal-800 text-xs font-semibold tracking-wide mb-4">
+              Preferences Updated
             </div>
 
-            <h1 className="text-2xl font-bold text-slate-900 mb-3 tracking-tight">
-              Subscription Preferences Updated
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2 tracking-tight">
+              You Have Been Unsubscribed
             </h1>
 
             <p className="text-slate-600 text-sm leading-relaxed mb-6">
-              The email <strong className="text-slate-800 font-semibold">{email}</strong> has been successfully unsubscribed from automated booking follow-ups and routine recall reminders.
+              Automated reminders and promotional communications for{' '}
+              <strong className="text-slate-900 font-semibold">{email}</strong> have been turned off.
             </p>
 
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-8 text-left text-xs text-slate-600 space-y-2">
-              <div className="flex items-start gap-2.5">
-                <ShieldCheck className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Clinical Safety Guarantee:</strong> Direct notifications for any active confirmed appointments or emergency alerts will still be delivered.
-                </span>
-              </div>
+            <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-4 mb-7 text-xs text-slate-600 leading-relaxed">
+              <span className="font-semibold text-slate-800 block mb-1">
+                Clinical Safety Guarantee
+              </span>
+              Direct notifications, time-sensitive confirmations, and intake forms for actively confirmed chairside visits will continue to reach your inbox.
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="flex flex-col sm:flex-row items-center gap-3">
               <a
                 href="/"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm transition-colors shadow-sm"
+                className="w-full sm:flex-1 py-3 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-black text-white text-center font-medium text-sm transition-colors cursor-pointer shadow-sm"
               >
-                <ArrowLeft className="w-4 h-4" />
                 Return to Lumina Home
               </a>
               <a
                 href="/#booking"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-teal-200 bg-teal-50/70 hover:bg-teal-100/70 text-teal-800 font-medium text-sm transition-colors"
+                className="w-full sm:flex-1 py-3 px-5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-center font-medium text-sm transition-colors cursor-pointer"
               >
-                <CalendarCheck className="w-4 h-4 text-teal-700" />
                 Book an Appointment
               </a>
             </div>
           </div>
         ) : (
           <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 rounded-xl bg-teal-50 border border-teal-100 text-teal-700">
-                <BellOff className="w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                  Email Preferences &amp; Opt-Out
-                </h1>
-                <p className="text-xs sm:text-sm text-slate-500">
-                  Manage your communication preferences for Lumina Dental Studio
-                </p>
-              </div>
+            <div className="mb-6">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                Email Preferences &amp; Opt-Out
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                Manage your clinical communication and reminder settings
+              </p>
             </div>
 
-            <hr className="border-slate-100 my-5" />
-
             {errorMsg && (
-              <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 shrink-0 text-red-600 mt-0.5" />
-                <div>
-                  <span className="font-semibold block">Notice</span>
-                  {errorMsg}
-                </div>
+              <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
+                <span>{errorMsg}</span>
               </div>
             )}
 
-            <form onSubmit={handleUnsubscribe} className="space-y-6">
+            <form onSubmit={handleUnsubscribe} className="space-y-5">
               <div>
-                <label
-                  htmlFor="email-input"
-                  className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2"
-                >
-                  Email Address
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label
+                    htmlFor="email-input"
+                    className="text-xs font-semibold text-slate-700 uppercase tracking-wider"
+                  >
+                    Email Address
+                  </label>
+                  {isLockedFromUrl && (
+                    <span className="text-[11px] font-medium text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200/60">
+                      Auto-detected
+                    </span>
+                  )}
+                </div>
+
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <Mail className="w-4 h-4" />
@@ -182,66 +171,79 @@ function UnsubscribeContent() {
                     id="email-input"
                     type="email"
                     required
+                    readOnly={isLockedFromUrl}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 transition-all"
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border transition-all ${
+                      isLockedFromUrl
+                        ? 'bg-slate-100/80 border-slate-200 text-slate-700 cursor-not-allowed font-medium'
+                        : 'bg-white border-slate-200 text-slate-900 focus:border-teal-700 focus:ring-2 focus:ring-teal-700/15'
+                    }`}
                   />
                 </div>
+                {isLockedFromUrl && (
+                  <p className="text-[11.5px] text-slate-400 mt-1.5">
+                    This address was automatically loaded from your email notification.
+                  </p>
+                )}
               </div>
 
-              <div className="space-y-3 pt-2">
-                <span className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <div className="space-y-2.5 pt-1">
+                <span className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
                   Select communications to opt out from:
                 </span>
 
-                <label className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 cursor-pointer transition-colors">
+                {/* Option 1 */}
+                <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50/80 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={optOutBookingReminders}
                     onChange={(e) => setOptOutBookingReminders(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600 cursor-pointer"
                   />
                   <div className="text-xs">
-                    <span className="font-semibold text-slate-800 block">
+                    <span className="font-semibold text-slate-900 block">
                       Incomplete Booking &amp; Inquiry Follow-ups
                     </span>
-                    <span className="text-slate-500 leading-normal">
-                      Reminders when you begin booking or ask an inquiry on our website.
+                    <span className="text-slate-500 leading-normal block mt-0.5">
+                      Prompts to finish selecting a slot when reserving online.
                     </span>
                   </div>
                 </label>
 
-                <label className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 cursor-pointer transition-colors">
+                {/* Option 2 */}
+                <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50/80 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={optOutRecallReminders}
                     onChange={(e) => setOptOutRecallReminders(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600 cursor-pointer"
                   />
                   <div className="text-xs">
-                    <span className="font-semibold text-slate-800 block">
-                      6-Month Routine Hygiene Recalls
+                    <span className="font-semibold text-slate-900 block">
+                      6-Month Hygiene &amp; Preventive Recalls
                     </span>
-                    <span className="text-slate-500 leading-normal">
-                      Semi-annual checkup reminders to protect your preventive dental health.
+                    <span className="text-slate-500 leading-normal block mt-0.5">
+                      Semi-annual routine dental checkup and cleaning reminders.
                     </span>
                   </div>
                 </label>
 
-                <label className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 cursor-pointer transition-colors">
+                {/* Option 3 */}
+                <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50/80 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={optOutNewsletters}
                     onChange={(e) => setOptOutNewsletters(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600 cursor-pointer"
                   />
                   <div className="text-xs">
-                    <span className="font-semibold text-slate-800 block">
-                      Clinic Announcements &amp; Aesthetic Updates
+                    <span className="font-semibold text-slate-900 block">
+                      Studio Updates &amp; Announcements
                     </span>
-                    <span className="text-slate-500 leading-normal">
-                      Periodic seasonal announcements and aesthetic dentistry updates.
+                    <span className="text-slate-500 leading-normal block mt-0.5">
+                      Aesthetic dentistry news and seasonal clinical announcements.
                     </span>
                   </div>
                 </label>
@@ -251,7 +253,7 @@ function UnsubscribeContent() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-3.5 px-6 rounded-xl bg-teal-700 hover:bg-teal-800 active:bg-teal-900 disabled:opacity-60 text-white font-semibold text-sm shadow-md shadow-teal-700/20 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3.5 px-6 rounded-xl bg-teal-800 hover:bg-teal-900 active:bg-teal-950 disabled:opacity-60 text-white font-semibold text-sm shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
                     <>
@@ -259,20 +261,17 @@ function UnsubscribeContent() {
                       Updating Preferences...
                     </>
                   ) : (
-                    <>
-                      <Check className="w-4 h-4 stroke-[2.5]" />
-                      Confirm Unsubscribe
-                    </>
+                    'Confirm Unsubscribe'
                   )}
                 </button>
               </div>
             </form>
 
-            <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-              <a href="/" className="hover:text-teal-700 transition-colors flex items-center gap-1">
+            <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+              <a href="/" className="hover:text-slate-700 transition-colors flex items-center gap-1">
                 <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
               </a>
-              <span>Lumina Dental Studio &copy; 2026</span>
+              <span>Lumina Dental Studio</span>
             </div>
           </div>
         )}
@@ -283,11 +282,11 @@ function UnsubscribeContent() {
 
 export default function UnsubscribePage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-teal-50/20 to-slate-100 py-12 px-4 sm:px-6 flex items-center justify-center">
+    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 flex items-center justify-center">
       <Suspense
         fallback={
           <div className="p-8 text-center text-slate-500 text-sm">
-            <div className="w-6 h-6 border-2 border-teal-600/20 border-t-teal-600 rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-6 h-6 border-2 border-teal-700/20 border-t-teal-700 rounded-full animate-spin mx-auto mb-3" />
             Loading preferences...
           </div>
         }

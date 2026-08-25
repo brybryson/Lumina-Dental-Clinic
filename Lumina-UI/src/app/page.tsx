@@ -2842,6 +2842,12 @@ function Footer({ onOpenLegal }: { onOpenLegal: (tab: LegalTab) => void }) {
             >
               Accessibility
             </button>
+            <a
+              href="/unsubscribe"
+              className="hover:text-white transition-colors cursor-pointer"
+            >
+              Email Preferences
+            </a>
           </div>
         </div>
       </div>
