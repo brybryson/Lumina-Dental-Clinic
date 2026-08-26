@@ -317,15 +317,24 @@ export default function LumiChatWidget() {
         </div>
       )}
 
+      {/* Mobile Darkened Backdrop Overlay (Mobile Only) */}
+      {isOpen && (
+        <div
+          onClick={handleMinimize}
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-[2px] z-40 sm:hidden transition-opacity duration-300"
+          aria-hidden="true"
+        />
+      )}
+
       {/* 2. Floating AI Chat Modal Window (Mobile Floating Sheet & Desktop Floating Window) */}
       <div
         className={`fixed z-50 transition-all duration-300 ease-out font-sans ${
           isOpen
             ? 'opacity-100 translate-y-0 pointer-events-auto'
             : 'opacity-0 translate-y-8 pointer-events-none'
-        } max-sm:bottom-3 max-sm:left-3 max-sm:right-3 max-sm:h-[80vh] max-sm:max-h-[650px] sm:bottom-6 sm:right-6 sm:left-auto sm:w-[380px] sm:h-[590px] sm:max-h-[85vh]`}
+        } max-sm:bottom-2.5 max-sm:left-2.5 max-sm:right-2.5 max-sm:top-12 max-sm:h-auto max-sm:max-h-[calc(100dvh-3.5rem)] sm:bottom-6 sm:right-6 sm:left-auto sm:top-auto sm:w-[380px] sm:h-[590px] sm:max-h-[85vh]`}
       >
-        <div className="w-full h-full bg-white rounded-[26px] sm:rounded-[28px] border border-slate-200/90 shadow-[0_20px_50px_rgba(7,58,70,0.25)] overflow-hidden flex flex-col relative ring-1 ring-black/5">
+        <div className="w-full h-full bg-white rounded-[24px] sm:rounded-[28px] border border-slate-200/90 shadow-[0_25px_60px_rgba(7,58,70,0.35)] overflow-hidden flex flex-col relative ring-1 ring-black/10">
           
           {/* --- CURVED WAVE HEADER --- */}
           <div className="relative bg-gradient-to-br from-[#073a46] via-[#094d5a] to-[#0d9488] text-white pt-4 pb-7 px-5 flex-shrink-0">
