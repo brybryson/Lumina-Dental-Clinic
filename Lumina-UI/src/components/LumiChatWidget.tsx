@@ -323,9 +323,9 @@ export default function LumiChatWidget() {
           isOpen
             ? 'opacity-100 translate-y-0 pointer-events-auto'
             : 'opacity-0 translate-y-8 pointer-events-none'
-        } bottom-3 right-3 left-3 sm:left-auto sm:bottom-6 sm:right-6 sm:w-[390px] h-[82vh] max-h-[610px]`}
+        } max-sm:bottom-4 max-sm:left-4 max-sm:right-4 max-sm:h-[65vh] max-sm:max-h-[520px] sm:bottom-6 sm:right-6 sm:left-auto sm:w-[380px] sm:h-[590px] sm:max-h-[85vh]`}
       >
-        <div className="w-full h-full bg-white rounded-[24px] sm:rounded-[28px] border border-slate-200/90 shadow-[0_20px_50px_rgba(7,58,70,0.22)] overflow-hidden flex flex-col relative">
+        <div className="w-full h-full bg-white rounded-[26px] sm:rounded-[28px] border border-slate-200/90 shadow-[0_20px_50px_rgba(7,58,70,0.25)] overflow-hidden flex flex-col relative ring-1 ring-black/5">
           
           {/* --- CURVED WAVE HEADER --- */}
           <div className="relative bg-gradient-to-br from-[#073a46] via-[#094d5a] to-[#0d9488] text-white pt-4 pb-7 px-5 flex-shrink-0">
