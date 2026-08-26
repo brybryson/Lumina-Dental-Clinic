@@ -306,6 +306,7 @@ export default function LumiChatWidget() {
           {/* Clean Glowing Orb Trigger Button */}
           <button
             onClick={() => setIsOpen(true)}
+            data-testid="lumi-trigger-btn"
             aria-label="Open Lumi AI Companion Chat"
             className="group relative w-15 h-15 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-[#073a46] via-[#0a5666] to-[#0d9488] p-0.5 shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer"
           >
@@ -351,6 +352,7 @@ export default function LumiChatWidget() {
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={handleMinimize}
+                  data-testid="lumi-minimize-btn"
                   title="Minimize (Keep conversation)"
                   className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center transition-colors text-sm font-bold cursor-pointer"
                 >
@@ -358,6 +360,7 @@ export default function LumiChatWidget() {
                 </button>
                 <button
                   onClick={handleClose}
+                  data-testid="lumi-close-btn"
                   title="Close & Reset Conversation"
                   className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center transition-colors text-xs font-bold cursor-pointer"
                 >
@@ -464,6 +467,7 @@ export default function LumiChatWidget() {
               <input
                 ref={inputRef}
                 type="text"
+                data-testid="lumi-input"
                 value={inputQuery}
                 onChange={(e) => setInputQuery(e.target.value)}
                 placeholder="Type your message..."
@@ -475,6 +479,7 @@ export default function LumiChatWidget() {
             {/* Send Action Button */}
             <button
               type="submit"
+              data-testid="lumi-send-btn"
               aria-label="Send message"
               className={`w-9 h-9 rounded-full bg-[#008080] hover:bg-[#0d9488] active:scale-95 text-white flex items-center justify-center transition-all shadow-sm flex-shrink-0 cursor-pointer ${
                 !inputQuery.trim() || isTyping ? 'opacity-40 pointer-events-auto' : 'opacity-100'
