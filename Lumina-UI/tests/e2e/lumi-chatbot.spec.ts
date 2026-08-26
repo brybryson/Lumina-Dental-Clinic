@@ -9,7 +9,7 @@ test.describe('Lumi 24/7 AI Clinical Concierge Chatbot — E2E & Security Test S
     await page.waitForLoadState('networkidle');
 
     // 1. Open Lumi Chat Widget via Floating Orb
-    const chatTrigger = page.locator('button[aria-label="Open Lumi AI Concierge Chat"]');
+    const chatTrigger = page.locator('button[aria-label="Open Lumi AI Companion Chat"]');
     await expect(chatTrigger).toBeVisible();
     await chatTrigger.click();
     await page.waitForTimeout(400);
@@ -60,7 +60,7 @@ test.describe('Lumi 24/7 AI Clinical Concierge Chatbot — E2E & Security Test S
     await page.waitForLoadState('networkidle');
 
     // Open Lumi Chat Widget
-    await page.locator('button[aria-label="Open Lumi AI Concierge Chat"]').click();
+    await page.locator('button[aria-label="Open Lumi AI Companion Chat"]').click();
     await page.waitForTimeout(400);
 
     const chatInput = page.getByPlaceholder('Type your message...');
@@ -84,7 +84,7 @@ test.describe('Lumi 24/7 AI Clinical Concierge Chatbot — E2E & Security Test S
     await page.waitForLoadState('networkidle');
 
     // Open Lumi Chat Widget
-    await page.locator('button[aria-label="Open Lumi AI Concierge Chat"]').click();
+    await page.locator('button[aria-label="Open Lumi AI Companion Chat"]').click();
     await page.waitForTimeout(400);
 
     const chatInput = page.getByPlaceholder('Type your message...');
@@ -107,7 +107,7 @@ test.describe('Lumi 24/7 AI Clinical Concierge Chatbot — E2E & Security Test S
     await page.waitForLoadState('networkidle');
 
     // 1. Open Chat Widget and Ask Question
-    await page.locator('button[aria-label="Open Lumi AI Concierge Chat"]').click();
+    await page.locator('button[aria-label="Open Lumi AI Companion Chat"]').click();
     await page.waitForTimeout(400);
 
     const chatInput = page.getByPlaceholder('Type your message...');
@@ -121,7 +121,7 @@ test.describe('Lumi 24/7 AI Clinical Concierge Chatbot — E2E & Security Test S
     await page.waitForTimeout(400);
 
     // Re-open via trigger
-    await page.locator('button[aria-label="Open Lumi AI Concierge Chat"]').click();
+    await page.locator('button[aria-label="Open Lumi AI Companion Chat"]').click();
     await page.waitForTimeout(400);
 
     // Verify previous message is still there
@@ -137,7 +137,7 @@ test.describe('Lumi 24/7 AI Clinical Concierge Chatbot — E2E & Security Test S
     await page.waitForTimeout(400);
 
     // Re-open via trigger
-    await page.locator('button[aria-label="Open Lumi AI Concierge Chat"]').click();
+    await page.locator('button[aria-label="Open Lumi AI Companion Chat"]').click();
     await page.waitForTimeout(400);
 
     // Verify reset to initial greeting
@@ -146,6 +146,34 @@ test.describe('Lumi 24/7 AI Clinical Concierge Chatbot — E2E & Security Test S
 
     await page.screenshot({
       path: `${folder}/07-lumi-reset-conversation.png`,
+      fullPage: false,
+    });
+  });
+
+  test('05: Mobile Viewport — full-screen responsive presentation', async ({ page }) => {
+    // Emulate modern mobile device viewport (iPhone / standard smartphone 390x844)
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    // Open chat in mobile view
+    const chatTrigger = page.locator('button[aria-label="Open Lumi AI Companion Chat"]');
+    await expect(chatTrigger).toBeVisible();
+    await chatTrigger.click();
+    await page.waitForTimeout(400);
+
+    const chatInput = page.getByPlaceholder('Type your message...');
+    const sendButton = page.locator('button[aria-label="Send message"]');
+    await expect(chatInput).toBeVisible();
+
+    await chatInput.fill('What are your clinic hours?');
+    await sendButton.click();
+
+    await expect(page.getByText(/(Monday|9:00 AM)/i).first()).toBeVisible({ timeout: 15000 });
+
+    // Capture mobile full screen view
+    await page.screenshot({
+      path: `${folder}/08-lumi-mobile-view.png`,
       fullPage: false,
     });
   });

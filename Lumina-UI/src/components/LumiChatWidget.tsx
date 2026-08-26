@@ -257,13 +257,6 @@ export default function LumiChatWidget() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
   // Minimize: Retains conversation
   const handleMinimize = () => {
     setIsOpen(false);
@@ -280,31 +273,27 @@ export default function LumiChatWidget() {
     <>
       {/* 1. Floating Trigger Orb Button (Bottom Right) */}
       {!isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5">
           {/* Unread / Welcome Prompt Tooltip */}
           {hasUnread && (
             <div
               onClick={() => setIsOpen(true)}
-              className="hidden sm:flex items-center gap-2 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-teal-200/80 shadow-md text-[12px] font-semibold text-slate-800 cursor-pointer hover:border-teal-400 transition-all hover:scale-102 group"
+              className="hidden sm:flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-teal-200/80 shadow-md text-[12px] font-semibold text-slate-800 cursor-pointer hover:border-teal-400 transition-all hover:scale-102 group"
             >
-              <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
-              <span>Ask Lumi • 24/7 AI Concierge</span>
-              <span className="text-slate-400 text-xs group-hover:text-teal-600">→</span>
+              <span>Ask Lumi • 24/7 AI Companion</span>
+              <span className="text-teal-600 text-xs font-bold transition-transform group-hover:translate-x-0.5">→</span>
             </div>
           )}
 
-          {/* Glowing Orb Trigger Button */}
+          {/* Clean Glowing Orb Trigger Button */}
           <button
             onClick={() => setIsOpen(true)}
-            aria-label="Open Lumi AI Concierge Chat"
-            className="group relative w-15 h-15 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-[#073a46] via-[#0a5666] to-[#0d9488] p-0.5 shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center"
+            aria-label="Open Lumi AI Companion Chat"
+            className="group relative w-15 h-15 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-[#073a46] via-[#0a5666] to-[#0d9488] p-0.5 shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer"
           >
             <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-[#073a46]">
               <LumiOrb size={56} />
             </div>
-
-            {/* Online Status Dot */}
-            <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white ring-1 ring-emerald-400/40" />
           </button>
         </div>
       )}
@@ -315,7 +304,7 @@ export default function LumiChatWidget() {
           isOpen
             ? 'opacity-100 translate-y-0 pointer-events-auto'
             : 'opacity-0 translate-y-8 pointer-events-none'
-        } max-sm:inset-0 max-sm:w-full max-sm:h-full sm:bottom-6 sm:right-6 sm:w-[390px] sm:h-[610px] sm:max-h-[88vh]`}
+        } max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:bottom-0 max-sm:right-0 sm:bottom-6 sm:right-6 sm:w-[390px] sm:h-[610px] sm:max-h-[88vh]`}
       >
         <div className="w-full h-full bg-white max-sm:rounded-none sm:rounded-[28px] border border-slate-200 shadow-2xl overflow-hidden flex flex-col relative">
           
@@ -328,7 +317,6 @@ export default function LumiChatWidget() {
                   <div className="w-full h-full rounded-full overflow-hidden bg-[#073a46] flex items-center justify-center">
                     <LumiOrb size={40} forcePlay={isTyping} />
                   </div>
-                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#073a46]" />
                 </div>
 
                 <div>
@@ -336,7 +324,7 @@ export default function LumiChatWidget() {
                     Lumi
                   </h3>
                   <p className="text-[11.5px] font-medium text-cyan-100/90 leading-tight">
-                    Lumina AI Clinical Concierge
+                    24/7 AI Dental Companion
                   </p>
                 </div>
               </div>
@@ -346,14 +334,14 @@ export default function LumiChatWidget() {
                 <button
                   onClick={handleMinimize}
                   title="Minimize (Keep conversation)"
-                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center transition-colors text-sm font-bold"
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center transition-colors text-sm font-bold cursor-pointer"
                 >
                   −
                 </button>
                 <button
                   onClick={handleClose}
                   title="Close & Reset Conversation"
-                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center transition-colors text-xs font-bold"
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center transition-colors text-xs font-bold cursor-pointer"
                 >
                   ✕
                 </button>
@@ -438,7 +426,7 @@ export default function LumiChatWidget() {
                 <button
                   key={idx}
                   onClick={() => handleSendMessage(chip)}
-                  className="whitespace-nowrap px-2.5 py-1 rounded-full bg-white hover:bg-teal-50 border border-slate-200 hover:border-teal-300 text-[11px] font-medium text-slate-700 hover:text-teal-800 transition-all shadow-2xs flex-shrink-0"
+                  className="whitespace-nowrap px-2.5 py-1 rounded-full bg-white hover:bg-teal-50 border border-slate-200 hover:border-teal-300 text-[11px] font-medium text-slate-700 hover:text-teal-800 transition-all shadow-2xs flex-shrink-0 cursor-pointer"
                 >
                   {chip}
                 </button>
@@ -446,7 +434,7 @@ export default function LumiChatWidget() {
             </div>
           )}
 
-          {/* --- INPUT COMPOSER FOOTER --- */}
+          {/* --- INPUT COMPOSER FOOTER (Clean White Pill, No Greyout Box) --- */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -454,7 +442,7 @@ export default function LumiChatWidget() {
             }}
             className="p-2.5 bg-white border-t border-slate-100 flex items-center gap-2"
           >
-            <div className="flex-1 bg-slate-50 hover:bg-slate-100/70 focus-within:bg-white border border-slate-200 focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500/20 rounded-full px-3.5 py-1.5 transition-all flex items-center shadow-inner">
+            <div className="flex-1 bg-white border border-slate-200 hover:border-slate-300 focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-500/15 rounded-full px-3.5 py-1.5 transition-all flex items-center">
               <input
                 ref={inputRef}
                 type="text"
@@ -462,7 +450,7 @@ export default function LumiChatWidget() {
                 onChange={(e) => setInputQuery(e.target.value)}
                 placeholder="Type your message..."
                 disabled={isTyping}
-                className="w-full text-[13px] text-slate-800 placeholder:text-slate-400 bg-transparent outline-none disabled:opacity-60"
+                className="w-full text-[13px] text-slate-800 placeholder:text-slate-400 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 appearance-none disabled:opacity-60"
               />
             </div>
 
