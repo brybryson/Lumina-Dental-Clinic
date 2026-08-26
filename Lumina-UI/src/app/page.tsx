@@ -1959,21 +1959,15 @@ function Booking() {
             )}
 
             {isSubmitting && (
-              <div className="py-16 sm:py-20 text-center animate-in fade-in zoom-in-95 duration-300" aria-label="Submitting booking">
-                <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
-                  <div className="absolute inset-0 rounded-full border-4 border-teal-100 animate-ping opacity-30" />
-                  <div className="h-16 w-16 rounded-full border-4 border-[#0d9488] border-t-transparent animate-spin" />
-                  <Sparkles size={24} className="absolute text-[#0d9488] animate-pulse" />
+              <div className="py-16 sm:py-20 text-center" aria-label="Submitting booking">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center">
+                  <div className="h-10 w-10 rounded-full border-3 border-slate-200 border-t-[#0d9488] animate-spin" />
                 </div>
-                <span className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-3.5 py-1 text-[12px] font-bold text-[#0d9488] border border-teal-200/60">
-                  <span className="h-2 w-2 rounded-full bg-[#0d9488] animate-ping" />
-                  Securing Your Chairside Reservation
-                </span>
-                <h3 className="display mt-3 text-[22px] sm:text-[26px] font-extrabold text-[#0f172a]">
+                <h3 className="display mt-5 text-[20px] sm:text-[22px] font-bold text-[#0f172a]">
                   Reserving Your Appointment...
                 </h3>
-                <p className="mt-2 text-[14px] text-slate-500 max-w-md mx-auto">
-                  Syncing with Lumina Dental Studio live calendar and generating your secure pre-visit intake pass.
+                <p className="mt-1.5 text-[13.5px] text-slate-500 max-w-md mx-auto">
+                  Please wait while we confirm your appointment details.
                 </p>
               </div>
             )}
@@ -2455,10 +2449,10 @@ function Booking() {
                   {intakeToken && (
                     <a
                       href={`/intake?token=${intakeToken}`}
-                      className="button-primary flex items-center justify-center gap-2 rounded-xl py-3.5 px-6 text-[13.5px] font-bold shadow-md cursor-pointer"
+                      className="button-primary flex items-center justify-center rounded-xl py-3.5 px-6 text-[13.5px] font-bold shadow-md cursor-pointer"
                       data-testid="button-complete-intake-step4"
                     >
-                      <ShieldCheck size={16} /> Complete Pre-Visit Medical Intake
+                      Complete Pre-Visit Medical Intake
                     </a>
                   )}
                   <button
