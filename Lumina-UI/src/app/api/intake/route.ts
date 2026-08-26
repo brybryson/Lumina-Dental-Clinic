@@ -178,11 +178,10 @@ export async function POST(request: Request) {
       console.error('[API/intake] Supabase upsert error:', intakeError);
     }
 
-    // 3. Mark appointment intake as completed
+    // 3. Record intake completion timestamp (appointment remains confirmed until receptionist checks in patient)
     await supabaseAdmin
       .from('appointments')
       .update({
-        status: 'intake_submitted',
         intake_completed_at: nowIso,
       })
       .eq('id', appointment.id);

@@ -1232,33 +1232,17 @@ export default function AdminDashboardPage() {
                             Complete Visit
                           </button>
                         ) : apt.status !== 'cancelled' ? (
-                          /* Date-Gated Check-In */
-                          isTodayApt ? (
-                            <button
-                              onClick={() => handleUpdateAppointmentStatus(apt.id, 'checked_in')}
-                              className="py-2 px-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-[12.5px] cursor-pointer flex items-center gap-1.5 shadow-2xs transition-all hover:scale-[1.02]"
-                              title="Mark patient as arrived at the dental clinic"
-                            >
-                              <UserCheck className="w-4 h-4 text-emerald-600" />
-                              Check In
-                            </button>
-                          ) : isFutureApt ? (
-                            <button
-                              onClick={() => setActionSuccessMsg(`Patient check-in is only available on the scheduled date: ${formatLongDate(apt.appointment_date)}.`)}
-                              className="py-2 px-3.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 font-semibold text-[12px] cursor-not-allowed flex items-center gap-1.5 transition-colors"
-                              title={`Check-in opens on ${apt.appointment_date}`}
-                            >
-                              <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                              Check In ({apt.appointment_date})
-                            </button>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3.5 py-1.5 rounded-xl shadow-2xs">
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                              Unattended
-                            </span>
-                          )
+                          /* Explicit Check-In Action */
+                          <button
+                            onClick={() => handleUpdateAppointmentStatus(apt.id, 'checked_in')}
+                            className="py-2 px-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-[12.5px] cursor-pointer flex items-center gap-1.5 shadow-2xs transition-all hover:scale-[1.02]"
+                            title="Mark patient as arrived at the dental clinic"
+                          >
+                            <UserCheck className="w-4 h-4 text-emerald-600" />
+                            Check In
+                          </button>
                         ) : (
-                          <span className="text-[12px] font-semibold text-slate-400 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                          <span className="text-[12px] font-semibold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
                             Cancelled
                           </span>
                         )}
@@ -1970,31 +1954,15 @@ export default function AdminDashboardPage() {
                               Action
                             </button>
                           ) : apt.status !== 'cancelled' ? (
-                            /* Date-Gated Check-In */
-                            apt.appointment_date === todayManilaKey ? (
-                              <button
-                                onClick={() => handleUpdateAppointmentStatus(apt.id, 'checked_in')}
-                                className="py-2 px-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-[12px] cursor-pointer flex items-center gap-1 shadow-2xs transition-all hover:scale-[1.02]"
-                                title="Mark patient as arrived in lobby"
-                              >
-                                <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                                Check In
-                              </button>
-                            ) : apt.appointment_date > todayManilaKey ? (
-                              <button
-                                onClick={() => setActionSuccessMsg(`Patient check-in is only available on the scheduled date: ${formatLongDate(apt.appointment_date)}.`)}
-                                className="py-2 px-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 font-semibold text-[12px] cursor-not-allowed flex items-center gap-1.5 transition-colors"
-                                title={`Check-in opens on ${apt.appointment_date}`}
-                              >
-                                <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                                Check In ({apt.appointment_date})
-                              </button>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl shadow-2xs">
-                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                Unattended
-                              </span>
-                            )
+                            /* Explicit Check-In Action */
+                            <button
+                              onClick={() => handleUpdateAppointmentStatus(apt.id, 'checked_in')}
+                              className="py-2 px-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold text-[12px] cursor-pointer flex items-center gap-1 shadow-2xs transition-all hover:scale-[1.02]"
+                              title="Mark patient as arrived in clinic lobby"
+                            >
+                              <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                              Check In
+                            </button>
                           ) : (
                             <span className="text-[12px] font-semibold text-slate-400 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
                               Cancelled
