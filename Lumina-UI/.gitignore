@@ -41,3 +41,5 @@ tests/screenshots/
 # Company Info & Knowledge Docs (Ignored from repository)
 company-info/
 features/company-info/
+documentation-process.md
+features/documentation-process.md
