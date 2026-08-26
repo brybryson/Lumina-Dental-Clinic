@@ -11,7 +11,7 @@
 const sessionFolderCache: Record<string, string> = {};
 
 export function getScreenshotFolder(
-  suiteName: 'inquiry' | 'booking' | 'intake' | 'unsubscribe' | 'admin',
+  suiteName: 'inquiry' | 'booking' | 'intake' | 'unsubscribe' | 'admin' | 'lumi-chatbot',
   subCategory?: string
 ): string {
   if (!sessionFolderCache[suiteName]) {

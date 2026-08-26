@@ -10,7 +10,7 @@ interface LumiOrbProps {
 
 /**
  * LumiOrb Component
- * Renders the Lumi AI Orb with frame-accurate hover playback:
+ * Renders the Lumi AI Orb with frame-accurate hover & active playback:
  * - Steady/paused when not hovered (holding current frame).
  * - Plays animation smoothly when hovered or when forcePlay=true (thinking/generating).
  * - Pauses on exact frame when cursor leaves.
@@ -55,7 +55,7 @@ export default function LumiOrb({ size = 48, className = '', forcePlay = false }
             stateRef.current.decoder = decoder;
             stateRef.current.frameCount = count;
 
-            // Draw initial frame
+            // Draw initial frame 0
             const frame = await decoder.decode({ frameIndex: 0 });
             if (isMounted && canvasRef.current) {
               const ctx = canvasRef.current.getContext('2d');
@@ -69,7 +69,7 @@ export default function LumiOrb({ size = 48, className = '', forcePlay = false }
           }
         }
       } catch (e) {
-        console.warn('[LumiOrb] ImageDecoder initialization notice:', e);
+        console.warn('[LumiOrb] ImageDecoder fallback:', e);
       }
     }
 
@@ -136,7 +136,9 @@ export default function LumiOrb({ size = 48, className = '', forcePlay = false }
 
   return (
     <div
-      className={`relative inline-flex items-center justify-center select-none ${className}`}
+      className={`relative inline-flex items-center justify-center select-none ${
+        forcePlay ? 'animate-pulse' : ''
+      } ${className}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{ width: size, height: size }}
@@ -144,7 +146,7 @@ export default function LumiOrb({ size = 48, className = '', forcePlay = false }
       <canvas
         ref={canvasRef}
         style={{ width: size, height: size }}
-        className={`w-full h-full rounded-full object-cover pointer-events-none transition-transform duration-300 ${
+        className={`w-full h-full rounded-full object-cover pointer-events-none ${
           decoderReady ? 'block' : 'hidden'
         }`}
       />
@@ -153,7 +155,7 @@ export default function LumiOrb({ size = 48, className = '', forcePlay = false }
         src="/images/lumi_ai_orb_animated.webp"
         alt="Lumi AI Orb"
         style={{ width: size, height: size }}
-        className={`w-full h-full rounded-full object-cover pointer-events-none transition-transform duration-300 ${
+        className={`w-full h-full rounded-full object-cover pointer-events-none ${
           decoderReady ? 'hidden' : 'block'
         }`}
       />

@@ -14,17 +14,153 @@ interface ChatMessage {
 const INITIAL_GREETING: ChatMessage = {
   id: 'greeting-1',
   sender: 'bot',
-  text: "Hi there! 👋\n\nI’m Lumi, your 24/7 Dental Care & Scheduling Assistant. How can I help you today?",
+  text: "Hi there! 👋\nI’m Lumi, your 24/7 Dental Care & Scheduling Assistant. How can I help you today?",
   timestamp: 'Just now',
 };
 
 const SUGGESTIONS = [
-  'What are your clinic hours?',
-  'How much is Laser Teeth Whitening?',
-  'Do you accept Maxicare / Intellicare?',
-  'Wisdom tooth extraction post-op care?',
-  'Where are your clinic branches located?',
+  'Clinic hours & locations',
+  'Laser Teeth Whitening cost',
+  'HMO & Maxicare coverage',
+  'Wisdom tooth extraction care',
 ];
+
+/**
+ * Helper to parse markdown text (bolding **text**, italics *text*, bullet points, [link](url), and raw URLs)
+ * into styled React nodes with interactive clickable hyperlinks.
+ */
+function renderFormattedMessage(text: string) {
+  const lines = text.split('\n');
+
+  return (
+    <div className="space-y-1 text-[13px] leading-relaxed break-words overflow-hidden">
+      {lines.map((line, lineIdx) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          return <div key={lineIdx} className="h-1" />;
+        }
+
+        const isBullet = trimmed.startsWith('•') || trimmed.startsWith('-') || /^\d+\./.test(trimmed);
+
+        // Match markdown links [Text](URL) OR standalone URLs (https?://...)
+        const combinedRegex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)|(https?:\/\/[^\s<>)"]+)/g;
+        const parts: React.ReactNode[] = [];
+        let lastIndex = 0;
+        let match;
+
+        while ((match = combinedRegex.exec(line)) !== null) {
+          const textBefore = line.substring(lastIndex, match.index);
+          if (textBefore) {
+            parts.push(renderTextFormatting(textBefore, `tb-${lineIdx}-${lastIndex}`));
+          }
+
+          if (match[1] && match[2]) {
+            // [Text](URL)
+            const linkText = match[1];
+            const linkUrl = match[2];
+            parts.push(
+              <a
+                key={`md-link-${lineIdx}-${match.index}`}
+                href={linkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#0f766e] hover:text-[#0d9488] font-bold underline underline-offset-2 transition-colors inline"
+              >
+                {linkText}
+              </a>
+            );
+          } else if (match[3]) {
+            // Raw URL: https://...
+            const rawUrl = match[3];
+            const displayLabel = rawUrl.includes('#booking')
+              ? 'Schedule an appointment here'
+              : rawUrl;
+            parts.push(
+              <a
+                key={`raw-link-${lineIdx}-${match.index}`}
+                href={rawUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#0f766e] hover:text-[#0d9488] font-bold underline underline-offset-2 transition-colors inline"
+              >
+                {displayLabel}
+              </a>
+            );
+          }
+
+          lastIndex = match.index + match[0].length;
+        }
+
+        const remainingText = line.substring(lastIndex);
+        if (remainingText) {
+          parts.push(renderTextFormatting(remainingText, `rem-${lineIdx}-${lastIndex}`));
+        }
+
+        return (
+          <div
+            key={lineIdx}
+            className={`${isBullet ? 'pl-2 text-slate-800' : 'text-slate-800'}`}
+          >
+            {parts}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Handles bold **text** and italic *text* cleanly
+ */
+function renderTextFormatting(text: string, keyPrefix: string): React.ReactNode {
+  const boldRegex = /\*\*(.*?)\*\*/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = boldRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(renderItalics(text.substring(lastIndex, match.index), `${keyPrefix}-pre-${lastIndex}`));
+    }
+    parts.push(
+      <strong key={`${keyPrefix}-b-${match.index}`} className="font-bold text-slate-900">
+        {match[1]}
+      </strong>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(renderItalics(text.substring(lastIndex), `${keyPrefix}-post-${lastIndex}`));
+  }
+
+  return parts.length > 0 ? parts : text;
+}
+
+function renderItalics(text: string, keyPrefix: string): React.ReactNode {
+  const italicRegex = /\*([^*]+)\*/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = italicRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.substring(lastIndex, match.index));
+    }
+    parts.push(
+      <em key={`${keyPrefix}-em-${match.index}`} className="italic text-slate-700">
+        {match[1]}
+      </em>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : text;
+}
 
 export default function LumiChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -96,23 +232,23 @@ export default function LumiChatWidget() {
       const data = await res.json();
       const botReply =
         data.reply ||
-        "I'm here to help with all questions regarding Lumina Dental Studio's services, pricing, HMO coverage, and recovery guidelines.";
+        "I'm here to help with all questions regarding Lumina Dental Studio's services, pricing, HMO coverage, and recovery guidelines. [Schedule an appointment here](https://luminadentalcarestudio.vercel.app/#booking).";
 
       const botMsg: ChatMessage = {
         id: `bot-${Date.now()}`,
         sender: 'bot',
         text: botReply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isEmergency: data.status === 'emergency',
+        isEmergency: data.status === 'emergency' || data.status === 'security_blocked',
       };
 
       setMessages((prev) => [...prev, botMsg]);
     } catch (err) {
-      console.error('[LumiChat] Error fetching answer:', err);
+      console.error('[LumiChat] Error:', err);
       const errorMsg: ChatMessage = {
         id: `bot-err-${Date.now()}`,
         sender: 'bot',
-        text: "I apologize, I'm experiencing a brief connection delay. You can reach our front desk directly at (02) 8888-LUMI (5864) or +63 917 123 4567.",
+        text: "I apologize, I'm experiencing a brief connection delay. Please call our clinic desk at **(02) 8888-LUMI (5864)** or [Schedule an appointment here](https://luminadentalcarestudio.vercel.app/#booking).",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -128,6 +264,18 @@ export default function LumiChatWidget() {
     }
   };
 
+  // Minimize: Retains conversation
+  const handleMinimize = () => {
+    setIsOpen(false);
+  };
+
+  // Close: Resets conversation to initial greeting
+  const handleClose = () => {
+    setIsOpen(false);
+    setMessages([INITIAL_GREETING]);
+    setInputQuery('');
+  };
+
   return (
     <>
       {/* 1. Floating Trigger Orb Button (Bottom Right) */}
@@ -137,7 +285,7 @@ export default function LumiChatWidget() {
           {hasUnread && (
             <div
               onClick={() => setIsOpen(true)}
-              className="hidden sm:flex items-center gap-2 bg-white/95 backdrop-blur-md px-4 py-2 rounded-full border border-teal-200/80 shadow-lg text-[13px] font-semibold text-slate-800 cursor-pointer hover:border-teal-400 transition-all hover:scale-102 group animate-bounce-subtle"
+              className="hidden sm:flex items-center gap-2 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-teal-200/80 shadow-md text-[12px] font-semibold text-slate-800 cursor-pointer hover:border-teal-400 transition-all hover:scale-102 group"
             >
               <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
               <span>Ask Lumi • 24/7 AI Concierge</span>
@@ -149,64 +297,63 @@ export default function LumiChatWidget() {
           <button
             onClick={() => setIsOpen(true)}
             aria-label="Open Lumi AI Concierge Chat"
-            className="group relative w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-gradient-to-tr from-[#073a46] via-[#0a5666] to-[#0d9488] p-1 shadow-[0_0_35px_rgba(13,148,136,0.45),0_10px_30px_rgba(0,0,0,0.2)] hover:shadow-[0_0_45px_rgba(13,148,136,0.65),0_15px_40px_rgba(0,0,0,0.25)] hover:scale-108 active:scale-95 transition-all duration-300 flex items-center justify-center"
+            className="group relative w-15 h-15 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-[#073a46] via-[#0a5666] to-[#0d9488] p-0.5 shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center"
           >
-            <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-[#073a46]/90 border border-teal-300/40">
-              <LumiOrb size={54} />
+            <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-[#073a46]">
+              <LumiOrb size={56} />
             </div>
 
             {/* Online Status Dot */}
-            <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-emerald-400 border-2 border-white ring-2 ring-emerald-400/40" />
+            <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white ring-1 ring-emerald-400/40" />
           </button>
         </div>
       )}
 
-      {/* 2. Floating AI Chat Modal Window */}
-      {isOpen && (
-        <div
-          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[94vw] sm:w-[410px] h-[580px] sm:h-[650px] max-h-[92vh] bg-white rounded-[32px] border-2 border-cyan-400/40 shadow-[0_0_55px_rgba(6,182,212,0.35),0_25px_65px_rgba(0,0,0,0.22)] overflow-hidden flex flex-col transition-all duration-300 animate-in fade-in zoom-in-95 font-sans"
-        >
+      {/* 2. Floating AI Chat Modal Window (Mobile Fullscreen & Desktop Floating) */}
+      <div
+        className={`fixed z-50 transition-all duration-300 ease-out font-sans ${
+          isOpen
+            ? 'opacity-100 translate-y-0 pointer-events-auto'
+            : 'opacity-0 translate-y-8 pointer-events-none'
+        } max-sm:inset-0 max-sm:w-full max-sm:h-full sm:bottom-6 sm:right-6 sm:w-[390px] sm:h-[610px] sm:max-h-[88vh]`}
+      >
+        <div className="w-full h-full bg-white max-sm:rounded-none sm:rounded-[28px] border border-slate-200 shadow-2xl overflow-hidden flex flex-col relative">
+          
           {/* --- CURVED WAVE HEADER --- */}
-          <div className="relative bg-gradient-to-br from-[#073a46] via-[#094d5a] to-[#0d9488] text-white pt-5 pb-8 px-5 flex-shrink-0">
+          <div className="relative bg-gradient-to-br from-[#073a46] via-[#094d5a] to-[#0d9488] text-white pt-4 pb-7 px-5 flex-shrink-0">
             <div className="flex items-center justify-between relative z-10">
               {/* Header Left: Avatar & Title */}
               <div className="flex items-center gap-3">
-                <div className="relative w-12 h-12 rounded-full p-0.5 bg-gradient-to-tr from-cyan-300 via-teal-200 to-white shadow-md">
+                <div className="relative w-11 h-11 rounded-full p-0.5 bg-gradient-to-tr from-cyan-300 via-teal-200 to-white shadow-md">
                   <div className="w-full h-full rounded-full overflow-hidden bg-[#073a46] flex items-center justify-center">
-                    <LumiOrb size={44} forcePlay={isTyping} />
+                    <LumiOrb size={40} forcePlay={isTyping} />
                   </div>
-                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#073a46]" />
+                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#073a46]" />
                 </div>
 
                 <div>
-                  <h3 className="text-[19px] font-bold tracking-tight text-white leading-tight">
+                  <h3 className="text-[18px] font-bold tracking-tight text-white leading-tight">
                     Lumi
                   </h3>
                   <p className="text-[11.5px] font-medium text-cyan-100/90 leading-tight">
                     Lumina AI Clinical Concierge
                   </p>
-                  <div className="flex items-center gap-1.5 mt-0.5 text-[10px] font-semibold text-cyan-200">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Online</span>
-                    <span className="text-cyan-300/60">•</span>
-                    <span>Instant Clinic Knowledge</span>
-                  </div>
                 </div>
               </div>
 
               {/* Header Right: Window Controls */}
               <div className="flex items-center gap-1.5">
                 <button
-                  onClick={() => setIsOpen(false)}
-                  title="Minimize"
-                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center transition-colors backdrop-blur-xs text-sm font-bold"
+                  onClick={handleMinimize}
+                  title="Minimize (Keep conversation)"
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center transition-colors text-sm font-bold"
                 >
                   −
                 </button>
                 <button
-                  onClick={() => setIsOpen(false)}
-                  title="Close"
-                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center transition-colors backdrop-blur-xs text-xs font-bold"
+                  onClick={handleClose}
+                  title="Close & Reset Conversation"
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center transition-colors text-xs font-bold"
                 >
                   ✕
                 </button>
@@ -216,17 +363,17 @@ export default function LumiChatWidget() {
             {/* Bottom SVG Wave Curve */}
             <div className="absolute bottom-0 left-0 right-0 overflow-hidden leading-none pointer-events-none">
               <svg
-                viewBox="0 0 500 60"
+                viewBox="0 0 500 50"
                 preserveAspectRatio="none"
-                className="w-full h-6 text-[#f8fafc] fill-current"
+                className="w-full h-5 text-[#f8fafc] fill-current"
               >
-                <path d="M0,0 C150,50 350,0 500,45 L500,60 L0,60 Z" />
+                <path d="M0,0 C150,40 350,0 500,35 L500,50 L0,50 Z" />
               </svg>
             </div>
           </div>
 
           {/* --- MESSAGES THREAD BODY --- */}
-          <div className="flex-1 overflow-y-auto px-4 pt-3 pb-4 space-y-4 bg-[#f8fafc]">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pt-2 pb-3 space-y-3 bg-[#f8fafc] scrollbar-thin scrollbar-thumb-slate-300">
             {messages.map((msg) => (
               <div
                 key={msg.id}
@@ -236,35 +383,32 @@ export default function LumiChatWidget() {
               >
                 {/* Bot Avatar on Left */}
                 {msg.sender === 'bot' && (
-                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mt-0.5 border border-teal-300/40 shadow-xs bg-[#073a46]">
-                    <LumiOrb size={32} forcePlay={isTyping} />
+                  <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mt-0.5 border border-teal-300/40 bg-[#073a46]">
+                    <LumiOrb size={28} forcePlay={isTyping} />
                   </div>
                 )}
 
                 {/* Speech Bubble */}
-                <div className="flex flex-col space-y-1 max-w-[84%]">
+                <div className="flex flex-col space-y-0.5 max-w-[84%]">
                   <div
-                    className={`px-4 py-3 rounded-2xl text-[13.5px] leading-relaxed shadow-xs ${
+                    className={`px-3.5 py-2.5 rounded-2xl shadow-2xs ${
                       msg.sender === 'user'
-                        ? 'bg-[#cffafe] text-slate-800 rounded-tr-sm border border-cyan-200/60'
+                        ? 'bg-[#cffafe] text-slate-800 rounded-tr-xs border border-cyan-200/60'
                         : msg.isEmergency
-                        ? 'bg-rose-50 text-rose-950 border border-rose-200 rounded-tl-sm'
-                        : 'bg-white text-slate-800 rounded-tl-sm border border-slate-200/70'
+                        ? 'bg-rose-50 text-rose-950 border border-rose-200 rounded-tl-xs'
+                        : 'bg-white text-slate-800 rounded-tl-xs border border-slate-200/70'
                     }`}
                   >
-                    <div className="whitespace-pre-wrap">{msg.text}</div>
+                    {renderFormattedMessage(msg.text)}
                   </div>
 
                   {/* Timestamp */}
                   <div
-                    className={`text-[10px] font-medium text-slate-400 px-1 flex items-center gap-1 ${
-                      msg.sender === 'user' ? 'justify-end' : 'justify-start'
+                    className={`text-[9.5px] font-medium text-slate-400 px-1 ${
+                      msg.sender === 'user' ? 'text-right' : 'text-left'
                     }`}
                   >
-                    <span>{msg.timestamp}</span>
-                    {msg.sender === 'user' && (
-                      <span className="text-teal-600 font-bold">✓✓</span>
-                    )}
+                    {msg.timestamp}
                   </div>
                 </div>
               </div>
@@ -273,13 +417,13 @@ export default function LumiChatWidget() {
             {/* Typing Indicator */}
             {isTyping && (
               <div className="flex items-start gap-2.5 justify-start">
-                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-teal-300/40 shadow-xs bg-[#073a46]">
-                  <LumiOrb size={32} forcePlay={true} />
+                <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 border border-teal-300/40 bg-[#073a46]">
+                  <LumiOrb size={28} forcePlay={true} />
                 </div>
-                <div className="bg-white border border-slate-200/70 rounded-2xl rounded-tl-sm px-4 py-3 shadow-xs flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="bg-white border border-slate-200/70 rounded-2xl rounded-tl-xs px-3.5 py-2.5 shadow-2xs flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             )}
@@ -287,14 +431,14 @@ export default function LumiChatWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* --- QUICK SUGGESTIONS CHIPS --- */}
+          {/* --- QUICK SUGGESTIONS CHIPS (Compact & Slim) --- */}
           {messages.length <= 3 && !isTyping && (
-            <div className="px-3.5 py-2 bg-[#f8fafc] border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <div className="px-3 py-1.5 bg-[#f8fafc] border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto overflow-y-hidden no-scrollbar">
               {SUGGESTIONS.map((chip, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSendMessage(chip)}
-                  className="whitespace-nowrap px-3 py-1 rounded-full bg-white hover:bg-teal-50 border border-slate-200 hover:border-teal-300 text-[11px] font-medium text-slate-700 hover:text-teal-800 transition-all shadow-2xs flex-shrink-0"
+                  className="whitespace-nowrap px-2.5 py-1 rounded-full bg-white hover:bg-teal-50 border border-slate-200 hover:border-teal-300 text-[11px] font-medium text-slate-700 hover:text-teal-800 transition-all shadow-2xs flex-shrink-0"
                 >
                   {chip}
                 </button>
@@ -303,39 +447,44 @@ export default function LumiChatWidget() {
           )}
 
           {/* --- INPUT COMPOSER FOOTER --- */}
-          <div className="p-3 bg-white border-t border-slate-100 flex items-center gap-2">
-            <div className="flex-1 bg-slate-50 hover:bg-slate-100/70 focus-within:bg-white border border-slate-200/90 focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-500/20 rounded-full px-4 py-2 transition-all flex items-center shadow-inner">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendMessage();
+            }}
+            className="p-2.5 bg-white border-t border-slate-100 flex items-center gap-2"
+          >
+            <div className="flex-1 bg-slate-50 hover:bg-slate-100/70 focus-within:bg-white border border-slate-200 focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500/20 rounded-full px-3.5 py-1.5 transition-all flex items-center shadow-inner">
               <input
                 ref={inputRef}
                 type="text"
                 value={inputQuery}
                 onChange={(e) => setInputQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
                 placeholder="Type your message..."
                 disabled={isTyping}
-                className="w-full text-[13.5px] text-slate-800 placeholder:text-slate-400 bg-transparent outline-none disabled:opacity-60"
+                className="w-full text-[13px] text-slate-800 placeholder:text-slate-400 bg-transparent outline-none disabled:opacity-60"
               />
             </div>
 
             {/* Send Action Button */}
             <button
-              onClick={() => handleSendMessage()}
+              type="submit"
               disabled={!inputQuery.trim() || isTyping}
               aria-label="Send message"
-              className="w-10 h-10 rounded-full bg-[#008080] hover:bg-[#0d9488] active:scale-95 disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all shadow-md flex-shrink-0"
+              className="w-9 h-9 rounded-full bg-[#008080] hover:bg-[#0d9488] active:scale-95 disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all shadow-sm flex-shrink-0 cursor-pointer"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
                 fill="currentColor"
-                className="w-4 h-4 translate-x-0.5"
+                className="w-3.5 h-3.5 translate-x-0.5"
               >
                 <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
               </svg>
             </button>
-          </div>
+          </form>
         </div>
-      )}
+      </div>
     </>
   );
 }
