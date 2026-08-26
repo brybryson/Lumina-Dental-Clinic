@@ -8,12 +8,33 @@ interface LumiOrbProps {
   forcePlay?: boolean;
 }
 
+// Global cached array buffer so all LumiOrb instances initialize instantaneously
+let cachedWebpBuffer: ArrayBuffer | null = null;
+let bufferFetchPromise: Promise<ArrayBuffer> | null = null;
+
+async function getWebpBuffer(): Promise<ArrayBuffer> {
+  if (cachedWebpBuffer) return cachedWebpBuffer;
+  if (!bufferFetchPromise) {
+    bufferFetchPromise = fetch('/images/lumi_ai_orb_animated.webp')
+      .then((r) => r.arrayBuffer())
+      .then((buf) => {
+        cachedWebpBuffer = buf;
+        return buf;
+      })
+      .catch((err) => {
+        bufferFetchPromise = null;
+        throw err;
+      });
+  }
+  return bufferFetchPromise;
+}
+
 /**
  * LumiOrb Component
  * Renders the Lumi AI Orb with frame-accurate hover & active playback:
- * - Steady/paused when not hovered (holding current frame).
- * - Plays animation smoothly when hovered or when forcePlay=true (thinking/generating).
- * - Pauses on exact frame when cursor leaves.
+ * - Steady/paused on frame 0 when not hovered.
+ * - Rotates/plays smoothly when hovered or when forcePlay=true (active AI generation).
+ * - Pauses on the exact frame when cursor leaves.
  */
 export default function LumiOrb({ size = 48, className = '', forcePlay = false }: LumiOrbProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -34,14 +55,14 @@ export default function LumiOrb({ size = 48, className = '', forcePlay = false }
     rafId: null,
   });
 
+  // 1. Initialize ImageDecoder with cached buffer
   useEffect(() => {
     let isMounted = true;
 
     async function initDecoder() {
       try {
         if (typeof window !== 'undefined' && 'ImageDecoder' in window) {
-          const res = await fetch('/images/lumi_ai_orb_animated.webp');
-          const buffer = await res.arrayBuffer();
+          const buffer = await getWebpBuffer();
           // @ts-ignore
           const decoder = new window.ImageDecoder({
             data: buffer,
@@ -69,7 +90,7 @@ export default function LumiOrb({ size = 48, className = '', forcePlay = false }
           }
         }
       } catch (e) {
-        console.warn('[LumiOrb] ImageDecoder fallback:', e);
+        console.warn('[LumiOrb] ImageDecoder initialization:', e);
       }
     }
 
@@ -83,6 +104,7 @@ export default function LumiOrb({ size = 48, className = '', forcePlay = false }
     };
   }, [size]);
 
+  // 2. Play / Pause animation loop based on hover or forcePlay
   useEffect(() => {
     const shouldPlay = isHovered || forcePlay;
     const state = stateRef.current;
@@ -96,8 +118,8 @@ export default function LumiOrb({ size = 48, className = '', forcePlay = false }
       const renderLoop = async (now: number) => {
         if (!state.isPlaying || !canvasRef.current || !state.decoder) return;
 
-        // ~24-30 fps playback speed
-        if (now - lastTime >= 40) {
+        // Smooth ~30fps frame advancement
+        if (now - lastTime >= 33) {
           lastTime = now;
           state.currentFrame = (state.currentFrame + 1) % state.frameCount;
           try {
@@ -109,7 +131,9 @@ export default function LumiOrb({ size = 48, className = '', forcePlay = false }
                 ctx.drawImage(frame.image, 0, 0, canvasRef.current.width, canvasRef.current.height);
               }
             }
-          } catch {}
+          } catch {
+            // Frame decode error suppression
+          }
         }
 
         if (state.isPlaying) {
@@ -119,7 +143,7 @@ export default function LumiOrb({ size = 48, className = '', forcePlay = false }
 
       state.rafId = requestAnimationFrame(renderLoop);
     } else {
-      // STOP PLAYING: Leaves the canvas with the EXACT current frame
+      // Pause on the exact current frame
       state.isPlaying = false;
       if (state.rafId) {
         cancelAnimationFrame(state.rafId);
@@ -132,13 +156,11 @@ export default function LumiOrb({ size = 48, className = '', forcePlay = false }
         cancelAnimationFrame(state.rafId);
       }
     };
-  }, [isHovered, forcePlay]);
+  }, [isHovered, forcePlay, decoderReady]);
 
   return (
     <div
-      className={`relative inline-flex items-center justify-center select-none ${
-        forcePlay ? 'animate-pulse' : ''
-      } ${className}`}
+      className={`relative inline-flex items-center justify-center select-none ${className}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{ width: size, height: size }}
@@ -150,7 +172,7 @@ export default function LumiOrb({ size = 48, className = '', forcePlay = false }
           decoderReady ? 'block' : 'hidden'
         }`}
       />
-      {/* Fallback image if ImageDecoder is not available */}
+      {/* Fallback image while decoder is initializing */}
       <img
         src="/images/lumi_ai_orb_animated.webp"
         alt="Lumi AI Orb"
