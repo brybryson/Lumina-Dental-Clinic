@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import LumiOrb from './LumiOrb';
 
 interface ChatMessage {
@@ -181,6 +182,7 @@ function renderItalics(text: string, keyPrefix: string): React.ReactNode {
 }
 
 export default function LumiChatWidget() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_GREETING]);
   const [inputQuery, setInputQuery] = useState('');
@@ -190,6 +192,11 @@ export default function LumiChatWidget() {
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Hide chatbot on all admin side routes (/admin, /admin/login, /admin/account, etc.)
+  if (pathname && pathname.startsWith('/admin')) {
+    return null;
+  }
 
   // Initialize unique session ID
   useEffect(() => {
