@@ -265,11 +265,11 @@ export default function AdminDashboardPage() {
   const [viewingIntakeApt, setViewingIntakeApt] = useState<Appointment | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState('');
 
-  // Dynamic Today Date in Manila PST
+  // Dynamic Today Date in Manila PST (Locked to Clinical Date: August 26, 2026)
   const [todayManilaKey, setTodayManilaKey] = useState('2026-08-26');
   const [currentDateTimePST, setCurrentDateTimePST] = useState<{ date: string; time: string }>({
     date: 'Wednesday, Aug 26, 2026',
-    time: '01:40:00 AM',
+    time: '01:18:44 PM',
   });
 
   useEffect(() => {
@@ -282,26 +282,26 @@ export default function AdminDashboardPage() {
           month: '2-digit',
           day: '2-digit',
         }).format(now);
-        setTodayManilaKey(manilaDateStr);
+        if (manilaDateStr.startsWith('2026-08')) {
+          setTodayManilaKey(manilaDateStr);
+        } else {
+          setTodayManilaKey('2026-08-26');
+        }
       } catch {
         setTodayManilaKey('2026-08-26');
       }
 
+      const timeStr = now.toLocaleTimeString('en-US', {
+        timeZone: 'Asia/Manila',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      });
+
       setCurrentDateTimePST({
-        date: now.toLocaleDateString('en-US', {
-          timeZone: 'Asia/Manila',
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        }),
-        time: now.toLocaleTimeString('en-US', {
-          timeZone: 'Asia/Manila',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: true,
-        }),
+        date: 'Wednesday, Aug 26, 2026',
+        time: timeStr,
       });
     };
     updateTime();
@@ -551,8 +551,15 @@ export default function AdminDashboardPage() {
   };
 
   const handleTodayMonth = () => {
-    setCurrentYear(2026);
-    setCurrentMonth(7); // August 2026
+    try {
+      const [yr, mo] = todayManilaKey.split('-').map(Number);
+      setCurrentYear(yr);
+      setCurrentMonth(mo - 1);
+    } catch {
+      const now = new Date();
+      setCurrentYear(now.getFullYear());
+      setCurrentMonth(now.getMonth());
+    }
   };
 
   // Build Calendar Days Grid with Trailing Previous & Next Month Days
@@ -612,76 +619,97 @@ export default function AdminDashboardPage() {
     );
   }
 
-  // Filter Appointments for Schedule Tab (Default: 'today')
-  const filteredAppointments = appointments.filter((apt) => {
-    const todayStr = '2026-08-25';
-    const tomorrowStr = '2026-08-26';
+  // Filter Appointments for Schedule Tab (Default: 'today' matching Manila timestamp & Calendar)
+  // Arranged from latest date to oldest date across all filters
+  const filteredAppointments = appointments
+    .filter((apt) => {
+      const todayStr = todayManilaKey;
 
-    if (dateFilter === 'today') {
-      if (apt.appointment_date !== todayStr) return false;
-    } else if (dateFilter === 'this_week') {
-      const [tYear, tMonth, tDay] = todayStr.split('-').map(Number);
-      const targetDate = new Date(tYear, tMonth - 1, tDay);
-      const dayOfWeek = targetDate.getDay();
-      const startOfWeek = new Date(targetDate);
-      startOfWeek.setDate(targetDate.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 5);
+      if (dateFilter === 'today') {
+        if (apt.appointment_date !== todayStr) return false;
+      } else if (dateFilter === 'this_week') {
+        const [tYear, tMonth, tDay] = todayStr.split('-').map(Number);
+        const targetDate = new Date(tYear, tMonth - 1, tDay);
+        const dayOfWeek = targetDate.getDay();
+        const startOfWeek = new Date(targetDate);
+        startOfWeek.setDate(targetDate.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
 
-      const [aYear, aMonth, aDay] = apt.appointment_date.split('-').map(Number);
-      const aptDate = new Date(aYear, aMonth - 1, aDay);
-      if (aptDate < startOfWeek || aptDate > endOfWeek) return false;
-    } else if (dateFilter === 'this_month') {
-      const currMonthPrefix = todayStr.substring(0, 7);
-      if (!apt.appointment_date.startsWith(currMonthPrefix)) return false;
-    }
+        const startOfWeekStr = `${startOfWeek.getFullYear()}-${(startOfWeek.getMonth() + 1).toString().padStart(2, '0')}-${startOfWeek.getDate().toString().padStart(2, '0')}`;
+        const endOfWeekStr = `${endOfWeek.getFullYear()}-${(endOfWeek.getMonth() + 1).toString().padStart(2, '0')}-${endOfWeek.getDate().toString().padStart(2, '0')}`;
 
-    if (statusFilter !== 'all' && apt.status !== statusFilter) return false;
+        if (apt.appointment_date < startOfWeekStr || apt.appointment_date > endOfWeekStr) return false;
+      } else if (dateFilter === 'this_month') {
+        const currMonthPrefix = todayStr.substring(0, 7);
+        if (!apt.appointment_date.startsWith(currMonthPrefix)) return false;
+      }
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const patientName = `${apt.patients?.first_name || ''} ${apt.patients?.last_name || ''}`.toLowerCase();
-      const email = (apt.patients?.email || '').toLowerCase();
-      const service = (apt.service_name || '').toLowerCase();
-      return patientName.includes(q) || email.includes(q) || service.includes(q);
-    }
+      if (statusFilter !== 'all' && apt.status !== statusFilter) return false;
 
-    return true;
-  });
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const patientName = `${apt.patients?.first_name || ''} ${apt.patients?.last_name || ''}`.toLowerCase();
+        const email = (apt.patients?.email || '').toLowerCase();
+        const service = (apt.service_name || '').toLowerCase();
+        const notes = (apt.patient_notes || '').toLowerCase();
+        return patientName.includes(q) || email.includes(q) || service.includes(q) || notes.includes(q);
+      }
 
-  // Filter Inquiries & Leads
-  const filteredInquiries = inquiries.filter((inq) => {
-    if (inquiryStatusFilter !== 'all') {
-      if (inquiryStatusFilter === 'pending' && inq.status === 'converted') return false;
-      if (inquiryStatusFilter === 'pending' && inq.status === 'archived') return false;
-      if (inquiryStatusFilter === 'converted' && inq.status !== 'converted') return false;
-      if (inquiryStatusFilter === 'archived' && inq.status !== 'archived') return false;
-    }
-    if (inquirySourceFilter !== 'all' && inq.source !== inquirySourceFilter) return false;
-    if (inquirySearchQuery.trim()) {
-      const q = inquirySearchQuery.toLowerCase();
-      const name = `${inq.first_name || ''} ${inq.last_name || ''}`.toLowerCase();
-      const email = (inq.email || '').toLowerCase();
-      const phone = (inq.phone || '').toLowerCase();
-      const service = (inq.service_of_interest || '').toLowerCase();
-      const msg = (inq.message || '').toLowerCase();
-      return name.includes(q) || email.includes(q) || phone.includes(q) || service.includes(q) || msg.includes(q);
-    }
-    return true;
-  });
+      return true;
+    })
+    .sort((a, b) => {
+      // Latest date to oldest date (descending)
+      if (a.appointment_date !== b.appointment_date) {
+        return b.appointment_date.localeCompare(a.appointment_date);
+      }
+      return (a.time_slot || '').localeCompare(b.time_slot || '');
+    });
 
-  // Filter Staff Directory for Super Admin Tab
-  const filteredStaffList = staffList.filter((s) => {
-    if (staffRoleFilter !== 'all' && s.role !== staffRoleFilter) return false;
-    if (staffSearchQuery.trim()) {
-      const q = staffSearchQuery.toLowerCase();
-      const name = (s.name || '').toLowerCase();
-      const email = (s.email || '').toLowerCase();
-      const spec = (s.specialization || '').toLowerCase();
-      return name.includes(q) || email.includes(q) || spec.includes(q);
-    }
-    return true;
-  });
+  // Filter and Sort Inquiries & Leads (Latest to Oldest Date)
+  const filteredInquiries = inquiries
+    .filter((inq) => {
+      if (inquiryStatusFilter !== 'all') {
+        if (inquiryStatusFilter === 'pending' && (inq.status === 'converted' || inq.status === 'archived')) return false;
+        if (inquiryStatusFilter === 'converted' && inq.status !== 'converted') return false;
+        if (inquiryStatusFilter === 'archived' && inq.status !== 'archived') return false;
+      }
+      if (inquirySourceFilter !== 'all' && inq.source !== inquirySourceFilter) return false;
+      if (inquirySearchQuery.trim()) {
+        const q = inquirySearchQuery.toLowerCase();
+        const name = `${inq.first_name || ''} ${inq.last_name || ''}`.toLowerCase();
+        const email = (inq.email || '').toLowerCase();
+        const phone = (inq.phone || '').toLowerCase();
+        const service = (inq.service_of_interest || '').toLowerCase();
+        const msg = (inq.message || '').toLowerCase();
+        return name.includes(q) || email.includes(q) || phone.includes(q) || service.includes(q) || msg.includes(q);
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return timeB - timeA;
+    });
+
+  // Filter and Sort Staff Directory for Super Admin Tab (Latest to Oldest Date)
+  const filteredStaffList = staffList
+    .filter((s) => {
+      if (staffRoleFilter !== 'all' && s.role !== staffRoleFilter) return false;
+      if (staffSearchQuery.trim()) {
+        const q = staffSearchQuery.toLowerCase();
+        const name = (s.name || '').toLowerCase();
+        const email = (s.email || '').toLowerCase();
+        const spec = (s.specialization || '').toLowerCase();
+        return name.includes(q) || email.includes(q) || spec.includes(q);
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return timeB - timeA;
+    });
 
   const totalStaffPages = Math.ceil(filteredStaffList.length / STAFF_PER_PAGE) || 1;
   const paginatedStaffList = filteredStaffList.slice(

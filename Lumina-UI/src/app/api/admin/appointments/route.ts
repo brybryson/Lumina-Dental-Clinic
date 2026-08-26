@@ -64,7 +64,7 @@ export async function GET(request: Request) {
           alert_acknowledged
         )
       `)
-      .order('appointment_date', { ascending: true })
+      .order('appointment_date', { ascending: false })
       .order('time_slot', { ascending: true });
 
     if (dateParam) {
