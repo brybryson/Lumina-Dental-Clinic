@@ -343,7 +343,7 @@ export default function LumiChatWidget() {
               <div className="flex items-center gap-3">
                 <div className="relative w-11 h-11 rounded-full p-0.5 bg-gradient-to-tr from-cyan-300 via-teal-200 to-white shadow-md">
                   <div className="w-full h-full rounded-full overflow-hidden bg-[#073a46] flex items-center justify-center">
-                    <LumiOrb size={40} forcePlay={isTyping} />
+                    <LumiOrb size={40} />
                   </div>
                 </div>
 
@@ -402,7 +402,7 @@ export default function LumiChatWidget() {
                 {/* Bot Avatar on Left */}
                 {msg.sender === 'bot' && (
                   <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mt-0.5 border border-teal-300/40 bg-[#073a46]">
-                    <LumiOrb size={28} forcePlay={isTyping} />
+                    <LumiOrb size={28} />
                   </div>
                 )}
 
