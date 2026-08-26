@@ -30,3 +30,8 @@ playwright/.cache/
 #Automations MD files
 automation-progress.md
 automations/
+
+# Company Info & Knowledge Docs (Ignored from repository)
+**/company-info/
+company-info/
+features/company-info/

@@ -37,3 +37,7 @@ playwright-report/
 blob-report/
 playwright/.cache/
 tests/screenshots/
+
+# Company Info & Knowledge Docs (Ignored from repository)
+company-info/
+features/company-info/
