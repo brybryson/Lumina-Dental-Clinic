@@ -379,7 +379,7 @@ export default function LumiChatWidget() {
             </div>
 
             {/* Bottom SVG Wave Curve */}
-            <div className="absolute bottom-0 left-0 right-0 overflow-hidden leading-none pointer-events-none">
+            <div className="absolute bottom-0 left-0 right-0 overflow-hidden leading-none pointer-events-none -mb-0.5">
               <svg
                 viewBox="0 0 500 50"
                 preserveAspectRatio="none"
@@ -449,14 +449,14 @@ export default function LumiChatWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* --- QUICK SUGGESTIONS CHIPS (Compact & Slim) --- */}
+          {/* --- QUICK SUGGESTIONS CHIPS (Compact & Slim, No Border Lines, No Scrollbar) --- */}
           {messages.length <= 3 && !isTyping && (
-            <div className="px-3 py-1.5 bg-[#f8fafc] border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto overflow-y-hidden no-scrollbar">
+            <div className="px-3 py-1.5 bg-[#f8fafc] flex items-center gap-1.5 overflow-x-auto overflow-y-hidden no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               {SUGGESTIONS.map((chip, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSendMessage(chip)}
-                  className="whitespace-nowrap px-2 py-0.5 rounded-full bg-white hover:bg-teal-50 border border-slate-200 hover:border-teal-300 text-[10px] font-medium text-slate-600 hover:text-teal-800 transition-all shadow-2xs flex-shrink-0 cursor-pointer"
+                  className="whitespace-nowrap px-2.5 py-1 rounded-full bg-white hover:bg-teal-50 border border-slate-200/90 hover:border-teal-300 text-[10px] font-medium text-slate-600 hover:text-teal-800 transition-all shadow-2xs flex-shrink-0 cursor-pointer"
                 >
                   {chip}
                 </button>
@@ -464,13 +464,13 @@ export default function LumiChatWidget() {
             </div>
           )}
 
-          {/* --- INPUT COMPOSER FOOTER (Clean White Pill, No Greyout Box) --- */}
+          {/* --- INPUT COMPOSER FOOTER (Clean White Pill, No Separator Lines) --- */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSendMessage();
             }}
-            className="p-2.5 bg-white border-t border-slate-100 flex items-center gap-2"
+            className="p-2.5 bg-white flex items-center gap-2"
           >
             <div className="flex-1 bg-white border border-slate-200 hover:border-slate-300 focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-500/15 rounded-full px-3.5 py-1.5 transition-all flex items-center">
               <input
