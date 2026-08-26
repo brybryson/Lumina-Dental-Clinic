@@ -868,10 +868,34 @@ function CustomCalendar({
   bookedSchedule: Record<string, string[]>;
   allSlots: string[];
 }) {
-  const monthName = 'August 2026';
+  // Base view month starting at August 2026
+  const [viewDate, setViewDate] = useState<Date>(new Date(2026, 7, 1));
   const daysOfWeek = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-  const blankDays = 6;
-  const daysInMonth = 31;
+
+  const monthName = format(viewDate, 'MMMM yyyy');
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+
+  const firstDayOfMonth = new Date(year, month, 1);
+  const blankDays = firstDayOfMonth.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // Allow navigation: min month is August 2026, can navigate forward to future months
+  const minMonth = new Date(2026, 7, 1);
+  const isAtMinMonth = year === minMonth.getFullYear() && month <= minMonth.getMonth();
+
+  const handlePrevMonth = () => {
+    if (!isAtMinMonth) {
+      setViewDate(new Date(year, month - 1, 1));
+    }
+  };
+
+  const handleNextMonth = () => {
+    setViewDate(new Date(year, month + 1, 1));
+  };
+
+  // Baseline today comparison (Aug 25, 2026)
+  const todayKey = 20260825;
 
   return (
     <div className="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-4 sm:p-5">
@@ -881,10 +905,25 @@ function CustomCalendar({
           <span className="text-[14px] font-extrabold text-[#0f172a]">{monthName}</span>
         </div>
         <div className="flex items-center gap-1">
-          <button type="button" disabled className="p-1 rounded-lg text-slate-300 cursor-not-allowed" aria-label="Previous month">
+          <button
+            type="button"
+            disabled={isAtMinMonth}
+            onClick={handlePrevMonth}
+            className={`p-1.5 rounded-lg transition-colors ${
+              isAtMinMonth
+                ? 'text-slate-300 cursor-not-allowed'
+                : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900 cursor-pointer'
+            }`}
+            aria-label="Previous month"
+          >
             <ChevronLeft size={16} />
           </button>
-          <button type="button" disabled className="p-1 rounded-lg text-slate-300 cursor-not-allowed" aria-label="Next month">
+          <button
+            type="button"
+            onClick={handleNextMonth}
+            className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors cursor-pointer"
+            aria-label="Next month"
+          >
             <ChevronRight size={16} />
           </button>
         </div>
@@ -904,9 +943,11 @@ function CustomCalendar({
         ))}
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const dayNumber = i + 1;
-          const isWeekend = (dayNumber + blankDays - 1) % 7 === 0 || (dayNumber + blankDays - 1) % 7 === 6;
-          const isPastOrToday = dayNumber <= 25;
-          const dateString = `Aug ${dayNumber < 10 ? '0' : ''}${dayNumber}, 2026`;
+          const dayDate = new Date(year, month, dayNumber);
+          const dayKey = year * 10000 + (month + 1) * 100 + dayNumber;
+          const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
+          const isPastOrToday = dayKey <= todayKey;
+          const dateString = format(dayDate, 'MMM dd, yyyy');
           const isSelected = selectedDate === dateString;
 
           const bookedSlotsForDay = bookedSchedule[dateString] || [];
@@ -915,7 +956,7 @@ function CustomCalendar({
 
           return (
             <button
-              key={`day-${dayNumber}`}
+              key={`day-${year}-${month}-${dayNumber}`}
               type="button"
               disabled={isDisabled}
               onClick={() => onSelectDate(dateString)}
@@ -926,9 +967,7 @@ function CustomCalendar({
                   : isWeekend
                   ? 'Closed on Weekends'
                   : isPastOrToday
-                  ? dayNumber === 25
-                    ? 'Same-day online booking unavailable (Please call clinic for emergency slots)'
-                    : 'Past Date'
+                  ? 'Past Date'
                   : 'Available for Booking'
               }
               className={`relative h-9 w-full rounded-xl text-[13px] font-bold transition-all flex items-center justify-center ${
@@ -959,7 +998,7 @@ function CustomCalendar({
         </div>
         <div className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-slate-300" />
-          <span>Closed</span>
+          <span>Closed / Past</span>
         </div>
       </div>
     </div>
@@ -1287,7 +1326,7 @@ function Booking() {
   const [sex, setSex] = useState<'Female' | 'Male' | ''>('');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
-  const [selectedDate, setSelectedDate] = useState('Aug 24, 2026');
+  const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1637,7 +1676,7 @@ function Booking() {
     setMobile('');
     setDob('');
     setSex('');
-    setSelectedDate('Aug 24, 2026');
+    setSelectedDate('');
     setSelectedTime('');
     setSelectedServices([]);
     setNotes('');
