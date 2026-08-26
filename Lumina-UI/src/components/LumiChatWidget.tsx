@@ -54,39 +54,57 @@ function renderFormattedMessage(text: string) {
             parts.push(renderTextFormatting(textBefore, `tb-${lineIdx}-${lastIndex}`));
           }
 
-          if (match[1] && match[2]) {
-            // [Text](URL)
-            const linkText = match[1];
-            const linkUrl = match[2];
-            parts.push(
-              <a
-                key={`md-link-${lineIdx}-${match.index}`}
-                href={linkUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#0f766e] hover:text-[#0d9488] font-bold underline underline-offset-2 transition-colors inline"
-              >
-                {linkText}
-              </a>
-            );
-          } else if (match[3]) {
-            // Raw URL: https://...
-            const rawUrl = match[3];
-            const displayLabel = rawUrl.includes('#booking')
-              ? 'Schedule an appointment here'
-              : rawUrl;
-            parts.push(
-              <a
-                key={`raw-link-${lineIdx}-${match.index}`}
-                href={rawUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#0f766e] hover:text-[#0d9488] font-bold underline underline-offset-2 transition-colors inline"
-              >
-                {displayLabel}
-              </a>
-            );
-          }
+          const linkUrl = match[2] || match[3] || '';
+          const isInternal =
+            linkUrl.startsWith('#') ||
+            linkUrl.startsWith('/') ||
+            linkUrl.includes('luminadentalcarestudio.vercel.app') ||
+            linkUrl.includes('localhost');
+
+          const displayLabel = match[1] || (linkUrl.includes('#booking') ? 'Schedule an appointment here' : linkUrl);
+
+          const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+            if (isInternal) {
+              e.preventDefault();
+              const isBooking = linkUrl.includes('booking');
+              const isInquiry = linkUrl.includes('inquiry');
+
+              if (isBooking || isInquiry) {
+                const mode = isBooking ? 'booking' : 'inquiry';
+                window.dispatchEvent(
+                  new CustomEvent('lumina:select-service', {
+                    detail: { mode },
+                  })
+                );
+                window.location.hash = isBooking ? 'booking' : 'inquiry';
+                const el = document.getElementById('booking-section');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth' });
+                }
+              } else if (linkUrl.includes('#')) {
+                const hashPart = linkUrl.split('#')[1];
+                const el = document.getElementById(hashPart) || document.getElementById(`${hashPart}-section`);
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth' });
+                }
+              } else if (linkUrl.startsWith('/')) {
+                window.location.href = linkUrl;
+              }
+            }
+          };
+
+          parts.push(
+            <a
+              key={`link-${lineIdx}-${match.index}`}
+              href={linkUrl}
+              onClick={handleClick}
+              target={isInternal ? '_self' : '_blank'}
+              rel={isInternal ? undefined : 'noopener noreferrer'}
+              className="text-[#0f766e] hover:text-[#0d9488] font-bold underline underline-offset-2 transition-colors inline cursor-pointer"
+            >
+              {displayLabel}
+            </a>
+          );
 
           lastIndex = match.index + match[0].length;
         }

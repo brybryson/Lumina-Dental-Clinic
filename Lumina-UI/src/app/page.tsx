@@ -1365,6 +1365,21 @@ function Booking() {
   }, []);
 
   useEffect(() => {
+    const handleHash = () => {
+      if (typeof window === 'undefined') return;
+      const hash = window.location.hash.toLowerCase();
+      if (hash === '#booking' || hash === '#booking-section') {
+        setMode('booking');
+        document.getElementById('booking-section')?.scrollIntoView({ behavior: 'smooth' });
+      } else if (hash === '#inquiry') {
+        setMode('inquiry');
+        document.getElementById('booking-section')?.scrollIntoView({ behavior: 'smooth' });
+      }
+    };
+
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+
     const onService = (event: Event) => {
       const custom = event as CustomEvent<{ service?: string; mode?: 'inquiry' | 'booking' }>;
       const source = (custom.detail?.service || '').toLowerCase();
@@ -1397,7 +1412,10 @@ function Booking() {
       setStep(1);
     };
     window.addEventListener('lumina:select-service', onService);
-    return () => window.removeEventListener('lumina:select-service', onService);
+    return () => {
+      window.removeEventListener('hashchange', handleHash);
+      window.removeEventListener('lumina:select-service', onService);
+    };
   }, []);
 
   const formatPhoneNumber = (val: string) => {
