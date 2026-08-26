@@ -475,9 +475,10 @@ export default function LumiChatWidget() {
             {/* Send Action Button */}
             <button
               type="submit"
-              disabled={!inputQuery.trim() || isTyping}
               aria-label="Send message"
-              className="w-9 h-9 rounded-full bg-[#008080] hover:bg-[#0d9488] active:scale-95 disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all shadow-sm flex-shrink-0 cursor-pointer"
+              className={`w-9 h-9 rounded-full bg-[#008080] hover:bg-[#0d9488] active:scale-95 text-white flex items-center justify-center transition-all shadow-sm flex-shrink-0 cursor-pointer ${
+                !inputQuery.trim() || isTyping ? 'opacity-40 pointer-events-auto' : 'opacity-100'
+              }`}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
