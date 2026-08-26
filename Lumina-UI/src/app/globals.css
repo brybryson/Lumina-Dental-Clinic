@@ -59,6 +59,21 @@ input:focus, textarea:focus, select:focus {
   border-color: #0f766e !important;
   box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.2) !important;
 }
+
+/* Chatbot Input Clean Styling Override */
+input.lumi-input-clean,
+input.lumi-input-clean:focus,
+input.lumi-input-clean:focus-visible,
+input[data-testid="lumi-input"],
+input[data-testid="lumi-input"]:focus,
+input[data-testid="lumi-input"]:focus-visible {
+  outline: none !important;
+  border: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  -webkit-box-shadow: none !important;
+}
 .reveal { opacity: 0; transform: translateY(14px); transition: opacity .7s ease, transform .7s cubic-bezier(.22,1,.36,1); }
 .reveal.is-visible { opacity: 1; transform: translateY(0); }
 .reveal-delay-1 { transition-delay: .08s; }

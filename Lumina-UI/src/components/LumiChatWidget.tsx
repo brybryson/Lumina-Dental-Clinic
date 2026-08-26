@@ -447,7 +447,7 @@ export default function LumiChatWidget() {
                 <button
                   key={idx}
                   onClick={() => handleSendMessage(chip)}
-                  className="whitespace-nowrap px-2.5 py-1 rounded-full bg-white hover:bg-teal-50 border border-slate-200 hover:border-teal-300 text-[11px] font-medium text-slate-700 hover:text-teal-800 transition-all shadow-2xs flex-shrink-0 cursor-pointer"
+                  className="whitespace-nowrap px-2 py-0.5 rounded-full bg-white hover:bg-teal-50 border border-slate-200 hover:border-teal-300 text-[10px] font-medium text-slate-600 hover:text-teal-800 transition-all shadow-2xs flex-shrink-0 cursor-pointer"
                 >
                   {chip}
                 </button>
@@ -472,7 +472,13 @@ export default function LumiChatWidget() {
                 onChange={(e) => setInputQuery(e.target.value)}
                 placeholder="Type your message..."
                 disabled={isTyping}
-                className="w-full text-[13px] text-slate-800 placeholder:text-slate-400 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 appearance-none disabled:opacity-60"
+                className="lumi-input-clean w-full text-[13px] text-slate-800 placeholder:text-slate-400 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 appearance-none disabled:opacity-60"
+                style={{
+                  outline: 'none',
+                  border: 'none',
+                  boxShadow: 'none',
+                  backgroundColor: 'transparent',
+                }}
               />
             </div>
 
