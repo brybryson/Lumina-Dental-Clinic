@@ -323,7 +323,7 @@ export default function LumiChatWidget() {
           isOpen
             ? 'opacity-100 translate-y-0 pointer-events-auto'
             : 'opacity-0 translate-y-8 pointer-events-none'
-        } max-sm:bottom-4 max-sm:left-4 max-sm:right-4 max-sm:h-[65vh] max-sm:max-h-[520px] sm:bottom-6 sm:right-6 sm:left-auto sm:w-[380px] sm:h-[590px] sm:max-h-[85vh]`}
+        } max-sm:bottom-3 max-sm:left-3 max-sm:right-3 max-sm:h-[80vh] max-sm:max-h-[650px] sm:bottom-6 sm:right-6 sm:left-auto sm:w-[380px] sm:h-[590px] sm:max-h-[85vh]`}
       >
         <div className="w-full h-full bg-white rounded-[26px] sm:rounded-[28px] border border-slate-200/90 shadow-[0_20px_50px_rgba(7,58,70,0.25)] overflow-hidden flex flex-col relative ring-1 ring-black/5">
           
