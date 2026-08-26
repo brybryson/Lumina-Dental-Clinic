@@ -116,6 +116,8 @@ const dentistSchema = {
   medicalSpecialty: 'Dentistry',
 };
 
+import LumiChatWidget from '@/components/LumiChatWidget';
+
 export default function RootLayout({
   children,
 }: {
@@ -129,7 +131,10 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(dentistSchema) }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <LumiChatWidget />
+      </body>
     </html>
   );
 }
