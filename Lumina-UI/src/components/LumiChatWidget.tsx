@@ -317,15 +317,15 @@ export default function LumiChatWidget() {
         </div>
       )}
 
-      {/* 2. Floating AI Chat Modal Window (Mobile Fullscreen & Desktop Floating) */}
+      {/* 2. Floating AI Chat Modal Window (Mobile Floating Sheet & Desktop Floating Window) */}
       <div
         className={`fixed z-50 transition-all duration-300 ease-out font-sans ${
           isOpen
             ? 'opacity-100 translate-y-0 pointer-events-auto'
             : 'opacity-0 translate-y-8 pointer-events-none'
-        } max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:bottom-0 max-sm:right-0 sm:bottom-6 sm:right-6 sm:w-[390px] sm:h-[610px] sm:max-h-[88vh]`}
+        } bottom-3 right-3 left-3 sm:left-auto sm:bottom-6 sm:right-6 sm:w-[390px] h-[82vh] max-h-[610px]`}
       >
-        <div className="w-full h-full bg-white max-sm:rounded-none sm:rounded-[28px] border border-slate-200 shadow-2xl overflow-hidden flex flex-col relative">
+        <div className="w-full h-full bg-white rounded-[24px] sm:rounded-[28px] border border-slate-200/90 shadow-[0_20px_50px_rgba(7,58,70,0.22)] overflow-hidden flex flex-col relative">
           
           {/* --- CURVED WAVE HEADER --- */}
           <div className="relative bg-gradient-to-br from-[#073a46] via-[#094d5a] to-[#0d9488] text-white pt-4 pb-7 px-5 flex-shrink-0">
