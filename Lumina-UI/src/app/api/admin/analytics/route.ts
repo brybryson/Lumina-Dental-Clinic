@@ -26,88 +26,94 @@ export async function GET() {
       );
     }
 
-    // Fetch all analytics events
+    // Query real analytics events from Supabase
     const { data: events, error } = await supabaseAdmin
       .from('site_analytics')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(500);
+      .limit(1000);
 
     if (error) {
       console.warn('[Admin Analytics] Supabase query note:', error.message);
-      // Fallback structured data if table is not yet migrated in Supabase
       return NextResponse.json({
-        total_page_views: 142,
-        total_clicks: 86,
-        unique_visitors: 58,
-        avg_duration_seconds: 164, // ~2m 44s
-        bounce_rate: '28.4%',
-        top_clicked_elements: [
-          { name: 'Book Appointment (Hero & Navbar)', count: 34, percentage: '39.5%' },
-          { name: 'Ask Lumi 24/7 AI Assistant', count: 26, percentage: '30.2%' },
-          { name: 'Laser Teeth Whitening Service', count: 14, percentage: '16.3%' },
-          { name: 'Clinic Phone & Direct Inquiry', count: 12, percentage: '14.0%' },
-        ],
-        device_breakdown: { desktop: 68, mobile: 32 },
+        total_page_views: 0,
+        total_clicks: 0,
+        unique_visitors: 0,
+        avg_duration_seconds: 0,
+        bounce_rate: '0.0%',
+        top_clicked_elements: [],
+        device_breakdown: { desktop: 0, mobile: 0 },
         recent_events: [],
-        note: 'Default baseline analytics active. Run supabase-analytics-table.sql for live persistence.',
+        is_live: false,
+        error_message: 'Table site_analytics pending creation in Supabase SQL editor.',
       });
     }
 
     const allEvents = events || [];
 
-    // Calculate aggregated metrics
+    // Pure real metrics
     const pageViews = allEvents.filter((e) => e.event_type === 'page_view').length;
     const clicks = allEvents.filter((e) => e.event_type === 'click').length;
     const uniqueSessionIds = new Set(allEvents.map((e) => e.session_id));
     const uniqueVisitors = uniqueSessionIds.size;
 
-    // Calculate average duration
+    // Real average duration
     const sessionsWithDuration = allEvents.filter((e) => e.duration_seconds && e.duration_seconds > 0);
     const totalDuration = sessionsWithDuration.reduce((acc, curr) => acc + (curr.duration_seconds || 0), 0);
     const avgDurationSeconds =
       sessionsWithDuration.length > 0
         ? Math.round(totalDuration / sessionsWithDuration.length)
-        : 145;
+        : 0;
 
-    // Calculate top clicked elements
+    // Real top clicked elements
     const clickEvents = allEvents.filter((e) => e.event_type === 'click' && (e.element_text || e.element_id));
     const clickCounts: Record<string, number> = {};
 
     clickEvents.forEach((c) => {
-      const label = c.element_text || c.element_id || 'Interactive Button';
+      const label = c.element_text || c.element_id || 'Interactive CTA';
       clickCounts[label] = (clickCounts[label] || 0) + 1;
     });
 
+    const totalClicksCount = Math.max(1, clicks);
     const topClickedElements = Object.entries(clickCounts)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
+      .slice(0, 6)
       .map(([name, count]) => ({
         name,
         count,
-        percentage: `${Math.round((count / Math.max(1, clicks)) * 100)}%`,
+        percentage: `${Math.round((count / totalClicksCount) * 100)}%`,
       }));
 
-    // Device breakdown
+    // Real device breakdown
     const mobileCount = allEvents.filter((e) => e.device_type === 'mobile').length;
     const desktopCount = allEvents.filter((e) => e.device_type === 'desktop').length;
-    const totalDevice = Math.max(1, mobileCount + desktopCount);
+    const totalDevices = mobileCount + desktopCount;
+
+    const desktopPercent = totalDevices > 0 ? Math.round((desktopCount / totalDevices) * 100) : 0;
+    const mobilePercent = totalDevices > 0 ? Math.round((mobileCount / totalDevices) * 100) : 0;
+
+    // Bounce rate: % of sessions that only had 1 pageview and 0 clicks
+    const sessionEventCounts: Record<string, number> = {};
+    allEvents.forEach((e) => {
+      sessionEventCounts[e.session_id] = (sessionEventCounts[e.session_id] || 0) + 1;
+    });
+    const singleEventSessions = Object.values(sessionEventCounts).filter((cnt) => cnt <= 1).length;
+    const calculatedBounceRate =
+      uniqueVisitors > 0 ? `${Math.round((singleEventSessions / uniqueVisitors) * 100)}%` : '0.0%';
 
     return NextResponse.json({
-      total_page_views: Math.max(pageViews, 12),
+      total_page_views: pageViews,
       total_clicks: clicks,
-      unique_visitors: Math.max(uniqueVisitors, 8),
+      unique_visitors: uniqueVisitors,
       avg_duration_seconds: avgDurationSeconds,
-      bounce_rate: `${Math.min(35, Math.max(15, Math.round((1 - (clicks / Math.max(1, pageViews))) * 100)))}%`,
-      top_clicked_elements: topClickedElements.length > 0 ? topClickedElements : [
-        { name: 'Book Appointment (Hero)', count: clicks || 5, percentage: '50%' },
-        { name: 'Lumi AI Assistant', count: Math.max(1, Math.round(clicks * 0.4)), percentage: '40%' },
-      ],
+      bounce_rate: calculatedBounceRate,
+      top_clicked_elements: topClickedElements,
       device_breakdown: {
-        desktop: Math.round((desktopCount / totalDevice) * 100),
-        mobile: Math.round((mobileCount / totalDevice) * 100),
+        desktop: desktopPercent,
+        mobile: mobilePercent,
       },
-      recent_events: allEvents.slice(0, 15),
+      recent_events: allEvents.slice(0, 20),
+      is_live: true,
     });
   } catch (err: unknown) {
     console.error('[Admin Analytics API] Error:', err);

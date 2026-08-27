@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS public.site_analytics (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Indexes for lightning-fast super-admin queries
+-- Fast query indexes for Super Admin dashboard metrics
 CREATE INDEX IF NOT EXISTS idx_site_analytics_event_type ON public.site_analytics(event_type);
 CREATE INDEX IF NOT EXISTS idx_site_analytics_created_at ON public.site_analytics(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_site_analytics_session_id ON public.site_analytics(session_id);
@@ -38,16 +38,3 @@ CREATE POLICY "Allow service role full read access to site_analytics"
     FOR SELECT
     TO service_role
     USING (true);
-
--- Seed some realistic baseline analytics for demonstration
-INSERT INTO public.site_analytics (event_type, page_path, element_id, element_text, duration_seconds, session_id, device_type, created_at)
-VALUES
-    ('page_view', '/', NULL, NULL, 0, 'seed-session-1', 'desktop', NOW() - INTERVAL '4 hours'),
-    ('click', '/', 'button-book-now', 'Book Appointment', 0, 'seed-session-1', 'desktop', NOW() - INTERVAL '3 hours 58 minutes'),
-    ('session_end', '/', NULL, NULL, 185, 'seed-session-1', 'desktop', NOW() - INTERVAL '3 hours 55 minutes'),
-    ('page_view', '/', NULL, NULL, 0, 'seed-session-2', 'mobile', NOW() - INTERVAL '3 hours'),
-    ('click', '/', 'lumi-chat-orb', 'Ask Lumi AI', 0, 'seed-session-2', 'mobile', NOW() - INTERVAL '2 hours 55 minutes'),
-    ('session_end', '/', NULL, NULL, 240, 'seed-session-2', 'mobile', NOW() - INTERVAL '2 hours 50 minutes'),
-    ('page_view', '/', NULL, NULL, 0, 'seed-session-3', 'desktop', NOW() - INTERVAL '1 hour'),
-    ('click', '/', 'treatment-whitening', 'Laser Teeth Whitening', 0, 'seed-session-3', 'desktop', NOW() - INTERVAL '55 minutes'),
-    ('session_end', '/', NULL, NULL, 310, 'seed-session-3', 'desktop', NOW() - INTERVAL '50 minutes');
