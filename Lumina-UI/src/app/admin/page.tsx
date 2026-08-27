@@ -218,8 +218,25 @@ export default function AdminDashboardPage() {
   const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
 
-  // Tab State
+  // Tab State (Persisted across page refresh via localStorage)
   const [activeTab, setActiveTab] = useState<'schedule' | 'calendar' | 'inquiries' | 'staff' | 'analytics'>('schedule');
+
+  useEffect(() => {
+    try {
+      const savedTab = localStorage.getItem('lumina_admin_active_tab') as any;
+      if (savedTab && ['schedule', 'calendar', 'inquiries', 'staff', 'analytics'].includes(savedTab)) {
+        setActiveTab(savedTab);
+      }
+    } catch {}
+  }, []);
+
+  const handleTabChange = (tab: 'schedule' | 'calendar' | 'inquiries' | 'staff' | 'analytics') => {
+    setActiveTab(tab);
+    try {
+      localStorage.setItem('lumina_admin_active_tab', tab);
+    } catch {}
+  };
+
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [staffList, setStaffList] = useState<StaffUser[]>([]);
@@ -429,8 +446,14 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (activeTab === 'analytics' && currentUser?.role === 'super_admin') {
       loadAnalyticsData();
+      // Real-time live polling every 3 seconds
+      const pollInterval = setInterval(() => {
+        loadAnalyticsData();
+      }, 3000);
+
+      return () => clearInterval(pollInterval);
     }
-  }, [activeTab]);
+  }, [activeTab, currentUser]);
 
   // Logout handler
   const handleLogout = async () => {
@@ -947,10 +970,10 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Navigation Tabs (Including Super Admin Exclusive Staff Directory Tab) */}
+        {/* Navigation Tabs (Including Super Admin Exclusive Staff Directory & Analytics Tabs) */}
         <div className="flex items-center gap-1.5 sm:gap-2 border-b border-slate-200/80 pb-2.5 overflow-x-auto flex-nowrap no-scrollbar">
           <button
-            onClick={() => setActiveTab('schedule')}
+            onClick={() => handleTabChange('schedule')}
             className={`py-2 px-3.5 sm:px-4 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
               activeTab === 'schedule'
                 ? 'bg-[#0d9488] text-white shadow-xs'
@@ -961,7 +984,7 @@ export default function AdminDashboardPage() {
             Chairside Schedule
           </button>
           <button
-            onClick={() => setActiveTab('calendar')}
+            onClick={() => handleTabChange('calendar')}
             className={`py-2 px-3.5 sm:px-4 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
               activeTab === 'calendar'
                 ? 'bg-[#0d9488] text-white shadow-xs'
@@ -972,7 +995,7 @@ export default function AdminDashboardPage() {
             Lumina Calendar
           </button>
           <button
-            onClick={() => setActiveTab('inquiries')}
+            onClick={() => handleTabChange('inquiries')}
             className={`py-2 px-3.5 sm:px-4 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
               activeTab === 'inquiries'
                 ? 'bg-[#0d9488] text-white shadow-xs'
@@ -987,7 +1010,7 @@ export default function AdminDashboardPage() {
           {currentUser?.role === 'super_admin' && (
             <>
               <button
-                onClick={() => setActiveTab('staff')}
+                onClick={() => handleTabChange('staff')}
                 className={`py-2 px-3.5 sm:px-4 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
                   activeTab === 'staff'
                     ? 'bg-[#0d9488] text-white shadow-xs'
@@ -999,7 +1022,7 @@ export default function AdminDashboardPage() {
               </button>
 
               <button
-                onClick={() => setActiveTab('analytics')}
+                onClick={() => handleTabChange('analytics')}
                 className={`py-2 px-3.5 sm:px-4 rounded-xl text-[12.5px] sm:text-[13.5px] font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
                   activeTab === 'analytics'
                     ? 'bg-[#0d9488] text-white shadow-xs'
@@ -1008,11 +1031,6 @@ export default function AdminDashboardPage() {
               >
                 <BarChart3 className="w-4 h-4" />
                 Traffic &amp; Engagement
-                <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider ${
-                  activeTab === 'analytics' ? 'bg-white/20 text-white' : 'bg-teal-100 text-[#0d9488]'
-                }`}>
-                  Admin
-                </span>
               </button>
             </>
           )}

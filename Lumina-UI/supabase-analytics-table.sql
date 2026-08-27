@@ -28,17 +28,18 @@ ALTER TABLE public.site_analytics ENABLE ROW LEVEL SECURITY;
 -- Safely drop existing policies if re-running
 DROP POLICY IF EXISTS "Allow public insert to site_analytics" ON public.site_analytics;
 DROP POLICY IF EXISTS "Allow service role full read access to site_analytics" ON public.site_analytics;
+DROP POLICY IF EXISTS "Allow read access to site_analytics" ON public.site_analytics;
 
 -- Allow anonymous public inserts from website visitors
 CREATE POLICY "Allow public insert to site_analytics"
     ON public.site_analytics
     FOR INSERT
-    TO anon, authenticated
+    TO anon, authenticated, service_role
     WITH CHECK (true);
 
--- Allow service role full read access (for Super Admin dashboard queries)
-CREATE POLICY "Allow service role full read access to site_analytics"
+-- Allow read access for Super Admin dashboard queries
+CREATE POLICY "Allow read access to site_analytics"
     ON public.site_analytics
     FOR SELECT
-    TO service_role
+    TO anon, authenticated, service_role
     USING (true);
