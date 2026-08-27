@@ -27,20 +27,117 @@ const SUGGESTIONS = [
 ];
 
 /**
- * Helper to parse markdown text (bolding **text**, italics *text*, bullet points, [link](url), and raw URLs)
- * into styled React nodes with interactive clickable hyperlinks.
+ * Parses markdown table strings into clean, structured bullet lists.
  */
-function renderFormattedMessage(text: string) {
+function convertTableToBullets(text: string): string {
   const lines = text.split('\n');
+  const resultLines: string[] = [];
+  let inTable = false;
+  let headers: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const isTableRow = line.startsWith('|') && line.endsWith('|');
+    const isDividerRow = isTableRow && /^\|(\s*:?-+:?\s*\|)+$/.test(line);
+
+    if (isTableRow) {
+      const cells = line
+        .slice(1, -1)
+        .split('|')
+        .map((c) => c.trim().replace(/<br\s*\/?>/gi, '\n'));
+
+      if (!inTable) {
+        inTable = true;
+        headers = cells.map((h) => h.replace(/\*/g, '').trim());
+        continue;
+      }
+
+      if (isDividerRow) {
+        continue;
+      }
+
+      if (cells.length > 0 && cells.some((c) => c.length > 0)) {
+        const title = cells[0];
+        resultLines.push(`• **${title}**`);
+
+        for (let c = 1; c < cells.length; c++) {
+          const headerName = headers[c] || `Info`;
+          const cellContent = cells[c];
+          if (!cellContent) continue;
+
+          const subLines = cellContent.split('\n').map((s) => s.trim()).filter(Boolean);
+          if (subLines.length === 1) {
+            resultLines.push(`  - **${headerName}:** ${subLines[0].replace(/^[•\-\*]\s*/, '')}`);
+          } else {
+            resultLines.push(`  - **${headerName}:**`);
+            subLines.forEach((sl) => {
+              resultLines.push(`    • ${sl.replace(/^[•\-\*]\s*/, '')}`);
+            });
+          }
+        }
+        resultLines.push('');
+      }
+    } else {
+      if (inTable) {
+        inTable = false;
+        headers = [];
+      }
+      resultLines.push(line);
+    }
+  }
+
+  return resultLines.join('\n');
+}
+
+/**
+ * Pre-processes text to remove raw HTML breaks, wrapper brackets, tables, etc.
+ */
+function sanitizeMessageText(rawText: string): string {
+  if (!rawText) return '';
+  let text = rawText;
+
+  // 1. Convert <br> tags to standard newlines
+  text = text.replace(/<br\s*\/?>/gi, '\n');
+
+  // 2. Remove angle brackets wrapping markdown links: <[Text](url)> -> [Text](url)
+  text = text.replace(/<(\[[^\]]+\]\([^)]+\))>/g, '$1');
+
+  // 3. Remove angle brackets wrapping raw URLs: <https://...> -> https://...
+  text = text.replace(/<(https?:\/\/[^>]+)>/g, '$1');
+
+  // 4. Convert markdown tables if present
+  if (text.includes('|') && /\|[ \t]*[-:]+[-| :]*\|/.test(text)) {
+    text = convertTableToBullets(text);
+  }
+
+  // 5. Clean escaped asterisks
+  text = text.replace(/\\\*/g, '*');
+
+  return text.trim();
+}
+
+/**
+ * Helper to parse markdown text (bolding **text**, italics *text*, bullet points, [link](url), and raw URLs)
+ * into styled React nodes with interactive clickable hyperlinks and clean spacing.
+ */
+function renderFormattedMessage(rawText: string) {
+  const sanitized = sanitizeMessageText(rawText);
+  const lines = sanitized.split('\n');
 
   return (
-    <div className="space-y-1 text-[13px] leading-relaxed break-words overflow-hidden">
+    <div className="space-y-1.5 text-[13px] leading-relaxed break-words overflow-hidden text-slate-800">
       {lines.map((line, lineIdx) => {
         const trimmed = line.trim();
         if (!trimmed) {
           return <div key={lineIdx} className="h-1" />;
         }
 
+        // Horizontal divider
+        if (/^---+$|^===+$/.test(trimmed)) {
+          return <hr key={lineIdx} className="my-2 border-slate-200" />;
+        }
+
+        const isNestedBullet = /^(\s{2,}|\t)[•\-\*]/.test(line);
         const isBullet = trimmed.startsWith('•') || trimmed.startsWith('-') || /^\d+\./.test(trimmed);
 
         // Match markdown links [Text](URL) OR standalone URLs (https?://...)
@@ -101,9 +198,10 @@ function renderFormattedMessage(text: string) {
               onClick={handleClick}
               target={isInternal ? '_self' : '_blank'}
               rel={isInternal ? undefined : 'noopener noreferrer'}
-              className="text-[#0f766e] hover:text-[#0d9488] font-bold underline underline-offset-2 transition-colors inline cursor-pointer"
+              className="inline-flex items-center gap-1 text-[#0f766e] hover:text-[#0d9488] font-bold underline underline-offset-3 decoration-[#0d9488]/50 hover:decoration-[#0d9488] transition-colors cursor-pointer"
             >
-              {displayLabel}
+              <span>{displayLabel}</span>
+              <span className="text-[11px] no-underline font-normal">↗</span>
             </a>
           );
 
@@ -118,7 +216,13 @@ function renderFormattedMessage(text: string) {
         return (
           <div
             key={lineIdx}
-            className={`${isBullet ? 'pl-2 text-slate-800' : 'text-slate-800'}`}
+            className={`${
+              isNestedBullet
+                ? 'pl-5 text-slate-700'
+                : isBullet
+                ? 'pl-2 text-slate-800'
+                : 'text-slate-800'
+            }`}
           >
             {parts}
           </div>
@@ -142,7 +246,7 @@ function renderTextFormatting(text: string, keyPrefix: string): React.ReactNode 
       parts.push(renderItalics(text.substring(lastIndex, match.index), `${keyPrefix}-pre-${lastIndex}`));
     }
     parts.push(
-      <strong key={`${keyPrefix}-b-${match.index}`} className="font-bold text-slate-900">
+      <strong key={`${keyPrefix}-b-${match.index}`} className="font-bold text-slate-950">
         {match[1]}
       </strong>
     );
@@ -157,7 +261,7 @@ function renderTextFormatting(text: string, keyPrefix: string): React.ReactNode 
 }
 
 function renderItalics(text: string, keyPrefix: string): React.ReactNode {
-  const italicRegex = /\*([^*]+)\*/g;
+  const italicRegex = /(?<!\*)\*([^*]+)\*(?!\*)/g;
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
   let match;
@@ -189,9 +293,19 @@ export default function LumiChatWidget() {
   const [isTyping, setIsTyping] = useState(false);
   const [sessionId, setSessionId] = useState('');
   const [hasUnread, setHasUnread] = useState(true);
+  const [showTeaserPill, setShowTeaserPill] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Auto-hide the "Ask Lumi • 24/7 AI Companion" teaser pill after 15 seconds of landing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowTeaserPill(false);
+    }, 15000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Hide chatbot on all admin side routes (/admin, /admin/login, /admin/account, etc.)
   if (pathname && pathname.startsWith('/admin')) {
@@ -299,11 +413,11 @@ export default function LumiChatWidget() {
       {/* 1. Floating Trigger Orb Button (Bottom Right) */}
       {!isOpen && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5">
-          {/* Unread / Welcome Prompt Tooltip */}
-          {hasUnread && (
+          {/* Unread / Welcome Prompt Tooltip (Auto-hides after 15 seconds) */}
+          {hasUnread && showTeaserPill && (
             <div
               onClick={() => setIsOpen(true)}
-              className="hidden sm:flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-teal-200/80 shadow-md text-[12px] font-semibold text-slate-800 cursor-pointer hover:border-teal-400 transition-all hover:scale-102 group"
+              className="hidden sm:flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-teal-200/80 shadow-md text-[12px] font-semibold text-slate-800 cursor-pointer hover:border-teal-400 transition-all duration-500 hover:scale-102 group animate-in fade-in slide-in-from-right-2"
             >
               <span>Ask Lumi • 24/7 AI Companion</span>
               <span className="text-teal-600 text-xs font-bold transition-transform group-hover:translate-x-0.5">→</span>

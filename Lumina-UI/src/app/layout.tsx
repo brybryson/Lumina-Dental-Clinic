@@ -117,6 +117,7 @@ const dentistSchema = {
 };
 
 import LumiChatWidget from '@/components/LumiChatWidget';
+import AnalyticsTracker from '@/components/AnalyticsTracker';
 
 export default function RootLayout({
   children,
@@ -132,6 +133,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <AnalyticsTracker />
         {children}
         <LumiChatWidget />
       </body>

@@ -149,7 +149,7 @@ const bookingServices = [
   'Deep Gum Cleaning & Periodontal Care',
 ];
 
-const timeSlots = [
+const weekdayTimeSlots = [
   '09:00 AM – 10:00 AM',
   '10:00 AM – 11:00 AM',
   '11:00 AM – 12:00 PM',
@@ -159,6 +159,27 @@ const timeSlots = [
   '03:00 PM – 04:00 PM',
   '04:00 PM – 05:00 PM',
 ];
+
+const saturdayTimeSlots = [
+  '09:00 AM – 10:00 AM',
+  '10:00 AM – 11:00 AM',
+  '11:00 AM – 12:00 PM',
+  '12:00 PM – 01:00 PM',
+  '01:00 PM – 02:00 PM',
+  '02:00 PM – 03:00 PM',
+];
+
+const timeSlots = weekdayTimeSlots;
+
+function getTimeSlotsForDate(dateStr: string): string[] {
+  if (!dateStr) return weekdayTimeSlots;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return weekdayTimeSlots;
+  if (d.getDay() === 6) {
+    return saturdayTimeSlots;
+  }
+  return weekdayTimeSlots;
+}
 
 function trackEvent(event: string, detail?: Record<string, string>) {
   if (typeof window !== 'undefined') {
@@ -945,14 +966,17 @@ function CustomCalendar({
           const dayNumber = i + 1;
           const dayDate = new Date(year, month, dayNumber);
           const dayKey = year * 10000 + (month + 1) * 100 + dayNumber;
-          const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
+          const dayOfWeek = dayDate.getDay();
+          const isSunday = dayOfWeek === 0;
+          const isSaturday = dayOfWeek === 6;
           const isPastOrToday = dayKey <= todayKey;
           const dateString = format(dayDate, 'MMM dd, yyyy');
           const isSelected = selectedDate === dateString;
 
+          const daySlots = isSaturday ? saturdayTimeSlots : weekdayTimeSlots;
           const bookedSlotsForDay = bookedSchedule[dateString] || [];
-          const isFullyBooked = bookedSlotsForDay.length >= allSlots.length;
-          const isDisabled = isPastOrToday || isWeekend || isFullyBooked;
+          const isFullyBooked = bookedSlotsForDay.length >= daySlots.length;
+          const isDisabled = isPastOrToday || isSunday || isFullyBooked;
 
           return (
             <button
@@ -964,10 +988,12 @@ function CustomCalendar({
               title={
                 isFullyBooked
                   ? 'Fully booked — All appointment slots occupied for this date'
-                  : isWeekend
-                  ? 'Closed on Weekends'
+                  : isSunday
+                  ? 'Closed on Sundays (Staff Rest Day)'
                   : isPastOrToday
                   ? 'Past Date'
+                  : isSaturday
+                  ? 'Available (Saturday 9:00 AM – 3:00 PM)'
                   : 'Available for Booking'
               }
               className={`relative h-9 w-full rounded-xl text-[13px] font-bold transition-all flex items-center justify-center ${
@@ -998,7 +1024,7 @@ function CustomCalendar({
         </div>
         <div className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-slate-300" />
-          <span>Closed / Past</span>
+          <span>Closed (Sun) / Past</span>
         </div>
       </div>
     </div>
@@ -2366,60 +2392,79 @@ function Booking() {
                   </div>
 
                   <div>
-                    <label className="mb-2 flex items-center gap-1.5 text-[12.5px] font-bold text-slate-700">
-                      <Clock3 size={15} className="text-[#0d9488]" /> 1-Hour Time Slots (9:00 AM – 5:00 PM)
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      {timeSlots.map((slot, index) => {
-                        const isSelected = selectedTime === slot;
-                        const isBooked = (bookedSchedule[selectedDate] || []).includes(slot);
+                    {(() => {
+                      const isSelectedSaturday = selectedDate ? new Date(selectedDate).getDay() === 6 : false;
+                      const activeSlots = getTimeSlotsForDate(selectedDate);
 
-                        return (
-                          <button
-                            key={slot}
-                            type="button"
-                            disabled={isBooked}
-                            onClick={() => {
-                              if (isBooked) return;
-                              setSelectedTime(slot);
-                              setErrors((curr) => ({ ...curr, time: '' }));
-                            }}
-                            title={isBooked ? 'This time slot is already booked' : 'Available for appointment'}
-                            className={`flex flex-col justify-between rounded-xl p-3 text-left transition-all border ${
-                              isBooked
-                                ? 'border-dashed border-rose-200 bg-rose-50/40 text-slate-400 cursor-not-allowed opacity-75'
-                                : isSelected
-                                ? 'border-[#0d9488] bg-[#0d9488] text-white shadow-xs ring-2 ring-[#0d9488]/40 cursor-pointer'
-                                : 'border-slate-200 bg-slate-50/70 text-slate-700 hover:bg-slate-100 cursor-pointer'
-                            }`}
-                            data-testid={`radio-time-${index}`}
-                          >
-                            {isBooked ? (
-                              <div className="flex items-center justify-between w-full mb-1">
-                                <span className="text-[9px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded">
-                                  Booked
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-end w-full mb-1">
-                                <span
-                                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all ${
-                                    isSelected
-                                      ? 'border-white bg-white text-[#0d9488]'
-                                      : 'border-slate-300 bg-white'
-                                  }`}
-                                >
-                                  {isSelected && <Check size={10} strokeWidth={3} />}
-                                </span>
-                              </div>
+                      return (
+                        <>
+                          <div className="mb-2 flex items-center justify-between">
+                            <label className="flex items-center gap-1.5 text-[12.5px] font-bold text-slate-700">
+                              <Clock3 size={15} className="text-[#0d9488]" />
+                              {isSelectedSaturday
+                                ? 'Saturday Hours (9:00 AM – 3:00 PM)'
+                                : '1-Hour Time Slots (9:00 AM – 5:00 PM)'}
+                            </label>
+                            {isSelectedSaturday && (
+                              <span className="text-[10.5px] font-bold text-teal-800 bg-teal-50 border border-teal-200/80 px-2 py-0.5 rounded-full">
+                                Saturday (Until 3 PM)
+                              </span>
                             )}
-                            <span className={`text-[12.5px] font-bold tracking-tight ${isBooked ? 'line-through text-slate-400' : ''}`}>
-                              {slot}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            {activeSlots.map((slot, index) => {
+                              const isSelected = selectedTime === slot;
+                              const isBooked = (bookedSchedule[selectedDate] || []).includes(slot);
+
+                              return (
+                                <button
+                                  key={slot}
+                                  type="button"
+                                  disabled={isBooked}
+                                  onClick={() => {
+                                    if (isBooked) return;
+                                    setSelectedTime(slot);
+                                    setErrors((curr) => ({ ...curr, time: '' }));
+                                  }}
+                                  title={isBooked ? 'This time slot is already booked' : 'Available for appointment'}
+                                  className={`flex flex-col justify-between rounded-xl p-3 text-left transition-all border ${
+                                    isBooked
+                                      ? 'border-dashed border-rose-200 bg-rose-50/40 text-slate-400 cursor-not-allowed opacity-75'
+                                      : isSelected
+                                      ? 'border-[#0d9488] bg-[#0d9488] text-white shadow-xs ring-2 ring-[#0d9488]/40 cursor-pointer'
+                                      : 'border-slate-200 bg-slate-50/70 text-slate-700 hover:bg-slate-100 cursor-pointer'
+                                  }`}
+                                  data-testid={`radio-time-${index}`}
+                                >
+                                  {isBooked ? (
+                                    <div className="flex items-center justify-between w-full mb-1">
+                                      <span className="text-[9px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded">
+                                        Booked
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-end w-full mb-1">
+                                      <span
+                                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all ${
+                                          isSelected
+                                            ? 'border-white bg-white text-[#0d9488]'
+                                            : 'border-slate-300 bg-white'
+                                        }`}
+                                      >
+                                        {isSelected && <Check size={10} strokeWidth={3} />}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <span className={`text-[12.5px] font-bold tracking-tight ${isBooked ? 'line-through text-slate-400' : ''}`}>
+                                    {slot}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
+                      );
+                    })()}
                     {errors.time && (
                       <p className="mt-2 text-[11px] font-semibold text-rose-600">{errors.time}</p>
                     )}

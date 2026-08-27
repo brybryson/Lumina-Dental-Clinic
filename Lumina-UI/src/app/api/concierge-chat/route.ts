@@ -103,7 +103,7 @@ export async function POST(request: Request) {
             return NextResponse.json({
               status: 'success',
               bot_name: data.bot_name || 'Lumi',
-              reply: resText,
+              reply: cleanAndFormatAiReply(resText),
               matched_chunks: data.matched_chunks || 2,
               session_id: data.session_id || session_id,
             });
@@ -264,7 +264,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       status: 'success',
       bot_name: 'Lumi',
-      reply: fallbackReply,
+      reply: cleanAndFormatAiReply(fallbackReply),
       matched_chunks: 2,
       session_id: session_id || 'web-session',
     });
@@ -279,4 +279,106 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Parses markdown table strings into clean, structured bullet lists with bold keys.
+ */
+function convertMarkdownTableToBulletCards(text: string): string {
+  const lines = text.split('\n');
+  const resultLines: string[] = [];
+  let inTable = false;
+  let headers: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const isTableRow = line.startsWith('|') && line.endsWith('|');
+    const isDividerRow = isTableRow && /^\|(\s*:?-+:?\s*\|)+$/.test(line);
+
+    if (isTableRow) {
+      const cells = line
+        .slice(1, -1)
+        .split('|')
+        .map((c) => c.trim().replace(/<br\s*\/?>/gi, '\n'));
+
+      if (!inTable) {
+        // First row of table is header
+        inTable = true;
+        headers = cells.map((h) => h.replace(/\*/g, '').trim());
+        continue;
+      }
+
+      if (isDividerRow) {
+        // Skip separator row |---|---|
+        continue;
+      }
+
+      // Format data row
+      if (cells.length > 0 && cells.some((c) => c.length > 0)) {
+        const title = cells[0];
+        resultLines.push(`• **${title}**`);
+
+        for (let c = 1; c < cells.length; c++) {
+          const headerName = headers[c] || `Detail ${c}`;
+          const cellContent = cells[c];
+          if (!cellContent) continue;
+
+          // If cellContent has multiple lines / bullet items
+          const subLines = cellContent.split('\n').map((s) => s.trim()).filter(Boolean);
+          if (subLines.length === 1) {
+            resultLines.push(`  - **${headerName}:** ${subLines[0].replace(/^[•\-\*]\s*/, '')}`);
+          } else {
+            resultLines.push(`  - **${headerName}:**`);
+            subLines.forEach((sl) => {
+              resultLines.push(`    • ${sl.replace(/^[•\-\*]\s*/, '')}`);
+            });
+          }
+        }
+        resultLines.push(''); // Spacing between items
+      }
+    } else {
+      if (inTable) {
+        inTable = false;
+        headers = [];
+      }
+      resultLines.push(line);
+    }
+  }
+
+  return resultLines.join('\n');
+}
+
+/**
+ * Sanitizes and beautifies AI responses:
+ * - Converts raw HTML <br> into newlines
+ * - Strips wrapper angle brackets <[link](url)> -> [link](url)
+ * - Converts database-style markdown tables into sleek bullet lists
+ * - Removes markdown escape backslashes
+ */
+function cleanAndFormatAiReply(text: string): string {
+  if (!text) return '';
+
+  let formatted = text;
+
+  // 1. Convert <br>, <br/>, <br /> into newlines
+  formatted = formatted.replace(/<br\s*\/?>/gi, '\n');
+
+  // 2. Remove angle brackets wrapping markdown links: <[Text](url)> -> [Text](url)
+  formatted = formatted.replace(/<(\[[^\]]+\]\([^)]+\))>/g, '$1');
+
+  // 3. Remove angle brackets wrapping raw URLs: <https://...> -> https://...
+  formatted = formatted.replace(/<(https?:\/\/[^>]+)>/g, '$1');
+
+  // 4. Convert markdown tables to clean bulleted format if present
+  if (formatted.includes('|') && /\|[ \t]*[-:]+[-| :]*\|/.test(formatted)) {
+    formatted = convertMarkdownTableToBulletCards(formatted);
+  }
+
+  // 5. Clean escaped markdown asterisks \* -> *
+  formatted = formatted.replace(/\\\*/g, '*');
+
+  // 6. Clean multiple excessive blank lines
+  formatted = formatted.replace(/\n{3,}/g, '\n\n');
+
+  return formatted.trim();
 }
