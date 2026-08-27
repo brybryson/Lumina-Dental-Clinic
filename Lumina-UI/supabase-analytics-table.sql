@@ -25,6 +25,10 @@ CREATE INDEX IF NOT EXISTS idx_site_analytics_session_id ON public.site_analytic
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.site_analytics ENABLE ROW LEVEL SECURITY;
 
+-- Safely drop existing policies if re-running
+DROP POLICY IF EXISTS "Allow public insert to site_analytics" ON public.site_analytics;
+DROP POLICY IF EXISTS "Allow service role full read access to site_analytics" ON public.site_analytics;
+
 -- Allow anonymous public inserts from website visitors
 CREATE POLICY "Allow public insert to site_analytics"
     ON public.site_analytics
@@ -32,7 +36,7 @@ CREATE POLICY "Allow public insert to site_analytics"
     TO anon, authenticated
     WITH CHECK (true);
 
--- Allow service role full read access (for Super Admin dashboard)
+-- Allow service role full read access (for Super Admin dashboard queries)
 CREATE POLICY "Allow service role full read access to site_analytics"
     ON public.site_analytics
     FOR SELECT
