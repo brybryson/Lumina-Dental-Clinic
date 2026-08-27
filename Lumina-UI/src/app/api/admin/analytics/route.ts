@@ -2,21 +2,35 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 
+const SESSION_COOKIE_NAME = 'lumina_admin_session';
+
+function parseSessionToken(token: string) {
+  try {
+    const decoded = Buffer.from(token, 'base64').toString('utf-8');
+    const data = JSON.parse(decoded);
+    if (data && data.expiresAt && data.expiresAt > Date.now()) {
+      return data;
+    }
+    return data || null;
+  } catch {
+    try {
+      return JSON.parse(token);
+    } catch {
+      return null;
+    }
+  }
+}
+
 export async function GET() {
   try {
     const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get('lumina_staff_session');
+    const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME) || cookieStore.get('lumina_staff_session');
 
     if (!sessionCookie?.value) {
       return NextResponse.json({ error: 'Unauthorized: Session missing' }, { status: 401 });
     }
 
-    let session: { id?: string; role?: string; email?: string } | null = null;
-    try {
-      session = JSON.parse(sessionCookie.value);
-    } catch {
-      return NextResponse.json({ error: 'Invalid session cookie' }, { status: 401 });
-    }
+    const session = parseSessionToken(sessionCookie.value);
 
     // Strictly enforce Super Admin access only
     if (!session || session.role !== 'super_admin') {
@@ -45,7 +59,7 @@ export async function GET() {
         device_breakdown: { desktop: 0, mobile: 0 },
         recent_events: [],
         is_live: false,
-        error_message: 'Table site_analytics pending creation in Supabase SQL editor.',
+        error_message: error.message,
       });
     }
 
@@ -57,7 +71,7 @@ export async function GET() {
     const uniqueSessionIds = new Set(allEvents.map((e) => e.session_id));
     const uniqueVisitors = uniqueSessionIds.size;
 
-    // Real average duration
+    // Real average duration (from session_end or session_ping duration_seconds)
     const sessionsWithDuration = allEvents.filter((e) => e.duration_seconds && e.duration_seconds > 0);
     const totalDuration = sessionsWithDuration.reduce((acc, curr) => acc + (curr.duration_seconds || 0), 0);
     const avgDurationSeconds =
@@ -86,7 +100,7 @@ export async function GET() {
 
     // Real device breakdown
     const mobileCount = allEvents.filter((e) => e.device_type === 'mobile').length;
-    const desktopCount = allEvents.filter((e) => e.device_type === 'desktop').length;
+    const desktopCount = allEvents.filter((e) => e.device_type === 'desktop' || !e.device_type).length;
     const totalDevices = mobileCount + desktopCount;
 
     const desktopPercent = totalDevices > 0 ? Math.round((desktopCount / totalDevices) * 100) : 0;
