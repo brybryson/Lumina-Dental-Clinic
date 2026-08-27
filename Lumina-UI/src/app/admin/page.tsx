@@ -2123,51 +2123,6 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
             </div>
-
-            {/* Live Visitor Event Feed */}
-            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-lumina space-y-3.5">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-[#0d9488]" />
-                  <h3 className="font-bold text-[15px] text-[#0f172a]">Real-Time Event Stream</h3>
-                </div>
-                <span className="text-[11.5px] font-bold text-slate-400 uppercase tracking-wider">
-                  Latest Events ({analyticsData?.recent_events?.length || 0})
-                </span>
-              </div>
-
-              {analyticsData?.recent_events && analyticsData.recent_events.length > 0 ? (
-                <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden">
-                  {analyticsData.recent_events.slice(0, 10).map((evt: any, i: number) => (
-                    <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 bg-slate-50/50 hover:bg-slate-50 text-[12.5px] transition-colors">
-                      <div className="flex items-center gap-2.5">
-                        <span className={`px-2.5 py-0.5 rounded-md font-bold uppercase text-[10px] tracking-wider ${
-                          evt.event_type === 'click'
-                            ? 'bg-emerald-100/80 text-emerald-800 border border-emerald-200/60'
-                            : evt.event_type === 'session_end'
-                            ? 'bg-amber-100/80 text-amber-800 border border-amber-200/60'
-                            : 'bg-teal-100/80 text-teal-800 border border-teal-200/60'
-                        }`}>
-                          {evt.event_type === 'click' ? 'Click' : evt.event_type === 'session_end' ? 'Dwell' : 'View'}
-                        </span>
-                        <span className="font-bold text-slate-800">
-                          {evt.element_text || (evt.event_type === 'session_end' ? `Session Duration: ${evt.duration_seconds}s` : `Viewed ${evt.page_path}`)}
-                        </span>
-                        <span className="text-slate-400 font-mono text-[11px]">({evt.device_type || 'desktop'})</span>
-                      </div>
-                      <span className="text-slate-400 font-mono text-[11.5px] shrink-0">
-                        {new Date(evt.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-slate-400 text-[13px]">
-                  <p className="font-semibold text-slate-600">Waiting for live visitor traffic...</p>
-                  <p className="text-[12px] mt-0.5">As visitors open the site or click on features, events will stream here live.</p>
-                </div>
-              )}
-            </div>
           </div>
         )}
       </main>
